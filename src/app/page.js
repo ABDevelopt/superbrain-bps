@@ -290,13 +290,13 @@ export default function Dashboard() {
                 Jadwal Terdekat
               </h2>
             </div>
-            <div className={styles.quickCard} style={{marginBottom: '24px', padding: '16px'}}>
+            <div className={styles.scheduleCard}>
               {scheduleLoading ? (
-                <div style={{color: '#94a3b8', fontSize: '14px'}}>Memuat jadwal...</div>
+                <div className={styles.emptyStateText}>Memuat jadwal...</div>
               ) : upcomingSchedules.length === 0 ? (
-                <div style={{color: '#94a3b8', fontSize: '14px'}}>Tidak ada jadwal mendatang.</div>
+                <div className={styles.emptyStateText}>Tidak ada jadwal mendatang.</div>
               ) : (
-                <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                <div className={styles.eventList}>
                   {upcomingSchedules.map(ev => {
                     const d = new Date(ev.tanggal + 'T00:00:00');
                     const tgl = `${d.getDate()} ${BULAN[d.getMonth()].substring(0, 3)}`;
@@ -310,15 +310,17 @@ export default function Dashboard() {
                     };
                     const color = colorMap[ev.kategori] || '#38bdf8';
                     return (
-                      <div key={ev.id} style={{display: 'flex', gap: '12px', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '10px', borderLeft: `3px solid ${color}`}}>
-                         <div style={{minWidth: '55px', textAlign: 'center', background: 'rgba(0,0,0,0.2)', padding: '6px', borderRadius: '8px'}}>
-                           <div style={{fontSize: '11px', color: isToday ? '#38bdf8' : '#94a3b8', textTransform: 'uppercase', fontWeight: 'bold'}}>{isToday ? 'Hari Ini' : tgl}</div>
-                           <div style={{fontSize: '13px', fontWeight: 'bold', color: '#f1f5f9'}}>{ev.waktu || 'All Day'}</div>
+                      <div key={ev.id} className={styles.eventItem} style={{ borderLeftColor: color }}>
+                         <div className={styles.eventDateBlock}>
+                           <div className={styles.eventDateText} style={{ color: isToday ? '#38bdf8' : 'var(--text-muted)' }}>
+                             {isToday ? 'Hari Ini' : tgl}
+                           </div>
+                           <div className={styles.eventTimeText}>{ev.waktu || 'All Day'}</div>
                          </div>
-                         <div style={{flex: 1, minWidth: 0}}>
-                           <div style={{fontSize: '14px', fontWeight: '600', color: '#f8fafc', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>{ev.judul}</div>
-                           <div style={{fontSize: '12px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px'}}>
-                             <span style={{display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: color}}></span>
+                         <div className={styles.eventContentBlock}>
+                           <div className={styles.eventTitleText}>{ev.judul}</div>
+                           <div className={styles.eventCategoryText}>
+                             <span className={styles.eventCategoryDot} style={{ background: color }}></span>
                              {ev.kategori}
                            </div>
                          </div>

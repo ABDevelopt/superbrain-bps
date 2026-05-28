@@ -448,6 +448,102 @@
   gap: 24px;
 }
 
+/* ---- Schedule Card ---- */
+
+.scheduleCard {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.emptyStateText {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  padding: 8px 0;
+}
+
+.eventList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.eventItem {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--primary);
+  transition: background var(--transition-normal);
+}
+
+.eventItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.eventDateBlock {
+  min-width: 60px;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.eventDateText {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.eventTimeText {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-top: 2px;
+}
+
+.eventContentBlock {
+  flex: 1;
+  min-width: 0;
+}
+
+.eventTitleText {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eventCategoryText {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.eventCategoryDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
 .quickActions {
   display: flex;
   flex-direction: column;
@@ -607,8 +703,12 @@
   }
 }
 
-/* Mobile — 768px (Where sidebar collapses and mobile nav is active) */
+/* Mobile & Tablet Portrait — 768px (Where sidebar collapses and mobile nav is active) */
 @media (max-width: 768px) {
+  .main {
+    padding: 0 0 60px; /* Let AppShell handle the outer layout padding */
+  }
+
   .settingsMobileBtn {
     display: flex;
     align-items: center;
@@ -631,14 +731,35 @@
     border-color: rgba(255, 255, 255, 0.15);
     transform: translateY(-2px);
   }
+
+  /* Reset quickActions back to a vertical column list for mobile screen safety */
+  .quickActions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .quickBtn {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    height: auto;
+    text-align: left;
+    gap: 12px;
+  }
+
+  .quickBtnArrow {
+    display: block;
+  }
+
+  .quickBtnLabel {
+    font-size: 0.95rem;
+  }
 }
 
 /* Mobile — 640px */
 @media (max-width: 640px) {
-  .main {
-    padding: 24px 16px 80px;
-  }
-
   .greeting {
     font-size: 1.35rem;
   }
@@ -672,20 +793,36 @@
   }
 
   .activityCard,
+  .scheduleCard,
   .quickCard {
     padding: 16px;
   }
 
-  .quickActions {
+  /* Responsive styling for Schedule Items on mobile */
+  .eventItem {
+    padding: 10px;
     gap: 10px;
   }
 
+  .eventDateBlock {
+    min-width: 52px;
+    padding: 4px;
+  }
+
+  .eventTimeText {
+    font-size: 11px;
+  }
+
+  .eventTitleText {
+    font-size: 0.85rem;
+  }
+
   .quickBtn {
-    padding: 12px 6px;
+    padding: 14px 16px;
   }
 
   .quickBtnLabel {
-    font-size: 0.8rem;
+    font-size: 0.9rem;
   }
   
   /* Prevent horizontal overflow on long activity texts */
@@ -750,16 +887,32 @@
     font-size: 0.7rem;
   }
 
-  .quickActions {
-    gap: 8px;
+  .eventDateBlock {
+    min-width: 48px;
+  }
+
+  .eventDateText {
+    font-size: 8px;
+  }
+
+  .eventTimeText {
+    font-size: 10px;
+  }
+
+  .eventTitleText {
+    font-size: 0.8rem;
+  }
+
+  .eventCategoryText {
+    font-size: 0.7rem;
   }
 
   .quickBtn {
-    padding: 10px 4px;
+    padding: 12px 14px;
   }
 
   .quickBtnLabel {
-    font-size: 0.75rem;
+    font-size: 0.85rem;
   }
 }
 
