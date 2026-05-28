@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, ClipboardList, Map as MapIcon, Edit3, Calendar, Settings } from 'lucide-react';
+import { Home, ClipboardList, Map as MapIcon, Edit3, Calendar } from 'lucide-react';
 import styles from './MobileNav.module.css';
 
 const navItems = [
@@ -11,7 +11,6 @@ const navItems = [
   { href: '/ckp',      icon: <Edit3 size={20} />, label: 'CKP' },
   { href: '/skp',      icon: <ClipboardList size={20} />, label: 'SKP' },
   { href: '/mapping',  icon: <MapIcon size={20} />, label: 'Mapping' },
-  { href: '/settings', icon: <Settings size={20} />, label: 'Setelan' },
 ];
 
 export default function MobileNav() {
