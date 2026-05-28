@@ -152,6 +152,10 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
   const [isUploading, setIsUploading] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [cameraStream, setCameraStream] = useState(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [zoomCapabilities, setZoomCapabilities] = useState(null);
+  const [flashOn, setFlashOn] = useState(false);
+  const [flashSupported, setFlashSupported] = useState(false);
   const videoRef = useRef(null);
   const [form, setForm] = useState({
     tanggal: getTodayStr(),
@@ -257,9 +261,25 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         alert("Browser Anda tidak mendukung akses kamera langsung.");
         return;
       }
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
+        }
+      });
+      // Check zoom capability
+      const track = stream.getVideoTracks()[0];
+      if (track) {
+        const caps = track.getCapabilities ? track.getCapabilities() : {};
+        if (caps.zoom) setZoomCapabilities(caps.zoom);
+        if (caps.torch) setFlashSupported(true);
+      }
+      setZoomLevel(1);
+      setFlashOn(false);
       setCameraStream(stream);
       setShowCamera(true);
+      document.body.classList.add('camera-open');
     } catch (err) {
       alert("Gagal mengakses kamera. " + err.message);
     }
@@ -278,6 +298,31 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
     }
     setCameraStream(null);
     setShowCamera(false);
+    setZoomCapabilities(null);
+    setFlashOn(false);
+    setFlashSupported(false);
+    document.body.classList.remove('camera-open');
+  };
+
+  const handleZoomChange = async (val) => {
+    setZoomLevel(val);
+    if (cameraStream) {
+      const track = cameraStream.getVideoTracks()[0];
+      if (track && track.applyConstraints) {
+        try { await track.applyConstraints({ advanced: [{ zoom: val }] }); } catch (_) {}
+      }
+    }
+  };
+
+  const handleFlashToggle = async () => {
+    if (cameraStream) {
+      const track = cameraStream.getVideoTracks()[0];
+      const newState = !flashOn;
+      if (track && track.applyConstraints) {
+        try { await track.applyConstraints({ advanced: [{ torch: newState }] }); } catch (_) {}
+      }
+      setFlashOn(newState);
+    }
   };
 
   const handleSnap = () => {
@@ -467,9 +512,18 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         </div>
         
         {previewImage && (
-          <div style={{marginTop: '12px', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', background: '#000'}}>
-            <img src={previewImage} alt="Preview Geotag" style={{width: '100%', maxHeight: '300px', objectFit: 'contain', display: 'block'}} />
-            <div style={{padding: '8px', fontSize: '12px', color: '#10b981', textAlign: 'center', background: 'rgba(0,0,0,0.5)'}}>✓ Foto Geotag Siap Diunggah</div>
+          <div className={styles.cameraPreviewContainer}>
+            <img src={previewImage} alt="Preview Geotag" className={styles.cameraPreviewImg} />
+            <button
+              type="button"
+              className={styles.cameraPreviewRetake}
+              onClick={() => { setPreviewImage(null); setFile(null); }}
+            >
+              <Camera size={12} /> Ambil Ulang
+            </button>
+            <div className={styles.cameraPreviewLabel}>
+              <Check size={14} /> Foto Geotag siap diunggah
+            </div>
           </div>
         )}
       </div>
@@ -538,23 +592,79 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
 
       {/* Camera Modal */}
       {showCamera && (
-        <div style={{position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#000', zIndex: 9999, display: 'flex', flexDirection: 'column'}}>
-          <div style={{padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.5)', position: 'absolute', top: 0, width: '100%', zIndex: 10}}>
-            <div style={{color: 'white', fontWeight: 'bold'}}>Kamera Geotag</div>
-            <button type="button" onClick={closeCamera} style={{background: 'none', border: 'none', color: 'white'}}><X size={24} /></button>
+        <div className={styles.cameraOverlay}>
+          {/* Top bar */}
+          <div className={styles.cameraTopBar}>
+            <div className={styles.cameraTitle}>
+              <div className={styles.cameraTitleIcon}>
+                <Camera size={16} color="#fff" />
+              </div>
+              Kamera Geotag
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {flashSupported && (
+                <button
+                  type="button"
+                  onClick={handleFlashToggle}
+                  className={styles.cameraCloseBtn}
+                  title={flashOn ? 'Matikan Flash' : 'Nyalakan Flash'}
+                  style={{ background: flashOn ? 'rgba(251, 191, 36, 0.3)' : undefined }}
+                >
+                  <span style={{ fontSize: '18px' }}>{flashOn ? '⚡' : '🔦'}</span>
+                </button>
+              )}
+              <button type="button" onClick={closeCamera} className={styles.cameraCloseBtn}>
+                <X size={20} />
+              </button>
+            </div>
           </div>
-          <video 
-            ref={videoRef} 
-            autoPlay 
-            playsInline 
-            style={{flex: 1, width: '100%', height: '100%', objectFit: 'cover'}}
+
+          {/* Live video stream */}
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className={styles.cameraViewfinder}
           />
-          <div style={{position: 'absolute', bottom: 0, width: '100%', padding: '32px', display: 'flex', justifyContent: 'center', background: 'linear-gradient(transparent, rgba(0,0,0,0.8))'}}>
-            <button 
-              type="button" 
+
+          {/* Corner guide brackets */}
+          <div className={styles.cameraGuide}>
+            <div className={styles.cameraGuideInner}>
+              <div className={styles.cameraGuideCornerBR} />
+              <div className={styles.cameraGuideCornerBL} />
+            </div>
+          </div>
+
+          {/* Zoom slider */}
+          {zoomCapabilities && (
+            <div className={styles.cameraZoomBar}>
+              <span className={styles.cameraZoomLabel}>🔍 {zoomLevel.toFixed(1)}×</span>
+              <input
+                type="range"
+                min={zoomCapabilities.min || 1}
+                max={Math.min(zoomCapabilities.max || 5, 5)}
+                step={zoomCapabilities.step || 0.1}
+                value={zoomLevel}
+                onChange={e => handleZoomChange(parseFloat(e.target.value))}
+                className={styles.cameraZoomSlider}
+              />
+            </div>
+          )}
+
+          {/* Hint text */}
+          <div className={styles.cameraHint}>Tekan tombol bulat untuk mengambil foto</div>
+
+          {/* Bottom shutter controls */}
+          <div className={styles.cameraBottomBar}>
+            <button
+              type="button"
               onClick={handleSnap}
-              style={{width: '72px', height: '72px', borderRadius: '50%', background: 'white', border: '4px solid #cbd5e1', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.5)'}}
-            />
+              className={styles.cameraShutterOuter}
+              title="Ambil Foto"
+            >
+              <div className={styles.cameraShutterInner} />
+            </button>
           </div>
         </div>
       )}

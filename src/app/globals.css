@@ -633,3 +633,17 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--primary);
   color: white;
 }
+
+/* ============================================
+   Camera fullscreen — hide navigation
+   ============================================ */
+body.camera-open aside,
+body.camera-open nav {
+  display: none !important;
+}
+
+body.camera-open main {
+  margin-left: 0 !important;
+  padding-bottom: 0 !important;
+  width: 100% !important;
+}
