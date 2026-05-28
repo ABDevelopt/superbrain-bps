@@ -415,6 +415,85 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
     }
   };
 
+  const cameraModal = (showCamera && mounted) ? createPortal(
+    <div className={styles.cameraOverlay}>
+      {/* Top bar */}
+      <div className={styles.cameraTopBar}>
+        <div className={styles.cameraTitle}>
+          <div className={styles.cameraTitleIcon}>
+            <Camera size={16} color="#fff" />
+          </div>
+          Kamera Geotag
+        </div>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {flashSupported && (
+            <button
+              type="button"
+              onClick={handleFlashToggle}
+              className={styles.cameraCloseBtn}
+              title={flashOn ? 'Matikan Flash' : 'Nyalakan Flash'}
+              style={{ background: flashOn ? 'rgba(251, 191, 36, 0.3)' : undefined }}
+            >
+              <span style={{ fontSize: '18px' }}>{flashOn ? '⚡' : '🔦'}</span>
+            </button>
+          )}
+          <button type="button" onClick={closeCamera} className={styles.cameraCloseBtn}>
+            <X size={20} />
+          </button>
+        </div>
+      </div>
+
+      {/* Live video stream */}
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        className={styles.cameraViewfinder}
+      />
+
+      {/* Corner guide brackets */}
+      <div className={styles.cameraGuide}>
+        <div className={styles.cameraGuideInner}>
+          <div className={styles.cameraGuideCornerBR} />
+          <div className={styles.cameraGuideCornerBL} />
+        </div>
+      </div>
+
+      {/* Zoom slider */}
+      {zoomCapabilities && (
+        <div className={styles.cameraZoomBar}>
+          <span className={styles.cameraZoomLabel}>🔍 {zoomLevel.toFixed(1)}×</span>
+          <input
+            type="range"
+            min={zoomCapabilities.min || 1}
+            max={Math.min(zoomCapabilities.max || 5, 5)}
+            step={zoomCapabilities.step || 0.1}
+            value={zoomLevel}
+            onChange={e => handleZoomChange(parseFloat(e.target.value))}
+            className={styles.cameraZoomSlider}
+          />
+        </div>
+      )}
+
+      {/* Hint text */}
+      <div className={styles.cameraHint}>Tekan tombol bulat untuk mengambil foto</div>
+
+      {/* Bottom shutter controls */}
+      <div className={styles.cameraBottomBar}>
+        <button
+          type="button"
+          onClick={handleSnap}
+          className={styles.cameraShutterOuter}
+          title="Ambil Foto"
+        >
+          <div className={styles.cameraShutterInner} />
+        </button>
+      </div>
+    </div>,
+    document.body
+  ) : null;
+
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
       <div className={styles.formRow}>
@@ -596,83 +675,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
       </div>
 
       {/* Camera Modal */}
-      {showCamera && mounted && createPortal(
-        <div className={styles.cameraOverlay}>
-          {/* Top bar */}
-          <div className={styles.cameraTopBar}>
-            <div className={styles.cameraTitle}>
-              <div className={styles.cameraTitleIcon}>
-                <Camera size={16} color="#fff" />
-              </div>
-              Kamera Geotag
-            </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              {flashSupported && (
-                <button
-                  type="button"
-                  onClick={handleFlashToggle}
-                  className={styles.cameraCloseBtn}
-                  title={flashOn ? 'Matikan Flash' : 'Nyalakan Flash'}
-                  style={{ background: flashOn ? 'rgba(251, 191, 36, 0.3)' : undefined }}
-                >
-                  <span style={{ fontSize: '18px' }}>{flashOn ? '⚡' : '🔦'}</span>
-                </button>
-              )}
-              <button type="button" onClick={closeCamera} className={styles.cameraCloseBtn}>
-                <X size={20} />
-              </button>
-            </div>
-          </div>
-
-          {/* Live video stream */}
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className={styles.cameraViewfinder}
-          />
-
-          {/* Corner guide brackets */}
-          <div className={styles.cameraGuide}>
-            <div className={styles.cameraGuideInner}>
-              <div className={styles.cameraGuideCornerBR} />
-              <div className={styles.cameraGuideCornerBL} />
-            </div>
-          </div>
-
-          {/* Zoom slider */}
-          {zoomCapabilities && (
-            <div className={styles.cameraZoomBar}>
-              <span className={styles.cameraZoomLabel}>🔍 {zoomLevel.toFixed(1)}×</span>
-              <input
-                type="range"
-                min={zoomCapabilities.min || 1}
-                max={Math.min(zoomCapabilities.max || 5, 5)}
-                step={zoomCapabilities.step || 0.1}
-                value={zoomLevel}
-                onChange={e => handleZoomChange(parseFloat(e.target.value))}
-                className={styles.cameraZoomSlider}
-              />
-            </div>
-          )}
-
-          {/* Hint text */}
-          <div className={styles.cameraHint}>Tekan tombol bulat untuk mengambil foto</div>
-
-          {/* Bottom shutter controls */}
-          <div className={styles.cameraBottomBar}>
-            <button
-              type="button"
-              onClick={handleSnap}
-              className={styles.cameraShutterOuter}
-              title="Ambil Foto"
-            >
-              <div className={styles.cameraShutterInner} />
-            </button>
-          </div>
-        </div>
-      ), document.body)}
+      {cameraModal}
     </form>
   );
 }
