@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, BarChart2, Users, FileText, CheckCircle, File, ClipboardList, TrendingUp, Zap, Clock, History, Rocket, Send } from 'lucide-react';
+import { Calendar, BarChart2, Users, FileText, CheckCircle, File, ClipboardList, TrendingUp, Zap, Clock, History, Rocket, Send, Settings } from 'lucide-react';
+import Link from 'next/link';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFirestore } from '@/hooks/useFirestore';
@@ -182,7 +183,10 @@ export default function Dashboard() {
                 {tanggalFormatted}
               </p>
             </div>
-            <div className={styles.headerBadge}>
+            <div className={styles.headerActions}>
+              <Link href="/settings" className={styles.settingsMobileBtn} title="Pengaturan">
+                <Settings size={20} />
+              </Link>
               <div className={styles.avatarCircle}>
                 {user?.photoURL ? (
                   <img src={user.photoURL} alt="Avatar" style={{width: '100%', height: '100%', borderRadius: '50%'}} />
