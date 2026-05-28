@@ -907,7 +907,7 @@ function TabRekapBulanan({ entries }) {
             </tbody>
           </table>
         </div>
-      ), document.body)}
+      )}
 
       <button className={styles.exportBtn} onClick={handleExport}>
         <span><Download size={18} style={{marginRight: '8px'}} /></span> Export Rekap Bulanan
@@ -1073,7 +1073,7 @@ function TabRekapTriwulanan({ entries }) {
             </tbody>
           </table>
         </div>
-      ), document.body)}
+      )}
 
       <button className={styles.exportBtn} onClick={handleExport}>
         <span><Download size={18} style={{marginRight: '8px'}} /></span> Export Rekap Triwulanan
