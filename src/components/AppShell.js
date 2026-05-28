@@ -14,24 +14,24 @@ export default function AppShell({ children }) {
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  const isLoginPage = pathname === '/login';
+  const isPublicPage = pathname === '/login' || pathname === '/privacy' || pathname === '/terms';
 
   useEffect(() => {
-    if (!loading && !user && !isLoginPage) {
+    if (!loading && !user && !isPublicPage) {
       router.push('/login');
     }
-  }, [user, loading, isLoginPage, router]);
+  }, [user, loading, isPublicPage, router]);
 
   if (loading) {
     return <LoadingScreen />;
   }
 
-  // If on login page and not authenticated, just render children without shell
-  if (isLoginPage) {
+  // If on a public page (login, privacy, terms), render content directly without app shell
+  if (isPublicPage) {
     return <>{children}</>;
   }
 
-  // If not authenticated and not on login page, render nothing while redirecting
+  // If not authenticated and not on public page, render nothing while redirecting
   if (!user) {
     return null;
   }

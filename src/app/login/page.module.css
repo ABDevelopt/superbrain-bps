@@ -96,6 +96,29 @@
   line-height: 1.5;
 }
 
+.legalLinks {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.legalLink {
+  color: #818cf8;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.legalLink:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.legalDivider {
+  color: #475569;
+}
+
 .loadingContainer {
   min-height: 100vh;
   display: flex;

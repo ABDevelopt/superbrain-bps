@@ -3,6 +3,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import styles from './page.module.css';
 import { LogIn, AlertCircle } from 'lucide-react';
 import LoadingScreen from '@/components/LoadingScreen';
@@ -67,6 +68,12 @@ export default function LoginPage() {
         <p className={styles.footer}>
           Pastikan Anda sudah menyetujui izin Google Drive jika diminta, agar fitur unggah file dapat berfungsi.
         </p>
+
+        <div className={styles.legalLinks}>
+          <Link href="/privacy" className={styles.legalLink}>Kebijakan Privasi</Link>
+          <span className={styles.legalDivider}>&bull;</span>
+          <Link href="/terms" className={styles.legalLink}>Syarat & Ketentuan</Link>
+        </div>
       </div>
     </div>
   );
