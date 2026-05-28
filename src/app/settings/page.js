@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useAlert } from '@/contexts/AlertContext';
-import { Settings as SettingsIcon, Send, User, Bell, Shield } from 'lucide-react';
+import { Settings as SettingsIcon, Send, User, Bell, Shield, LogOut } from 'lucide-react';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { showAlert } = useAlert();
   const [chatId, setChatId] = useState('');
   const [savedChatId, setSavedChatId] = useState('');
@@ -153,6 +153,14 @@ export default function SettingsPage() {
           </div>
         </section>
 
+      </div>
+
+      {/* Logout Section - Mobile Only */}
+      <div className={styles.mobileLogoutSection}>
+        <button onClick={logout} className={styles.logoutBtn}>
+          <LogOut size={18} />
+          <span>Keluar Aplikasi</span>
+        </button>
       </div>
     </div>
   );
