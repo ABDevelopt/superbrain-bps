@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useAlert } from '@/contexts/AlertContext';
 import { Settings as SettingsIcon, Send, User, Bell, Shield } from 'lucide-react';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const { showAlert } = useAlert();
   const [chatId, setChatId] = useState('');
   const [savedChatId, setSavedChatId] = useState('');
   const [mounted, setMounted] = useState(false);
@@ -24,17 +26,17 @@ export default function SettingsPage() {
     if (chatId.trim()) {
       localStorage.setItem('telegramChatId', chatId.trim());
       setSavedChatId(chatId.trim());
-      alert('Chat ID berhasil disimpan! Notifikasi Telegram sudah aktif.');
+      showAlert('Chat ID berhasil disimpan! Notifikasi Telegram sudah aktif.');
     } else {
       localStorage.removeItem('telegramChatId');
       setSavedChatId('');
-      alert('Integrasi Telegram dimatikan.');
+      showAlert('Integrasi Telegram dimatikan.');
     }
   };
 
   const handleTestNotification = async () => {
     if (!savedChatId) {
-      alert('Silakan masukkan dan simpan Chat ID terlebih dahulu!');
+      showAlert('Silakan masukkan dan simpan Chat ID terlebih dahulu!');
       return;
     }
     try {
@@ -47,13 +49,13 @@ export default function SettingsPage() {
         }),
       });
       if (res.ok) {
-        alert('Pesan tes berhasil dikirim! Silakan cek Telegram Anda.');
+        showAlert('Pesan tes berhasil dikirim! Silakan cek Telegram Anda.');
       } else {
         const data = await res.json();
-        alert('Gagal mengirim pesan. Error: ' + (data.error || 'Unknown error'));
+        showAlert('Gagal mengirim pesan. Error: ' + (data.error || 'Unknown error'));
       }
     } catch (e) {
-      alert('Gagal mengirim pesan: ' + e.message);
+      showAlert('Gagal mengirim pesan: ' + e.message);
     }
   };
 

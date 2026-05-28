@@ -167,7 +167,7 @@ export default function SchedulePage() {
     try {
       await updateDocument(event.id, { isSelesai: !event.isSelesai });
     } catch (e) {
-      alert("Gagal memperbarui status: " + e.message);
+      showAlert("Gagal memperbarui status: " + e.message);
     }
   };
 
@@ -399,7 +399,7 @@ export default function SchedulePage() {
       setModalOpen(false);
       setEditingEvent(null);
     } catch (e) {
-      alert("Gagal memperbarui jadwal: " + e.message);
+      showAlert("Gagal memperbarui jadwal: " + e.message);
     }
   };
 
@@ -429,7 +429,7 @@ export default function SchedulePage() {
       setDetailModalOpen(false);
       setConfirmDeleteEvent(null);
     } catch (e) {
-      alert("Gagal menghapus jadwal: " + e.message);
+      showAlert("Gagal menghapus jadwal: " + e.message);
     }
   };
 

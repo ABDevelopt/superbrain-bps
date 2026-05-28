@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { useAlert } from '@/contexts/AlertContext';
 import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart } from 'lucide-react';
 import { skpData } from '@/data/skpData';
 import styles from './page.module.css';
@@ -145,6 +147,9 @@ function Toast({ message, visible, onClose }) {
 // TAB 1: Input Kegiatan
 function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
   const { accessToken } = useAuth();
+  const { showAlert } = useAlert();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const fileInputRef = useRef(null);
   const cameraRef = useRef(null);
   const [file, setFile] = useState(null);
@@ -258,7 +263,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
   const openCamera = async () => {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert("Browser Anda tidak mendukung akses kamera langsung.");
+        showAlert("Browser Anda tidak mendukung akses kamera langsung.");
         return;
       }
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -281,7 +286,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
       setShowCamera(true);
       document.body.classList.add('camera-open');
     } catch (err) {
-      alert("Gagal mengakses kamera. " + err.message);
+      showAlert("Gagal mengakses kamera. " + err.message);
     }
   };
 
@@ -341,14 +346,14 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
       if (!navigator.geolocation) {
         processImage(snapFile, null);
       } else {
-        alert("Foto diambil! Mendapatkan titik koordinat lokasi...");
+        showAlert("Foto diambil! Mendapatkan titik koordinat lokasi...");
         navigator.geolocation.getCurrentPosition(
           (position) => {
             const { latitude, longitude } = position.coords;
             processImage(snapFile, { lat: latitude, lon: longitude });
           },
           (error) => {
-            alert("Gagal mendapatkan lokasi. Foto akan disimpan tanpa koordinat.");
+            showAlert("Gagal mendapatkan lokasi. Foto akan disimpan tanpa koordinat.");
             processImage(snapFile, null);
           },
           { enableHighAccuracy: true, timeout: 10000 }
@@ -368,7 +373,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
       if (file && accessToken) {
         buktiDukungLink = await uploadFileToDrive(file, accessToken);
       } else if (file && !accessToken) {
-        alert('Anda belum memberikan izin akses Google Drive saat login.');
+        showAlert('Anda belum memberikan izin akses Google Drive saat login.');
         setIsUploading(false);
         return;
       }
@@ -404,7 +409,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
       if (cameraRef.current) cameraRef.current.value = '';
       if (initialData && onCancelEdit) onCancelEdit();
     } catch (err) {
-      alert('Terjadi kesalahan: ' + err.message);
+      showAlert('Terjadi kesalahan: ' + err.message);
     } finally {
       setIsUploading(false);
     }
@@ -591,7 +596,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
       </div>
 
       {/* Camera Modal */}
-      {showCamera && (
+      {showCamera && mounted && createPortal(
         <div className={styles.cameraOverlay}>
           {/* Top bar */}
           <div className={styles.cameraTopBar}>
@@ -667,7 +672,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
             </button>
           </div>
         </div>
-      )}
+      ), document.body)}
     </form>
   );
 }
@@ -807,7 +812,7 @@ function TabRekapBulanan({ entries }) {
     const monthEntries = entries.filter(e => e.tanggal && e.tanggal.startsWith(prefix));
     
     if (monthEntries.length === 0) {
-      alert('Tidak ada data untuk diekspor pada bulan ini.');
+      showAlert('Tidak ada data untuk diekspor pada bulan ini.');
       return;
     }
 
@@ -902,7 +907,7 @@ function TabRekapBulanan({ entries }) {
             </tbody>
           </table>
         </div>
-      )}
+      ), document.body)}
 
       <button className={styles.exportBtn} onClick={handleExport}>
         <span><Download size={18} style={{marginRight: '8px'}} /></span> Export Rekap Bulanan
@@ -958,7 +963,7 @@ function TabRekapTriwulanan({ entries }) {
     });
 
     if (qEntries.length === 0) {
-      alert('Tidak ada data untuk diekspor pada triwulan ini.');
+      showAlert('Tidak ada data untuk diekspor pada triwulan ini.');
       return;
     }
 
@@ -1068,7 +1073,7 @@ function TabRekapTriwulanan({ entries }) {
             </tbody>
           </table>
         </div>
-      )}
+      ), document.body)}
 
       <button className={styles.exportBtn} onClick={handleExport}>
         <span><Download size={18} style={{marginRight: '8px'}} /></span> Export Rekap Triwulanan
@@ -1103,7 +1108,7 @@ export default function CKPPage() {
       await deleteDocument(confirmDeleteId);
       setConfirmDeleteId(null);
     } catch (e) {
-      alert('Gagal menghapus kegiatan: ' + e.message);
+      showAlert('Gagal menghapus kegiatan: ' + e.message);
     }
   };
 
@@ -1114,7 +1119,7 @@ export default function CKPPage() {
       setEditingEntry(null);
       setActiveTab(1); // switch to rekap tab
     } catch (e) {
-      alert('Gagal memperbarui kegiatan: ' + e.message);
+      showAlert('Gagal memperbarui kegiatan: ' + e.message);
     }
   };
 

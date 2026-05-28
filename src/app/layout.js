@@ -1,6 +1,7 @@
 import './globals.css';
 import AppShell from '@/components/AppShell';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { AlertProvider } from '@/contexts/AlertContext';
 
 export const viewport = {
   width: 'device-width',
@@ -28,7 +29,9 @@ export default function RootLayout({ children }) {
     <html lang="id">
       <body>
         <AuthProvider>
-          <AppShell>{children}</AppShell>
+          <AlertProvider>
+            <AppShell>{children}</AppShell>
+          </AlertProvider>
         </AuthProvider>
       </body>
     </html>
