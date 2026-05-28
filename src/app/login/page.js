@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import styles from './page.module.css';
 import { LogIn, AlertCircle } from 'lucide-react';
+import LoadingScreen from '@/components/LoadingScreen';
 
 export default function LoginPage() {
   const { user, loading, loginWithGoogle } = useAuth();
@@ -31,12 +32,7 @@ export default function LoginPage() {
   };
 
   if (loading || user) {
-    return (
-      <div className={styles.loadingContainer}>
-        <div className={styles.spinner}></div>
-        <p>Memuat...</p>
-      </div>
-    );
+    return <LoadingScreen message="Menyiapkan Sesi..." />;
   }
 
   return (

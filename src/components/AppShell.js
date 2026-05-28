@@ -6,6 +6,7 @@ import styles from './AppShell.module.css';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import LoadingScreen from './LoadingScreen';
 
 export default function AppShell({ children }) {
   const { user, loading } = useAuth();
@@ -22,7 +23,7 @@ export default function AppShell({ children }) {
   }, [user, loading, isLoginPage, router]);
 
   if (loading) {
-    return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Memuat...</div>;
+    return <LoadingScreen />;
   }
 
   // If on login page and not authenticated, just render children without shell
