@@ -297,13 +297,33 @@
   font-weight: 400;
 }
 
-/* ---- Bottom Grid (Activity + Quick Actions) ---- */
+/* ---- Main Content Grid ---- */
 
-.bottomGrid {
+.contentGrid {
   display: grid;
   grid-template-columns: 1.5fr 1fr;
   gap: 24px;
+  grid-template-areas: 
+    "activity schedule"
+    "activity actions"
+    "activity quote";
   animation: fadeInUp 0.7s ease 0.2s both;
+}
+
+.activitySection {
+  grid-area: activity;
+}
+
+.scheduleSection {
+  grid-area: schedule;
+}
+
+.actionsSection {
+  grid-area: actions;
+}
+
+.quoteSection {
+  grid-area: quote;
 }
 
 /* ---- Section Headers ---- */
@@ -672,8 +692,13 @@
     font-size: 1.9rem;
   }
 
-  .bottomGrid {
+  .contentGrid {
     grid-template-columns: 1fr;
+    grid-template-areas: 
+      "actions"
+      "schedule"
+      "activity"
+      "quote";
     gap: 24px;
   }
 

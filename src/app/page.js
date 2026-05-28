@@ -221,8 +221,82 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Two Column Layout: Activity + Quick Actions */}
-        <div className={styles.bottomGrid}>
+        {/* Main Content Grid */}
+        <div className={styles.contentGrid}>
+          {/* Quick Actions (Aksi Cepat) */}
+          <section className={styles.actionsSection}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>
+                <span className={styles.sectionIcon}><Rocket size={20} /></span>
+                Aksi Cepat
+              </h2>
+            </div>
+            <div className={styles.quickCard}>
+              <div className={styles.quickActions}>
+                {QUICK_ACTIONS.map((action) => (
+                  <Link
+                    key={action.id}
+                    href={action.href}
+                    className={`${styles.quickBtn} ${styles[`btn_${action.warna}`]}`}
+                  >
+                    <span className={styles.quickBtnLabel}>{action.label}</span>
+                    <span className={styles.quickBtnArrow}>→</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Jadwal Terdekat */}
+          <section className={styles.scheduleSection}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>
+                <span className={styles.sectionIcon}><Calendar size={20} /></span>
+                Jadwal Terdekat
+              </h2>
+            </div>
+            <div className={styles.scheduleCard}>
+              {scheduleLoading ? (
+                <div className={styles.emptyStateText}>Memuat jadwal...</div>
+              ) : upcomingSchedules.length === 0 ? (
+                <div className={styles.emptyStateText}>Tidak ada jadwal mendatang.</div>
+              ) : (
+                <div className={styles.eventList}>
+                  {upcomingSchedules.map(ev => {
+                    const d = new Date(ev.tanggal + 'T00:00:00');
+                    const tgl = `${d.getDate()} ${BULAN[d.getMonth()].substring(0, 3)}`;
+                    const isToday = ev.tanggal === todayYMD;
+                    const colorMap = {
+                      Deadline: '#ef4444',
+                      Rapat: '#6366f1',
+                      Survei: '#10b981',
+                      Pelatihan: '#f59e0b',
+                      Lainnya: '#22d3ee'
+                    };
+                    const color = colorMap[ev.kategori] || '#38bdf8';
+                    return (
+                      <div key={ev.id} className={styles.eventItem} style={{ borderLeftColor: color }}>
+                         <div className={styles.eventDateBlock}>
+                           <div className={styles.eventDateText} style={{ color: isToday ? '#38bdf8' : 'var(--text-muted)' }}>
+                             {isToday ? 'Hari Ini' : tgl}
+                           </div>
+                           <div className={styles.eventTimeText}>{ev.waktu || 'All Day'}</div>
+                         </div>
+                         <div className={styles.eventContentBlock}>
+                           <div className={styles.eventTitleText}>{ev.judul}</div>
+                           <div className={styles.eventCategoryText}>
+                             <span className={styles.eventCategoryDot} style={{ background: color }}></span>
+                             {ev.kategori}
+                           </div>
+                         </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </section>
+
           {/* Recent Activity */}
           <section className={styles.activitySection}>
             <div className={styles.sectionHeader}>
@@ -281,79 +355,8 @@ export default function Dashboard() {
             </div>
           </section>
 
-          {/* Right Column */}
-          <section className={styles.quickSection}>
-            {/* Jadwal Terdekat */}
-            <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}><Calendar size={20} /></span>
-                Jadwal Terdekat
-              </h2>
-            </div>
-            <div className={styles.scheduleCard}>
-              {scheduleLoading ? (
-                <div className={styles.emptyStateText}>Memuat jadwal...</div>
-              ) : upcomingSchedules.length === 0 ? (
-                <div className={styles.emptyStateText}>Tidak ada jadwal mendatang.</div>
-              ) : (
-                <div className={styles.eventList}>
-                  {upcomingSchedules.map(ev => {
-                    const d = new Date(ev.tanggal + 'T00:00:00');
-                    const tgl = `${d.getDate()} ${BULAN[d.getMonth()].substring(0, 3)}`;
-                    const isToday = ev.tanggal === todayYMD;
-                    const colorMap = {
-                      Deadline: '#ef4444',
-                      Rapat: '#6366f1',
-                      Survei: '#10b981',
-                      Pelatihan: '#f59e0b',
-                      Lainnya: '#22d3ee'
-                    };
-                    const color = colorMap[ev.kategori] || '#38bdf8';
-                    return (
-                      <div key={ev.id} className={styles.eventItem} style={{ borderLeftColor: color }}>
-                         <div className={styles.eventDateBlock}>
-                           <div className={styles.eventDateText} style={{ color: isToday ? '#38bdf8' : 'var(--text-muted)' }}>
-                             {isToday ? 'Hari Ini' : tgl}
-                           </div>
-                           <div className={styles.eventTimeText}>{ev.waktu || 'All Day'}</div>
-                         </div>
-                         <div className={styles.eventContentBlock}>
-                           <div className={styles.eventTitleText}>{ev.judul}</div>
-                           <div className={styles.eventCategoryText}>
-                             <span className={styles.eventCategoryDot} style={{ background: color }}></span>
-                             {ev.kategori}
-                           </div>
-                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Quick Actions */}
-            <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}><Rocket size={20} /></span>
-                Aksi Cepat
-              </h2>
-            </div>
-            <div className={styles.quickCard}>
-              <div className={styles.quickActions}>
-                {QUICK_ACTIONS.map((action) => (
-                  <a
-                    key={action.id}
-                    href={action.href}
-                    className={`${styles.quickBtn} ${styles[`btn_${action.warna}`]}`}
-                  >
-                    <span className={styles.quickBtnLabel}>{action.label}</span>
-                    <span className={styles.quickBtnArrow}>→</span>
-                  </a>
-                ))}
-              </div>
-            </div>
-
-            {/* Motivational quote */}
+          {/* Motivational quote */}
+          <section className={styles.quoteSection}>
             <div className={styles.quoteBox}>
               <p className={styles.quoteText}>
                 &ldquo;Data yang akurat adalah fondasi kebijakan yang tepat.&rdquo;
