@@ -695,8 +695,8 @@
   .contentGrid {
     grid-template-columns: 1fr;
     grid-template-areas: 
-      "actions"
       "schedule"
+      "actions"
       "activity"
       "quote";
     gap: 24px;
