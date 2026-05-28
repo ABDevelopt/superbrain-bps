@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 import LoadingScreen from './LoadingScreen';
 
 export default function AppShell({ children }) {
-  const { user, loading } = useAuth();
+  const { user, loading, accessToken } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -17,10 +17,12 @@ export default function AppShell({ children }) {
   const isPublicPage = pathname === '/login' || pathname === '/privacy' || pathname === '/terms';
 
   useEffect(() => {
-    if (!loading && !user && !isPublicPage) {
-      router.push('/login');
+    if (!loading && !isPublicPage) {
+      if (!user || !accessToken) {
+        router.push('/login');
+      }
     }
-  }, [user, loading, isPublicPage, router]);
+  }, [user, loading, accessToken, isPublicPage, router]);
 
   if (loading) {
     return <LoadingScreen />;

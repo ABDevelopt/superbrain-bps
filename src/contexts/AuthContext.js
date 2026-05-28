@@ -15,6 +15,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [accessToken, setAccessToken] = useState(null);
+  const [tokenLoaded, setTokenLoaded] = useState(false);
 
   // Retrieve persisted token on mount
   useEffect(() => {
@@ -23,10 +24,13 @@ export function AuthProvider({ children }) {
       if (storedToken) {
         setAccessToken(storedToken);
       }
+      setTokenLoaded(true);
     }
   }, []);
 
   useEffect(() => {
+    if (!tokenLoaded) return;
+
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
@@ -41,7 +45,7 @@ export function AuthProvider({ children }) {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [tokenLoaded]);
 
   const loginWithGoogle = async () => {
     try {

@@ -9,16 +9,16 @@ import { LogIn, AlertCircle } from 'lucide-react';
 import LoadingScreen from '@/components/LoadingScreen';
 
 export default function LoginPage() {
-  const { user, loading, loginWithGoogle } = useAuth();
+  const { user, loading, accessToken, loginWithGoogle } = useAuth();
   const router = useRouter();
   const [error, setError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   useEffect(() => {
-    if (user && !loading) {
+    if (user && !loading && accessToken) {
       router.push('/');
     }
-  }, [user, loading, router]);
+  }, [user, loading, accessToken, router]);
 
   const handleLogin = async () => {
     setError('');
