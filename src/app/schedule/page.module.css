@@ -20,6 +20,12 @@
   flex-wrap: wrap;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .headerLeft {
   flex: 1;
 }
@@ -369,8 +375,8 @@
 
 /* ===== Sidebar ===== */
 .sidebar {
-  width: 320px;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -683,25 +689,37 @@
 @media (max-width: 900px) {
   .layout {
     flex-direction: column;
+    gap: 20px;
+  }
+
+  .calendarSection {
+    width: 100%;
+  }
+
+  .calendarCard {
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .sidebar {
     width: 100%;
     position: static;
-    flex-direction: row;
-    flex-wrap: wrap;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
   }
 
-  .sidebarTitle {
-    width: 100%;
-  }
-
-  .upcomingList {
-    width: 100%;
-  }
-
+  .selectedDateSection,
+  .upcomingList,
   .legend {
     width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .weeklyHeaderRow,
+  .weeklyBody {
+    min-width: 700px;
   }
 }
 
@@ -715,20 +733,47 @@
   }
 
   .calendarCard {
-    padding: 16px;
+    padding: 12px;
   }
 
   .calendarHeader {
-    flex-wrap: wrap;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     gap: 8px;
+  }
+
+  .monthLabel {
+    justify-content: flex-start;
+    flex: 1;
+  }
+
+  .monthName {
+    font-size: 16px;
+  }
+
+  .yearLabel {
+    font-size: 14px;
+  }
+
+  .navBtn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .todayBtn {
+    padding: 6px 10px;
+    font-size: 11px;
   }
 
   .dayHeader {
     font-size: 10px;
+    padding: 6px 0;
   }
 
   .dayCell {
     border-radius: 6px;
+    padding: 2px;
   }
 
   .dayNumber {
@@ -742,20 +787,39 @@
 
   .formRow {
     flex-direction: column;
+    gap: 12px;
   }
 
   .header {
     flex-direction: column;
     align-items: stretch;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .headerActions {
+    width: 100%;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .viewToggle {
+    flex: 1;
+    display: flex;
+  }
+
+  .viewBtn {
+    flex: 1;
+    text-align: center;
+    padding: 8px 4px;
+    font-size: 12px;
   }
 
   .addBtn {
-    width: 100%;
+    flex: 1;
     justify-content: center;
-  }
-
-  .monthName {
-    font-size: 16px;
+    padding: 10px 14px;
+    font-size: 12px;
   }
 
   .modal {
@@ -808,7 +872,17 @@
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.weeklyWrapper::-webkit-scrollbar {
+  height: 6px;
+}
+
+.weeklyWrapper::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
 }
 
 .weeklyHeaderRow {

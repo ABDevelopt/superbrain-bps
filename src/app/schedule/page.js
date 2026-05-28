@@ -472,7 +472,7 @@ export default function SchedulePage() {
             Kelola deadline, rapat, dan sinkronisasi otomatis ke Google Calendar
           </p>
         </div>
-        <div style={{display: 'flex', gap: '12px', alignItems: 'center'}}>
+        <div className={styles.headerActions}>
           <div className={styles.viewToggle}>
             <button className={`${styles.viewBtn} ${viewMode === 'month' ? styles.viewBtnActive : ''}`} onClick={() => setViewMode('month')}>Bulan</button>
             <button className={`${styles.viewBtn} ${viewMode === 'week' ? styles.viewBtnActive : ''}`} onClick={() => setViewMode('week')}>Minggu</button>
@@ -653,7 +653,7 @@ export default function SchedulePage() {
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button onClick={() => handleEdit(selectedEventForDetail)} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: '4px' }} title="Edit"><Edit3 size={18} /></button>
                 <button onClick={() => handleDelete(selectedEventForDetail)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }} title="Hapus"><Trash2 size={18} /></button>
-                <button className={styles.closeBtn} onClick={() => setDetailModalOpen(false)}><X size={20} /></button>
+                <button className={styles.modalClose} onClick={() => setDetailModalOpen(false)}><X size={20} /></button>
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', color: '#e2e8f0', fontSize: '14px', padding: '0 24px 24px 24px' }}>
