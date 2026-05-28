@@ -1062,6 +1062,85 @@
   background: rgba(239, 68, 68, 0.6);
 }
 
+.lensPill {
+  position: absolute;
+  bottom: 110px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 24px;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  z-index: 10;
+}
+
+.lensBtn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lensBtnActive {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.cameraPreviewActions {
+  display: flex;
+  width: 100%;
+  gap: 20px;
+  justify-content: center;
+  align-items: center;
+}
+
+.cameraActionBtn {
+  flex: 1;
+  max-width: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 20px;
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.cameraActionCancel {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.cameraActionCancel:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.cameraActionConfirm {
+  background: var(--primary, #6366f1);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.cameraActionConfirm:hover {
+  background: var(--primary-light, #818cf8);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+}
+
 @media (max-width: 480px) {
   .cameraShutterOuter {
     width: 70px;

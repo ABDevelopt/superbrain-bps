@@ -162,6 +162,10 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
   const [flashOn, setFlashOn] = useState(false);
   const [flashSupported, setFlashSupported] = useState(false);
   const [useFrontCamera, setUseFrontCamera] = useState(false);
+  const [capturedPhotoUrl, setCapturedPhotoUrl] = useState(null);
+  const [capturedBlob, setCapturedBlob] = useState(null);
+  const [coordsCache, setCoordsCache] = useState(null);
+  const [cameraLens, setCameraLens] = useState('1x');
   const videoRef = useRef(null);
   const [form, setForm] = useState({
     tanggal: getTodayStr(),
@@ -261,7 +265,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
     reader.readAsDataURL(imageFile);
   };
 
-  const initCamera = async (isFront) => {
+  const initCamera = async (isFront, lens) => {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         showAlert("Browser Anda tidak mendukung akses kamera langsung.");
@@ -316,31 +320,43 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
             });
 
             if (backCameras.length > 0) {
-              // Attempt to find the primary/main camera (1x)
-              // Exclude wide/ultra-wide/tele/macro/0.5/0.6 indicators if possible
-              let mainCamera = backCameras.find(d => {
-                const label = d.label.toLowerCase();
-                return (label.includes('main') || label.includes('utama') || label.includes('primary') || label.includes('0')) &&
-                       !label.includes('ultra') && !label.includes('tele') && !label.includes('macro') && !label.includes('0.5') && !label.includes('wide-angle');
-              });
-
-              // First Fallback: Avoid wide/macro/0.5/ultra but match general back camera
-              if (!mainCamera) {
-                mainCamera = backCameras.find(d => {
+              let targetDevice = null;
+              
+              if (lens === '0.5x') {
+                // Look for Ultra-Wide (0.5x) camera
+                targetDevice = backCameras.find(d => {
                   const label = d.label.toLowerCase();
-                  return !label.includes('ultra') && !label.includes('tele') && !label.includes('macro') && !label.includes('0.5');
+                  return label.includes('ultra') || label.includes('wide-angle') || label.includes('0.5') || label.includes('0.6') || label.includes('2') || label.includes('3') || label.includes('aux');
                 });
+                
+                // Fallback: second back camera is usually ultra-wide
+                if (!targetDevice && backCameras.length > 1) {
+                  targetDevice = backCameras[1];
+                }
+              } else {
+                // Look for Main (1x) camera
+                targetDevice = backCameras.find(d => {
+                  const label = d.label.toLowerCase();
+                  return (label.includes('main') || label.includes('utama') || label.includes('primary') || label.includes('0')) &&
+                         !label.includes('ultra') && !label.includes('tele') && !label.includes('macro') && !label.includes('0.5') && !label.includes('wide-angle');
+                });
+                
+                if (!targetDevice) {
+                  targetDevice = backCameras.find(d => {
+                    const label = d.label.toLowerCase();
+                    return !label.includes('ultra') && !label.includes('tele') && !label.includes('macro') && !label.includes('0.5');
+                  });
+                }
               }
 
-              // Second Fallback: Use the first back camera in the list
-              if (!mainCamera) {
-                mainCamera = backCameras[0];
+              if (!targetDevice) {
+                targetDevice = backCameras[0];
               }
 
-              if (mainCamera && mainCamera.deviceId) {
+              if (targetDevice && targetDevice.deviceId) {
                 constraints = {
                   video: {
-                    deviceId: { exact: mainCamera.deviceId },
+                    deviceId: { exact: targetDevice.deviceId },
                     width: { ideal: 1920 },
                     height: { ideal: 1080 },
                   }
@@ -402,25 +418,59 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
 
   const openCamera = async () => {
     setUseFrontCamera(false);
-    await initCamera(false);
+    setCameraLens('1x');
+    setCapturedPhotoUrl(null);
+    setCapturedBlob(null);
+    setCoordsCache(null);
+
+    // Speed Optimization: Pre-fetch geolocation in background as soon as camera is opened
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const coords = { lat: position.coords.latitude, lon: position.coords.longitude };
+          setCoordsCache(coords);
+        },
+        (error) => {
+          console.warn("Location pre-fetch failed:", error);
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    }
+
+    await initCamera(false, '1x');
   };
 
   const handleCameraSwitch = async () => {
     const nextFacing = !useFrontCamera;
     setUseFrontCamera(nextFacing);
+    setCameraLens('1x');
+    setCapturedPhotoUrl(null);
+    setCapturedBlob(null);
     if (cameraStream) {
       cameraStream.getTracks().forEach(track => track.stop());
     }
     setCameraStream(null);
-    await initCamera(nextFacing);
+    await initCamera(nextFacing, '1x');
+  };
+
+  const handleLensSwitch = async (lens) => {
+    if (lens === cameraLens) return;
+    setCameraLens(lens);
+    setCapturedPhotoUrl(null);
+    setCapturedBlob(null);
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+    }
+    setCameraStream(null);
+    await initCamera(false, lens);
   };
 
   useEffect(() => {
-    if (showCamera && videoRef.current && cameraStream) {
+    if (showCamera && videoRef.current && cameraStream && !capturedPhotoUrl) {
       videoRef.current.srcObject = cameraStream;
       videoRef.current.play().catch(e => console.error("Video play error", e));
     }
-  }, [showCamera, cameraStream]);
+  }, [showCamera, cameraStream, capturedPhotoUrl]);
 
   const closeCamera = () => {
     if (cameraStream) {
@@ -432,6 +482,10 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
     setFlashOn(false);
     setFlashSupported(false);
     setUseFrontCamera(false);
+    setCameraLens('1x');
+    setCapturedPhotoUrl(null);
+    setCapturedBlob(null);
+    setCoordsCache(null);
     document.body.classList.remove('camera-open');
   };
 
@@ -463,29 +517,57 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
     vCanvas.width = videoRef.current.videoWidth;
     vCanvas.height = videoRef.current.videoHeight;
     const vCtx = vCanvas.getContext('2d');
+    
+    // Draw current frame
     vCtx.drawImage(videoRef.current, 0, 0);
     
+    // Freeze viewfinder by setting capture preview
     vCanvas.toBlob((blob) => {
-      const snapFile = new File([blob], `snap_${Date.now()}.jpg`, { type: 'image/jpeg' });
+      const url = URL.createObjectURL(blob);
+      setCapturedBlob(blob);
+      setCapturedPhotoUrl(url);
+    }, 'image/jpeg', 0.95);
+  };
+
+  const handleRetakePhoto = () => {
+    if (capturedPhotoUrl) {
+      URL.revokeObjectURL(capturedPhotoUrl);
+    }
+    setCapturedPhotoUrl(null);
+    setCapturedBlob(null);
+  };
+
+  const handleConfirmPhoto = () => {
+    if (!capturedBlob) return;
+    
+    const snapFile = new File([capturedBlob], `snap_${Date.now()}.jpg`, { type: 'image/jpeg' });
+    
+    // Geolocation Speed Optimization: Check if pre-fetched coords are ready
+    if (coordsCache) {
       closeCamera();
-      
+      processImage(snapFile, coordsCache);
+    } else {
+      // Fallback if not pre-fetched in time
+      showAlert("Mendapatkan lokasi gps...");
       if (!navigator.geolocation) {
+        closeCamera();
         processImage(snapFile, null);
       } else {
-        showAlert("Foto diambil! Mendapatkan titik koordinat lokasi...");
         navigator.geolocation.getCurrentPosition(
           (position) => {
-            const { latitude, longitude } = position.coords;
-            processImage(snapFile, { lat: latitude, lon: longitude });
+            const coords = { lat: position.coords.latitude, lon: position.coords.longitude };
+            closeCamera();
+            processImage(snapFile, coords);
           },
           (error) => {
-            showAlert("Gagal mendapatkan lokasi. Foto akan disimpan tanpa koordinat.");
+            showAlert("Gagal mendapatkan lokasi. Foto disimpan tanpa koordinat.");
+            closeCamera();
             processImage(snapFile, null);
           },
-          { enableHighAccuracy: true, timeout: 10000 }
+          { enableHighAccuracy: true, timeout: 5000 }
         );
       }
-    }, 'image/jpeg', 0.9);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -552,7 +634,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
           Kamera Geotag
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          {flashSupported && (
+          {!capturedPhotoUrl && flashSupported && (
             <button
               type="button"
               onClick={handleFlashToggle}
@@ -563,28 +645,39 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
               {flashOn ? <Zap size={18} color="#fbbf24" fill="#fbbf24" /> : <ZapOff size={18} />}
             </button>
           )}
-          <button
-            type="button"
-            onClick={handleCameraSwitch}
-            className={styles.cameraCloseBtn}
-            title="Ganti Kamera"
-          >
-            <RefreshCw size={18} />
-          </button>
+          {!capturedPhotoUrl && (
+            <button
+              type="button"
+              onClick={handleCameraSwitch}
+              className={styles.cameraCloseBtn}
+              title="Ganti Kamera"
+            >
+              <RefreshCw size={18} />
+            </button>
+          )}
           <button type="button" onClick={closeCamera} className={styles.cameraCloseBtn}>
             <X size={20} />
           </button>
         </div>
       </div>
 
-      {/* Live video stream */}
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        className={styles.cameraViewfinder}
-      />
+      {/* Viewfinder/Stream or Captured Preview */}
+      {capturedPhotoUrl ? (
+        <img
+          src={capturedPhotoUrl}
+          alt="Preview Jepretan"
+          className={styles.cameraViewfinder}
+          style={{ objectFit: 'cover' }}
+        />
+      ) : (
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className={styles.cameraViewfinder}
+        />
+      )}
 
       {/* Corner guide brackets */}
       <div className={styles.cameraGuide}>
@@ -594,8 +687,28 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         </div>
       </div>
 
-      {/* Zoom slider */}
-      {zoomCapabilities && (
+      {/* 0.5x vs 1x Lens Switcher (Back camera only, when not in preview mode) */}
+      {!useFrontCamera && !capturedPhotoUrl && (
+        <div className={styles.lensPill}>
+          <button
+            type="button"
+            className={`${styles.lensBtn} ${cameraLens === '0.5x' ? styles.lensBtnActive : ''}`}
+            onClick={() => handleLensSwitch('0.5x')}
+          >
+            0.5
+          </button>
+          <button
+            type="button"
+            className={`${styles.lensBtn} ${cameraLens === '1x' ? styles.lensBtnActive : ''}`}
+            onClick={() => handleLensSwitch('1x')}
+          >
+            1.0
+          </button>
+        </div>
+      )}
+
+      {/* Zoom slider (Only when live and zoom supported) */}
+      {!capturedPhotoUrl && zoomCapabilities && (
         <div className={styles.cameraZoomBar}>
           <span className={styles.cameraZoomLabel}>
             <ZoomIn size={14} style={{ marginRight: '4px' }} /> {zoomLevel.toFixed(1)}×
@@ -613,18 +726,39 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
       )}
 
       {/* Hint text */}
-      <div className={styles.cameraHint}>Tekan tombol bulat untuk mengambil foto</div>
+      <div className={styles.cameraHint}>
+        {capturedPhotoUrl ? 'Tinjau foto sebelum disimpan' : 'Tekan tombol bulat untuk mengambil foto'}
+      </div>
 
-      {/* Bottom shutter controls */}
+      {/* Bottom shutter/preview controls */}
       <div className={styles.cameraBottomBar}>
-        <button
-          type="button"
-          onClick={handleSnap}
-          className={styles.cameraShutterOuter}
-          title="Ambil Foto"
-        >
-          <div className={styles.cameraShutterInner} />
-        </button>
+        {capturedPhotoUrl ? (
+          <div className={styles.cameraPreviewActions}>
+            <button
+              type="button"
+              onClick={handleRetakePhoto}
+              className={`${styles.cameraActionBtn} ${styles.cameraActionCancel}`}
+            >
+              <X size={18} /> Ambil Ulang
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmPhoto}
+              className={`${styles.cameraActionBtn} ${styles.cameraActionConfirm}`}
+            >
+              <Check size={18} /> Gunakan Foto
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={handleSnap}
+            className={styles.cameraShutterOuter}
+            title="Ambil Foto"
+          >
+            <div className={styles.cameraShutterInner} />
+          </button>
+        )}
       </div>
     </div>,
     document.body
