@@ -15,7 +15,6 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [accessToken, setAccessToken] = useState(null);
-  const [tokenLoaded, setTokenLoaded] = useState(false);
 
   // Retrieve persisted token on mount
   useEffect(() => {
@@ -24,13 +23,10 @@ export function AuthProvider({ children }) {
       if (storedToken) {
         setAccessToken(storedToken);
       }
-      setTokenLoaded(true);
     }
   }, []);
 
   useEffect(() => {
-    if (!tokenLoaded) return;
-
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
@@ -45,7 +41,7 @@ export function AuthProvider({ children }) {
     });
 
     return () => unsubscribe();
-  }, [tokenLoaded]);
+  }, []);
 
   const loginWithGoogle = async () => {
     try {
@@ -57,17 +53,6 @@ export function AuthProvider({ children }) {
       provider.setCustomParameters({ prompt: 'select_account consent' });
       
       const result = await signInWithPopup(auth, provider);
-      
-      // Enforce permission checks: verify if scopes were actually granted by user
-      const grantedScopes = result._tokenResponse?.scope || '';
-      const hasDrive = grantedScopes.includes('https://www.googleapis.com/auth/drive.file');
-      const hasCalendar = grantedScopes.includes('https://www.googleapis.com/auth/calendar.events');
-
-      if (!hasDrive || !hasCalendar) {
-        // Sign out immediately to reset Firebase Auth state
-        await signOut(auth);
-        throw new Error('Anda wajib menyetujui/mencentang izin akses Google Drive dan Google Calendar pada halaman login Google untuk menggunakan fitur aplikasi.');
-      }
 
       const credential = GoogleAuthProvider.credentialFromResult(result);
       if (credential && credential.accessToken) {
