@@ -270,8 +270,8 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
       let constraints = {
         video: {
           facingMode: 'environment',
-          width: { ideal: 1920, min: 1080 },
-          height: { ideal: 1080, min: 720 },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 },
         }
       };
 
@@ -283,7 +283,15 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
           // Filter for back-facing cameras
           const backCameras = videoDevices.filter(d => {
             const label = d.label.toLowerCase();
-            return label.includes('back') || label.includes('rear') || label.includes('belakang') || label.includes('environment');
+            // Match typical back camera terms
+            if (label.includes('back') || label.includes('rear') || label.includes('belakang') || label.includes('environment')) {
+              return true;
+            }
+            // For generic names like "camera 0" (which is back) vs "camera 1" (which is front)
+            if (label.includes('camera') || label.includes('kamera')) {
+              return !label.includes('front') && !label.includes('depan') && !label.includes('user') && !label.includes('1');
+            }
+            return false;
           });
 
           if (backCameras.length > 0) {
@@ -312,8 +320,8 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
               constraints = {
                 video: {
                   deviceId: { exact: mainCamera.deviceId },
-                  width: { ideal: 1920, min: 1080 },
-                  height: { ideal: 1080, min: 720 },
+                  width: { ideal: 1920 },
+                  height: { ideal: 1080 },
                 }
               };
             }
