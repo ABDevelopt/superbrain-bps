@@ -266,20 +266,96 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         showAlert("Browser Anda tidak mendukung akses kamera langsung.");
         return;
       }
-      const stream = await navigator.mediaDevices.getUserMedia({
+
+      let constraints = {
         video: {
           facingMode: 'environment',
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
+          width: { ideal: 1920, min: 1080 },
+          height: { ideal: 1080, min: 720 },
         }
-      });
-      // Check zoom capability
+      };
+
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        
+        if (videoDevices.length > 1) {
+          // Filter for back-facing cameras
+          const backCameras = videoDevices.filter(d => {
+            const label = d.label.toLowerCase();
+            return label.includes('back') || label.includes('rear') || label.includes('belakang') || label.includes('environment');
+          });
+
+          if (backCameras.length > 0) {
+            // Attempt to find the primary/main camera (1x)
+            // Exclude wide/ultra-wide/tele/macro/0.5/0.6 indicators if possible
+            let mainCamera = backCameras.find(d => {
+              const label = d.label.toLowerCase();
+              return (label.includes('main') || label.includes('utama') || label.includes('primary') || label.includes('0')) &&
+                     !label.includes('ultra') && !label.includes('tele') && !label.includes('macro') && !label.includes('0.5') && !label.includes('wide-angle');
+            });
+
+            // First Fallback: Avoid wide/macro/0.5/ultra but match general back camera
+            if (!mainCamera) {
+              mainCamera = backCameras.find(d => {
+                const label = d.label.toLowerCase();
+                return !label.includes('ultra') && !label.includes('tele') && !label.includes('macro') && !label.includes('0.5');
+              });
+            }
+
+            // Second Fallback: Use the first back camera in the list
+            if (!mainCamera) {
+              mainCamera = backCameras[0];
+            }
+
+            if (mainCamera && mainCamera.deviceId) {
+              constraints = {
+                video: {
+                  deviceId: { exact: mainCamera.deviceId },
+                  width: { ideal: 1920, min: 1080 },
+                  height: { ideal: 1080, min: 720 },
+                }
+              };
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to select specific main camera, using default facingMode constraint.", err);
+      }
+
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (err) {
+        console.warn("Failed to open specific camera device, falling back to environment constraint...", err);
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'environment',
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+          }
+        });
+      }
+
+      // Check capabilities
       const track = stream.getVideoTracks()[0];
       if (track) {
         const caps = track.getCapabilities ? track.getCapabilities() : {};
         if (caps.zoom) setZoomCapabilities(caps.zoom);
         if (caps.torch) setFlashSupported(true);
+
+        // Try to enable continuous autofocus if supported on this browser/track
+        if (track.applyConstraints) {
+          try {
+            await track.applyConstraints({
+              advanced: [{ focusMode: 'continuous' }]
+            });
+          } catch (_) {
+            // Silently ignore if focusMode continuous constraint is not supported
+          }
+        }
       }
+
       setZoomLevel(1);
       setFlashOn(false);
       setCameraStream(stream);
