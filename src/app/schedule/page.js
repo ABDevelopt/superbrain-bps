@@ -1,0 +1,744 @@
+'use client';
+
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { Calendar, Bell, X, Plus, ChevronLeft, ChevronRight, CheckCircle, Circle, Edit3, Trash2, LayoutGrid, List, MapPin, Video, User, Link as LinkIcon, AlignLeft, Clock, Tag } from 'lucide-react';
+import { skpData } from '@/data/skpData';
+import styles from './page.module.css';
+import { useFirestore } from '@/hooks/useFirestore';
+import { useAuth } from '@/contexts/AuthContext';
+import { fetchGCalEvents, createGCalEvent, updateGCalEvent, deleteGCalEvent } from '@/lib/gcal';
+import AddEventModal from './AddEventModal';
+import ConfirmDialog from '@/components/ConfirmDialog';
+
+const HARI = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+const BULAN = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+];
+
+const KATEGORI = ['Deadline', 'Rapat', 'Survei', 'Pelatihan', 'Lainnya'];
+const KATEGORI_COLORS = {
+  Deadline: '#ef4444',
+  Rapat: '#6366f1',
+  Survei: '#10b981',
+  Pelatihan: '#f59e0b',
+  Lainnya: '#22d3ee',
+  'Google Calendar': '#4285F4',
+};
+const REMINDER_OPTIONS = ['H-3', 'H-1', '1 Jam Sebelum', '5 Menit Sebelum'];
+
+function toDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function formatDateLong(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  return `${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+// Calendar generation
+function getCalendarDays(year, month) {
+  const firstDay = new Date(year, month, 1);
+  let startDow = firstDay.getDay(); // 0=Sun
+  startDow = startDow === 0 ? 6 : startDow - 1; // Adjust to Mon=0
+
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+  const days = [];
+
+  // Previous month fill
+  for (let i = startDow - 1; i >= 0; i--) {
+    days.push({
+      day: daysInPrevMonth - i,
+      month: month - 1,
+      year: month === 0 ? year - 1 : year,
+      isCurrentMonth: false,
+    });
+  }
+
+  // Current month
+  for (let d = 1; d <= daysInMonth; d++) {
+    days.push({
+      day: d,
+      month,
+      year,
+      isCurrentMonth: true,
+    });
+  }
+
+  // Next month fill
+  const remaining = 42 - days.length; // Always show 6 weeks
+  for (let d = 1; d <= remaining; d++) {
+    days.push({
+      day: d,
+      month: month + 1,
+      year: month === 11 ? year + 1 : year,
+      isCurrentMonth: false,
+    });
+  }
+
+  return days;
+}
+
+// Event Card
+function EventCard({ event, onToggle, onEdit, onDelete }) {
+  const skp = event.skpId ? skpData.find((s) => s.id === event.skpId) : null;
+  const color = KATEGORI_COLORS[event.kategori] || KATEGORI_COLORS.Lainnya;
+  const isSelesai = event.isSelesai;
+
+  return (
+    <div className={styles.eventCard} style={{ borderLeftColor: color, opacity: isSelesai ? 0.6 : 1 }}>
+      <div className={styles.eventHeader}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button 
+            onClick={(e) => { e.stopPropagation(); onToggle(event); }} 
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: isSelesai ? '#10b981' : '#cbd5e1', padding: 0, display: 'flex', alignItems: 'center' }}
+            title={isSelesai ? "Tandai Belum Selesai" : "Tandai Selesai"}
+          >
+            {isSelesai ? <CheckCircle size={18} /> : <Circle size={18} />}
+          </button>
+          <span className={styles.eventKategori} style={{ background: `${color}20`, color, textDecoration: isSelesai ? 'line-through' : 'none' }}>
+            {event.kategori}
+          </span>
+        </div>
+        <span className={styles.eventTime}>{event.waktu}</span>
+      </div>
+      <h4 className={styles.eventTitle} style={{ textDecoration: isSelesai ? 'line-through' : 'none', color: isSelesai ? '#94a3b8' : '#fff', paddingRight: '48px', position: 'relative' }}>
+        {event.judul}
+        <div style={{ position: 'absolute', right: 0, top: 0, display: 'flex', gap: '4px' }}>
+          <button onClick={() => onEdit(event)} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: '4px' }} title="Edit"><Edit3 size={14} /></button>
+          <button onClick={() => onDelete(event)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }} title="Hapus"><Trash2 size={14} /></button>
+        </div>
+      </h4>
+      {event.deskripsi && <p className={styles.eventDesc}>{event.deskripsi}</p>}
+      {skp && (
+        <div className={styles.eventSkp}>
+          SKP #{event.skpId}: {skp.nama}
+        </div>
+      )}
+      <div className={styles.eventReminder} style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
+        <Bell size={14} /> Pengingat: {Array.isArray(event.reminders) ? event.reminders.join(', ') : (event.reminder || 'Tidak ada')}
+      </div>
+    </div>
+  );
+}
+
+export default function SchedulePage() {
+  const { accessToken } = useAuth();
+  const today = new Date();
+  const [currentMonth, setCurrentMonth] = useState(today.getMonth());
+  const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  const [selectedDate, setSelectedDate] = useState(toDateStr(today));
+  const [viewMode, setViewMode] = useState('month'); // 'month' or 'week'
+  
+  const { docs: events = [], addDocument, updateDocument, deleteDocument } = useFirestore('schedule');
+  const { docs: ckpEvents = [] } = useFirestore('ckp');
+  
+  const [modalOpen, setModalOpen] = useState(false);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [selectedEventForDetail, setSelectedEventForDetail] = useState(null);
+  const [confirmDeleteEvent, setConfirmDeleteEvent] = useState(null);
+  const [editingEvent, setEditingEvent] = useState(null);
+  const [gcalEvents, setGcalEvents] = useState([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const weeklyBodyRef = useRef(null);
+
+  useEffect(() => {
+    if (accessToken) {
+      const dMin = new Date(currentYear, currentMonth, -7);
+      const dMax = new Date(currentYear, currentMonth + 1, 7);
+      fetchGCalEvents(accessToken, dMin, dMax).then(evs => {
+        setGcalEvents(evs);
+      });
+    } else {
+      setGcalEvents([]);
+    }
+  }, [accessToken, currentYear, currentMonth, refreshTrigger]);
+
+  const allEvents = useMemo(() => {
+    const firestoreEventIds = new Set(events.filter(e => e.gcalEventId).map(e => e.gcalEventId));
+    const filteredGcal = gcalEvents.filter(ge => !firestoreEventIds.has(ge.gcalEventId));
+    return [...events, ...filteredGcal];
+  }, [events, gcalEvents]);
+
+  const handleToggleSelesai = async (event) => {
+    try {
+      await updateDocument(event.id, { isSelesai: !event.isSelesai });
+    } catch (e) {
+      alert("Gagal memperbarui status: " + e.message);
+    }
+  };
+
+  const calendarDays = useMemo(
+    () => getCalendarDays(currentYear, currentMonth),
+    [currentYear, currentMonth]
+  );
+
+  const todayStr = toDateStr(today);
+
+  const eventsByDate = useMemo(() => {
+    const map = {};
+    allEvents.forEach((ev) => {
+      if (!map[ev.tanggal]) map[ev.tanggal] = [];
+      map[ev.tanggal].push(ev);
+    });
+    return map;
+  }, [allEvents]);
+
+  const selectedEvents = useMemo(
+    () => (eventsByDate[selectedDate] || []).sort((a, b) => a.waktu.localeCompare(b.waktu)),
+    [eventsByDate, selectedDate]
+  );
+
+  const upcomingEvents = useMemo(() => {
+    return allEvents
+      .filter((ev) => ev.tanggal >= todayStr)
+      .sort((a, b) => a.tanggal.localeCompare(b.tanggal) || a.waktu.localeCompare(b.waktu))
+      .slice(0, 6);
+  }, [allEvents, todayStr]);
+
+  const weekDays = useMemo(() => {
+    const d = new Date(selectedDate + 'T00:00:00');
+    const day = d.getDay() === 0 ? 6 : d.getDay() - 1; // Mon=0
+    d.setDate(d.getDate() - day);
+    const week = [];
+    for (let i = 0; i < 7; i++) {
+      week.push(new Date(d));
+      d.setDate(d.getDate() + 1);
+    }
+    return week;
+  }, [selectedDate]);
+
+  const renderWeeklyCalendar = () => {
+    let minHour = 7;
+    let maxHour = 17;
+
+    weekDays.forEach(date => {
+      const dateStr = toDateStr(date);
+      const dayEvents = eventsByDate[dateStr] || []; 
+      const dayCkp = ckpEvents.filter(ckp => ckp.tanggal === dateStr);
+
+      dayCkp.forEach(ckp => {
+        const [sh] = (ckp.waktuMulai || '00:00').split(':').map(Number);
+        const [eh] = (ckp.waktuSelesai || `${sh+1}:00`).split(':').map(Number);
+        if (sh < minHour) minHour = sh;
+        if (eh > maxHour) maxHour = eh;
+      });
+
+      dayEvents.forEach(ev => {
+        const [hh] = (ev.waktu || '00:00').split(':').map(Number);
+        if (hh < minHour) minHour = hh;
+        let [eh] = (ev.waktuSelesai || `${hh+1}:00`).split(':').map(Number);
+        if (eh > maxHour) maxHour = eh;
+      });
+    });
+
+    if (minHour < 0) minHour = 0;
+    if (maxHour > 23) maxHour = 23;
+
+    const HOURS = Array.from({length: maxHour - minHour + 1}, (_, i) => minHour + i);
+    const HOUR_HEIGHT = 48;
+    const MIN_SCALE = HOUR_HEIGHT / 60;
+    
+    return (
+      <div className={styles.weeklyWrapper}>
+        <div className={styles.weeklyHeaderRow}>
+          <div className={styles.weeklyTimeColHeader} />
+          {weekDays.map(date => {
+            const isToday = toDateStr(date) === todayStr;
+            return (
+              <div key={date.toISOString()} className={`${styles.weeklyDayHeader} ${isToday ? styles.weeklyDayHeaderToday : ''}`}>
+                <div>{HARI[date.getDay() === 0 ? 6 : date.getDay() - 1]}</div>
+                <div style={{fontSize: '18px', fontWeight: isToday ? '700' : '500', marginTop: '4px'}}>{date.getDate()}</div>
+              </div>
+            );
+          })}
+        </div>
+        
+        <div className={styles.weeklyBody} ref={weeklyBodyRef}>
+          <div className={styles.weeklyTimeCol}>
+            {HOURS.map(h => (
+              <div key={h} style={{height: `${HOUR_HEIGHT}px`, position: 'relative'}}>
+                <span className={styles.weeklyTimeLabel}>{`${String(h).padStart(2,'0')}:00`}</span>
+              </div>
+            ))}
+          </div>
+          
+          <div className={styles.weeklyGrid}>
+            {HOURS.map(h => (
+               <div key={h} className={styles.weeklyHourLine} style={{top: `${(h - minHour) * HOUR_HEIGHT}px`}} />
+            ))}
+            
+            {weekDays.map(date => {
+              const dateStr = toDateStr(date);
+              const dayEvents = eventsByDate[dateStr] || []; 
+              const dayCkp = ckpEvents.filter(ckp => ckp.tanggal === dateStr);
+              
+              return (
+                <div key={dateStr} className={`${styles.weeklyDayCol} ${dateStr === todayStr ? styles.weeklyDayColToday : ''}`}>
+                  {/* Realisasi CKP */}
+                  {dayCkp.map(ckp => {
+                     const [sh, sm] = (ckp.waktuMulai || '00:00').split(':').map(Number);
+                     const [eh, em] = (ckp.waktuSelesai || `${sh+1}:00`).split(':').map(Number);
+                     const top = ((sh - minHour) * HOUR_HEIGHT) + (sm * MIN_SCALE);
+                     let height = ((eh * HOUR_HEIGHT) + (em * MIN_SCALE)) - ((sh * HOUR_HEIGHT) + (sm * MIN_SCALE));
+                     if (height < 20) height = 20; // fallback if negative or too short
+                     
+                     return (
+                       <div key={ckp.id} className={styles.weeklyEventBlock} style={{
+                         top: `${top}px`, 
+                         height: `${height}px`,
+                         background: 'rgba(99, 102, 241, 0.2)',
+                         border: '1px solid rgba(99, 102, 241, 0.5)',
+                         color: '#f1f5f9',
+                       }}>
+                         <div className={styles.weeklyEventTitle}>[CKP] {ckp.rincian || ckp.butirNama || 'Kegiatan'}</div>
+                         <div className={styles.weeklyEventTime}>{ckp.waktuMulai} - {ckp.waktuSelesai}</div>
+                       </div>
+                     );
+                  })}
+
+                  {/* Rencana Jadwal/GCal */}
+                  {dayEvents.map((ev, idx) => {
+                     const [hh, mm] = (ev.waktu || '00:00').split(':').map(Number);
+                     const top = ((hh - minHour) * HOUR_HEIGHT) + (mm * MIN_SCALE);
+                     const height = 30 * MIN_SCALE; // 30 mins
+                     return (
+                       <div key={ev.id} className={styles.weeklyEventBlock} style={{
+                         top: `${top}px`, 
+                         height: `${height}px`,
+                         background: KATEGORI_COLORS[ev.kategori] || KATEGORI_COLORS.Lainnya,
+                         borderLeft: '3px solid rgba(255,255,255,0.5)',
+                         width: '80%', // Make it slightly narrower to show CKP underneath if overlap
+                         left: `${(idx % 2) * 10}%`,
+                         zIndex: 5
+                       }} onClick={() => { 
+                         setSelectedDate(dateStr); 
+                         setSelectedEventForDetail(ev);
+                         setDetailModalOpen(true);
+                       }}>
+                         <div className={styles.weeklyEventTitle}>{ev.judul}</div>
+                       </div>
+                     );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const prevMonth = () => {
+    if (currentMonth === 0) {
+      setCurrentMonth(11);
+      setCurrentYear((y) => y - 1);
+    } else {
+      setCurrentMonth((m) => m - 1);
+    }
+  };
+
+  const nextMonth = () => {
+    if (currentMonth === 11) {
+      setCurrentMonth(0);
+      setCurrentYear((y) => y + 1);
+    } else {
+      setCurrentMonth((m) => m + 1);
+    }
+  };
+
+  const goToday = () => {
+    setCurrentMonth(today.getMonth());
+    setCurrentYear(today.getFullYear());
+    setSelectedDate(todayStr);
+  };
+
+  const handleAddEvent = useCallback(async (formData) => {
+    let gcalEventId = null;
+    if (accessToken) {
+      gcalEventId = await createGCalEvent(accessToken, formData);
+    }
+
+    await addDocument({ ...formData, gcalEventId });
+    setModalOpen(false);
+
+    // Telegram Notification
+    const chatId = localStorage.getItem('telegramChatId');
+    if (chatId) {
+      try {
+        const reminderStr = Array.isArray(formData.reminders) ? formData.reminders.join(', ') : '';
+        const msg = `*Jadwal Baru Ditambahkan*\n\n*Judul:* ${formData.judul}\n*Kategori:* ${formData.kategori}\n*Waktu:* ${formData.tanggal} ${formData.waktu}\n*Pengingat:* ${reminderStr}`;
+        
+        await fetch('/api/telegram', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chatId, message: msg }),
+        });
+      } catch (e) {
+        console.error('Failed to send telegram notification:', e);
+      }
+    }
+  }, [addDocument, accessToken]);
+
+  const handleUpdateEvent = async (id, formData) => {
+    try {
+      if (formData.isGCal) {
+        if (accessToken && formData.gcalEventId) {
+          await updateGCalEvent(accessToken, formData.gcalEventId, formData);
+          setRefreshTrigger(prev => prev + 1);
+        }
+      } else {
+        if (accessToken && formData.gcalEventId) {
+          await updateGCalEvent(accessToken, formData.gcalEventId, formData);
+        }
+        await updateDocument(id, formData);
+      }
+      setModalOpen(false);
+      setEditingEvent(null);
+    } catch (e) {
+      alert("Gagal memperbarui jadwal: " + e.message);
+    }
+  };
+
+  const handleEdit = (event) => {
+    setDetailModalOpen(false);
+    setEditingEvent(event);
+    setModalOpen(true);
+  };
+
+  const handleDelete = (event) => {
+    setConfirmDeleteEvent(event);
+  };
+
+  const executeDelete = async () => {
+    if (!confirmDeleteEvent) return;
+    const event = confirmDeleteEvent;
+    try {
+      if (accessToken && event.gcalEventId) {
+        await deleteGCalEvent(accessToken, event.gcalEventId);
+      }
+      
+      if (event.isGCal) {
+        setRefreshTrigger(prev => prev + 1);
+      } else {
+        await deleteDocument(event.id);
+      }
+      setDetailModalOpen(false);
+      setConfirmDeleteEvent(null);
+    } catch (e) {
+      alert("Gagal menghapus jadwal: " + e.message);
+    }
+  };
+
+  const renderDescription = (text) => {
+    if (!text) return null;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return text.split('\n').map((line, i) => (
+      <div key={i} style={{ minHeight: '1.2em' }}>
+        {line.split(urlRegex).map((part, j) => {
+          if (part.match(urlRegex)) {
+            return <a key={j} href={part} target="_blank" rel="noreferrer" style={{color: '#38bdf8', textDecoration: 'underline', wordBreak: 'break-all'}}>{part}</a>;
+          }
+          return part;
+        })}
+      </div>
+    ));
+  };
+
+  const handleDayClick = (dayObj) => {
+    const dateStr = `${dayObj.year}-${String(dayObj.month + 1).padStart(2, '0')}-${String(dayObj.day).padStart(2, '0')}`;
+    setSelectedDate(dateStr);
+    if (!dayObj.isCurrentMonth) {
+      setCurrentMonth(dayObj.month < 0 ? 11 : dayObj.month > 11 ? 0 : dayObj.month);
+      if (dayObj.month < 0) setCurrentYear((y) => y - 1);
+      if (dayObj.month > 11) setCurrentYear((y) => y + 1);
+    }
+  };
+
+  const getDayDateStr = (dayObj) => {
+    const m = dayObj.month < 0 ? 11 : dayObj.month > 11 ? 0 : dayObj.month;
+    return `${dayObj.year}-${String(m + 1).padStart(2, '0')}-${String(dayObj.day).padStart(2, '0')}`;
+  };
+
+  return (
+    <div className={styles.page}>
+      <header className={styles.header}>
+        <div className={styles.headerLeft}>
+          <h1 className={styles.pageTitle}>Jadwal & Pengingat</h1>
+          <p className={styles.pageSubtitle}>
+            Kelola deadline, rapat, dan sinkronisasi otomatis ke Google Calendar
+          </p>
+        </div>
+        <div style={{display: 'flex', gap: '12px', alignItems: 'center'}}>
+          <div className={styles.viewToggle}>
+            <button className={`${styles.viewBtn} ${viewMode === 'month' ? styles.viewBtnActive : ''}`} onClick={() => setViewMode('month')}>Bulan</button>
+            <button className={`${styles.viewBtn} ${viewMode === 'week' ? styles.viewBtnActive : ''}`} onClick={() => setViewMode('week')}>Minggu</button>
+          </div>
+          <button className={styles.addBtn} onClick={() => { setEditingEvent(null); setModalOpen(true); }} style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
+            <Plus size={18} /> Tambah Jadwal
+          </button>
+        </div>
+      </header>
+
+      <div className={styles.layout}>
+        {/* Calendar Section */}
+        <div className={styles.calendarSection}>
+          <div className={styles.calendarCard}>
+            <div className={styles.calendarHeader}>
+              <button className={styles.navBtn} onClick={viewMode === 'month' ? prevMonth : () => {
+                const d = new Date(selectedDate + 'T00:00:00');
+                d.setDate(d.getDate() - 7);
+                setSelectedDate(toDateStr(d));
+                setCurrentMonth(d.getMonth());
+                setCurrentYear(d.getFullYear());
+              }}><ChevronLeft size={20} /></button>
+              <div className={styles.monthLabel}>
+                <span className={styles.monthName}>{BULAN[currentMonth]}</span>
+                <span className={styles.yearLabel}>{currentYear}</span>
+              </div>
+              <button className={styles.navBtn} onClick={viewMode === 'month' ? nextMonth : () => {
+                const d = new Date(selectedDate + 'T00:00:00');
+                d.setDate(d.getDate() + 7);
+                setSelectedDate(toDateStr(d));
+                setCurrentMonth(d.getMonth());
+                setCurrentYear(d.getFullYear());
+              }}><ChevronRight size={20} /></button>
+              <button className={styles.todayBtn} onClick={goToday}>Hari Ini</button>
+            </div>
+
+            {viewMode === 'month' ? (
+              <div className={styles.calendarGrid}>
+                {HARI.map((h) => (
+                  <div key={h} className={styles.dayHeader}>{h}</div>
+                ))}
+                {calendarDays.map((dayObj, idx) => {
+                  const dateStr = getDayDateStr(dayObj);
+                  const isToday = dateStr === todayStr;
+                  const isSelected = dateStr === selectedDate;
+                  const dayEvents = eventsByDate[dateStr] || [];
+                  const hasEvents = dayEvents.length > 0;
+
+                  return (
+                    <button
+                      key={idx}
+                      className={`${styles.dayCell} ${!dayObj.isCurrentMonth ? styles.dayCellOther : ''} ${isToday ? styles.dayCellToday : ''} ${isSelected ? styles.dayCellSelected : ''}`}
+                      onClick={() => handleDayClick(dayObj)}
+                    >
+                      <span className={styles.dayNumber}>{dayObj.day}</span>
+                      {hasEvents && (
+                        <div className={styles.eventDots}>
+                          {dayEvents.slice(0, 3).map((ev) => (
+                            <span
+                              key={ev.id}
+                              className={styles.eventDot}
+                              style={{ background: KATEGORI_COLORS[ev.kategori] || KATEGORI_COLORS.Lainnya }}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              renderWeeklyCalendar()
+            )}
+          </div>
+        </div>
+
+        {/* Upcoming Events Sidebar */}
+        <aside className={styles.sidebar}>
+          {/* Selected Date Events */}
+          <div className={styles.selectedDateSection} style={{ marginBottom: '24px' }}>
+            <h3 className={styles.sectionTitle} style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+              <Calendar size={20} /> {formatDateLong(selectedDate)}
+            </h3>
+            {selectedEvents.length === 0 ? (
+              <div className={styles.emptyState}>
+                <p>Tidak ada jadwal pada tanggal ini.</p>
+                <button className={styles.addSmallBtn} onClick={() => { setEditingEvent(null); setModalOpen(true); }} style={{display: 'inline-flex', alignItems: 'center', gap: '6px'}}>
+                  <Plus size={16} /> Tambah Jadwal
+                </button>
+              </div>
+            ) : (
+              <div className={styles.eventList}>
+                {selectedEvents.map((ev) => (
+                  <div key={ev.id} onClick={() => {
+                    setSelectedEventForDetail(ev);
+                    setDetailModalOpen(true);
+                  }} style={{cursor: 'pointer'}}>
+                    <EventCard event={ev} onToggle={handleToggleSelesai} onEdit={(e) => { e.stopPropagation(); handleEdit(ev); }} onDelete={(e) => { e.stopPropagation(); handleDelete(ev); }} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <h3 className={styles.sidebarTitle} style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+            <Bell size={20} /> Jadwal Mendatang
+          </h3>
+          <div className={styles.upcomingList}>
+            {upcomingEvents.map((ev) => {
+              const color = KATEGORI_COLORS[ev.kategori] || KATEGORI_COLORS.Lainnya;
+              const daysUntil = Math.ceil(
+                (new Date(ev.tanggal + 'T00:00:00') - new Date(todayStr + 'T00:00:00')) / (1000 * 60 * 60 * 24)
+              );
+              const urgencyLabel = daysUntil === 0 ? 'Hari Ini'
+                : daysUntil === 1 ? 'Besok'
+                : `${daysUntil} hari lagi`;
+
+              return (
+                <div
+                  key={ev.id}
+                  className={styles.upcomingItem}
+                  onClick={() => {
+                    setSelectedDate(ev.tanggal);
+                    const evDate = new Date(ev.tanggal + 'T00:00:00');
+                    setCurrentMonth(evDate.getMonth());
+                    setCurrentYear(evDate.getFullYear());
+                  }}
+                >
+                  <div className={styles.upcomingDot} style={{ background: color }} />
+                  <div className={styles.upcomingInfo}>
+                    <div className={styles.upcomingTitle}>{ev.judul}</div>
+                    <div className={styles.upcomingMeta}>
+                      <span>{formatDateLong(ev.tanggal)}</span>
+                      <span>•</span>
+                      <span>{ev.waktu}</span>
+                    </div>
+                  </div>
+                  <span
+                    className={`${styles.upcomingBadge} ${daysUntil <= 1 ? styles.urgentBadge : ''}`}
+                  >
+                    {urgencyLabel}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Legend */}
+          <div className={styles.legend}>
+            <h4 className={styles.legendTitle}>Kategori</h4>
+            {KATEGORI.map((k) => (
+              <div key={k} className={styles.legendItem}>
+                <span className={styles.legendDot} style={{ background: KATEGORI_COLORS[k] }} />
+                <span>{k}</span>
+              </div>
+            ))}
+          </div>
+        </aside>
+      </div>
+
+      <AddEventModal
+        isOpen={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setEditingEvent(null);
+        }}
+        onSubmit={handleAddEvent}
+        initialData={editingEvent}
+        onUpdate={handleUpdateEvent}
+      />
+
+      {/* Event Detail Modal */}
+      {detailModalOpen && selectedEventForDetail && (
+        <div className={styles.modalOverlay} onClick={() => setDetailModalOpen(false)}>
+          <div className={styles.modal} style={{ maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader} style={{ paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '16px' }}>
+              <h2 className={styles.modalTitle} style={{ fontSize: '20px', lineHeight: '1.4' }}>{selectedEventForDetail.judul}</h2>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={() => handleEdit(selectedEventForDetail)} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: '4px' }} title="Edit"><Edit3 size={18} /></button>
+                <button onClick={() => handleDelete(selectedEventForDetail)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }} title="Hapus"><Trash2 size={18} /></button>
+                <button className={styles.closeBtn} onClick={() => setDetailModalOpen(false)}><X size={20} /></button>
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', color: '#e2e8f0', fontSize: '14px', padding: '0 24px 24px 24px' }}>
+              
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <Clock size={18} color="#94a3b8" style={{ marginTop: '2px', flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontWeight: '500' }}>{formatDateLong(selectedEventForDetail.tanggal)}</div>
+                  <div style={{ color: '#94a3b8' }}>{selectedEventForDetail.waktu} {selectedEventForDetail.waktuSelesai ? `- ${selectedEventForDetail.waktuSelesai}` : ''} (WIB)</div>
+                </div>
+              </div>
+
+              {selectedEventForDetail.kategori && (
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <Tag size={18} color="#94a3b8" style={{ flexShrink: 0 }} />
+                  <div>
+                    <span style={{ 
+                      padding: '4px 10px', 
+                      background: KATEGORI_COLORS[selectedEventForDetail.kategori] || '#334155', 
+                      borderRadius: '6px', 
+                      fontSize: '12px', 
+                      fontWeight: '600',
+                      color: 'white'
+                    }}>
+                      {selectedEventForDetail.kategori}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {selectedEventForDetail.lokasi && (
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                  <MapPin size={18} color="#94a3b8" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  <div>{selectedEventForDetail.lokasi}</div>
+                </div>
+              )}
+
+              {selectedEventForDetail.meetLink && (
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                  <Video size={18} color="#94a3b8" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  <div><a href={selectedEventForDetail.meetLink} target="_blank" rel="noreferrer" style={{ color: '#38bdf8', textDecoration: 'underline' }}>{selectedEventForDetail.meetLink}</a></div>
+                </div>
+              )}
+
+              {selectedEventForDetail.creator && (
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <User size={18} color="#94a3b8" style={{ flexShrink: 0 }} />
+                  <div>
+                    <span style={{ color: '#94a3b8' }}>Created by: </span>
+                    {selectedEventForDetail.creator}
+                  </div>
+                </div>
+              )}
+
+              {selectedEventForDetail.htmlLink && (
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <Calendar size={18} color="#94a3b8" style={{ flexShrink: 0 }} />
+                  <a href={selectedEventForDetail.htmlLink} target="_blank" rel="noreferrer" style={{ color: '#38bdf8', textDecoration: 'underline' }}>
+                    Lihat di Google Calendar
+                  </a>
+                </div>
+              )}
+
+              {selectedEventForDetail.deskripsi && (
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <AlignLeft size={18} color="#94a3b8" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '8px', flex: 1 }}>
+                    {renderDescription(selectedEventForDetail.deskripsi)}
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </div>
+        </div>
+      )}
+      <ConfirmDialog 
+        isOpen={!!confirmDeleteEvent} 
+        onConfirm={executeDelete} 
+        onCancel={() => setConfirmDeleteEvent(null)} 
+        title="Hapus Jadwal" 
+        message="Apakah Anda yakin ingin menghapus jadwal ini?" 
+        confirmText="Hapus" 
+        variant="danger" 
+      />
+    </div>
+  );
+}

@@ -1,0 +1,140 @@
+.container {
+  padding: 24px;
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.header {
+  margin-bottom: 32px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  color: var(--text-light, #f1f5f9);
+}
+
+.subtitle {
+  color: var(--text-muted, #94a3b8);
+  margin: 0;
+}
+
+.mapContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  background: var(--surface-bg, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  border-radius: 16px;
+  padding: 32px;
+  backdrop-filter: blur(12px);
+  overflow-x: auto;
+}
+
+.cluster {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+}
+
+.clusterHeader {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(99, 102, 241, 0.1);
+  border-left: 4px solid var(--primary-color, #6366f1);
+  border-radius: 4px;
+  font-weight: 600;
+  color: var(--primary-light, #818cf8);
+  align-self: flex-start;
+}
+
+.nodes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  padding-left: 24px;
+  border-left: 2px dashed rgba(255, 255, 255, 0.1);
+  margin-left: 16px;
+}
+
+.node {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 16px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.node::before {
+  content: '';
+  position: absolute;
+  left: -24px;
+  top: 50%;
+  width: 22px;
+  height: 2px;
+  background: dashed rgba(255, 255, 255, 0.1);
+}
+
+.node:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.nodeTitle {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0 0 12px 0;
+  line-height: 1.4;
+  color: #e2e8f0;
+}
+
+.nodeMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.team {
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+  font-size: 11px;
+}
+
+.statusBelum { background: rgba(255, 255, 255, 0.1); color: #cbd5e1; }
+.statusProgress { background: rgba(99, 102, 241, 0.2); color: #818cf8; }
+.statusSelesai { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+.statusTerlambat { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+  
+  .mapContainer {
+    padding: 16px;
+  }
+  
+  .nodes {
+    grid-template-columns: 1fr;
+  }
+}

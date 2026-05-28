@@ -1,0 +1,244 @@
+/* ============================================
+   Sidebar — Desktop Navigation
+   ============================================ */
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: var(--sidebar-width);
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: rgba(17, 24, 39, 0.85);
+  border-right: 1px solid var(--surface-border);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  z-index: var(--z-sidebar);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-6) 0;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebarCollapsed {
+  width: 72px;
+}
+
+/* ---- Logo / Brand ---- */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-6);
+  margin-bottom: var(--space-6);
+  justify-content: space-between;
+}
+
+.toggleBtn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.toggleBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.brandIcon {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.brandText {
+  display: flex;
+  flex-direction: column;
+}
+
+.brandTitle {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.brandSub {
+  font-size: var(--font-size-xs);
+  color: var(--primary-light);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ---- User Profile ---- */
+.userSection {
+  padding: var(--space-4) var(--space-5);
+  margin: 0 var(--space-3);
+  margin-bottom: var(--space-6);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-lg);
+}
+
+.userAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--primary), var(--accent-cyan));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: white;
+  margin-bottom: var(--space-3);
+}
+
+.userName {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.userUnit {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  line-height: var(--line-height-normal);
+}
+
+/* ---- Navigation ---- */
+.navLabel {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0 var(--space-6);
+  margin-bottom: var(--space-2);
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 var(--space-3);
+  flex: 1;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  transition: all var(--transition-base);
+  position: relative;
+  border-left: 3px solid transparent;
+}
+
+.navItem:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.navItemActive {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--primary-light);
+  border-left-color: var(--primary);
+}
+
+.navItemActive:hover {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--primary-light);
+}
+
+.navIcon {
+  font-size: 1.15rem;
+  line-height: 1;
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.navText {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- Footer / Version ---- */
+.sidebarFooter {
+  padding: var(--space-4) var(--space-6);
+  margin-top: auto;
+  border-top: 1px solid var(--surface-border);
+}
+
+.logoutBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logoutBtn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.sidebarCollapsed .userSection {
+  padding: var(--space-4) 0;
+  display: flex;
+  justify-content: center;
+  background: transparent;
+  border-color: transparent;
+}
+.sidebarCollapsed .navItem {
+  justify-content: center;
+  padding: var(--space-3) 0;
+}
+.sidebarCollapsed .logoutBtn {
+  justify-content: center;
+  padding: 10px 0;
+}
+.sidebarCollapsed .brand {
+  padding: 0;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+}
+.sidebarCollapsed .brandText,
+.sidebarCollapsed .userInfo,
+.sidebarCollapsed .navLabel,
+.sidebarCollapsed .navText,
+.sidebarCollapsed .logoutBtn span {
+  display: none;
+}
+
+/* ---- Responsive: hide on mobile ---- */
+@media (max-width: 767px) {
+  .sidebar {
+    display: none;
+  }
+}
