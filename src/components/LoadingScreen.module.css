@@ -83,11 +83,12 @@
               0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
-.logoEmoji {
-  font-size: 2rem;
+.logoIcon {
+  color: #ffffff;
   display: inline-block;
   user-select: none;
   animation: corePulse 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 2px var(--primary-glow));
 }
 
 /* Text wrapper styling */

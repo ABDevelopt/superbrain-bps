@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { Brain } from 'lucide-react';
 import styles from './LoadingScreen.module.css';
 
 const LOGS = [
@@ -37,9 +38,9 @@ export default function LoadingScreen({ inline = false, message = '' }) {
         {/* Middle gradient flowing ring */}
         <div className={styles.middleRing} />
         
-        {/* Inner glassmorphic core with pulsing brain */}
+        {/* Inner glassmorphic core with pulsing brain SVG */}
         <div className={styles.core}>
-          <span className={styles.logoEmoji}>🧠</span>
+          <Brain className={styles.logoIcon} size={32} />
         </div>
       </div>
       
