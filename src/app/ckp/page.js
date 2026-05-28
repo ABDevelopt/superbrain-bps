@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useAlert } from '@/contexts/AlertContext';
-import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart } from 'lucide-react';
+import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn } from 'lucide-react';
 import { skpData } from '@/data/skpData';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
@@ -161,6 +161,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
   const [zoomCapabilities, setZoomCapabilities] = useState(null);
   const [flashOn, setFlashOn] = useState(false);
   const [flashSupported, setFlashSupported] = useState(false);
+  const [useFrontCamera, setUseFrontCamera] = useState(false);
   const videoRef = useRef(null);
   const [form, setForm] = useState({
     tanggal: getTodayStr(),
@@ -260,7 +261,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
     reader.readAsDataURL(imageFile);
   };
 
-  const openCamera = async () => {
+  const initCamera = async (isFront) => {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         showAlert("Browser Anda tidak mendukung akses kamera langsung.");
@@ -269,7 +270,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
 
       let constraints = {
         video: {
-          facingMode: 'environment',
+          facingMode: isFront ? 'user' : 'environment',
           width: { ideal: 1920 },
           height: { ideal: 1080 },
         }
@@ -280,65 +281,86 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
         
         if (videoDevices.length > 1) {
-          // Filter for back-facing cameras
-          const backCameras = videoDevices.filter(d => {
-            const label = d.label.toLowerCase();
-            // Match typical back camera terms
-            if (label.includes('back') || label.includes('rear') || label.includes('belakang') || label.includes('environment')) {
-              return true;
-            }
-            // For generic names like "camera 0" (which is back) vs "camera 1" (which is front)
-            if (label.includes('camera') || label.includes('kamera')) {
-              return !label.includes('front') && !label.includes('depan') && !label.includes('user') && !label.includes('1');
-            }
-            return false;
-          });
-
-          if (backCameras.length > 0) {
-            // Attempt to find the primary/main camera (1x)
-            // Exclude wide/ultra-wide/tele/macro/0.5/0.6 indicators if possible
-            let mainCamera = backCameras.find(d => {
+          if (isFront) {
+            // Find front-facing camera
+            const frontCameras = videoDevices.filter(d => {
               const label = d.label.toLowerCase();
-              return (label.includes('main') || label.includes('utama') || label.includes('primary') || label.includes('0')) &&
-                     !label.includes('ultra') && !label.includes('tele') && !label.includes('macro') && !label.includes('0.5') && !label.includes('wide-angle');
+              return label.includes('front') || label.includes('depan') || label.includes('user') || label.includes('1');
             });
-
-            // First Fallback: Avoid wide/macro/0.5/ultra but match general back camera
-            if (!mainCamera) {
-              mainCamera = backCameras.find(d => {
-                const label = d.label.toLowerCase();
-                return !label.includes('ultra') && !label.includes('tele') && !label.includes('macro') && !label.includes('0.5');
-              });
-            }
-
-            // Second Fallback: Use the first back camera in the list
-            if (!mainCamera) {
-              mainCamera = backCameras[0];
-            }
-
-            if (mainCamera && mainCamera.deviceId) {
+            
+            let mainFront = frontCameras.find(d => d.label.toLowerCase().includes('0') || d.label.toLowerCase().includes('primary'));
+            if (!mainFront && frontCameras.length > 0) mainFront = frontCameras[0];
+            
+            if (mainFront && mainFront.deviceId) {
               constraints = {
                 video: {
-                  deviceId: { exact: mainCamera.deviceId },
+                  deviceId: { exact: mainFront.deviceId },
                   width: { ideal: 1920 },
                   height: { ideal: 1080 },
                 }
               };
             }
+          } else {
+            // Filter for back-facing cameras
+            const backCameras = videoDevices.filter(d => {
+              const label = d.label.toLowerCase();
+              // Match typical back camera terms
+              if (label.includes('back') || label.includes('rear') || label.includes('belakang') || label.includes('environment')) {
+                return true;
+              }
+              // For generic names like "camera 0" (which is back) vs "camera 1" (which is front)
+              if (label.includes('camera') || label.includes('kamera')) {
+                return !label.includes('front') && !label.includes('depan') && !label.includes('user') && !label.includes('1');
+              }
+              return false;
+            });
+
+            if (backCameras.length > 0) {
+              // Attempt to find the primary/main camera (1x)
+              // Exclude wide/ultra-wide/tele/macro/0.5/0.6 indicators if possible
+              let mainCamera = backCameras.find(d => {
+                const label = d.label.toLowerCase();
+                return (label.includes('main') || label.includes('utama') || label.includes('primary') || label.includes('0')) &&
+                       !label.includes('ultra') && !label.includes('tele') && !label.includes('macro') && !label.includes('0.5') && !label.includes('wide-angle');
+              });
+
+              // First Fallback: Avoid wide/macro/0.5/ultra but match general back camera
+              if (!mainCamera) {
+                mainCamera = backCameras.find(d => {
+                  const label = d.label.toLowerCase();
+                  return !label.includes('ultra') && !label.includes('tele') && !label.includes('macro') && !label.includes('0.5');
+                });
+              }
+
+              // Second Fallback: Use the first back camera in the list
+              if (!mainCamera) {
+                mainCamera = backCameras[0];
+              }
+
+              if (mainCamera && mainCamera.deviceId) {
+                constraints = {
+                  video: {
+                    deviceId: { exact: mainCamera.deviceId },
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 },
+                  }
+                };
+              }
+            }
           }
         }
       } catch (err) {
-        console.warn("Failed to select specific main camera, using default facingMode constraint.", err);
+        console.warn("Failed to select specific camera, using default facingMode constraint.", err);
       }
 
       let stream;
       try {
         stream = await navigator.mediaDevices.getUserMedia(constraints);
       } catch (err) {
-        console.warn("Failed to open specific camera device, falling back to environment constraint...", err);
+        console.warn("Failed to open specific camera device, falling back to environment/user constraint...", err);
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode: 'environment',
+            facingMode: isFront ? 'user' : 'environment',
             width: { ideal: 1920 },
             height: { ideal: 1080 },
           }
@@ -351,6 +373,10 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         const caps = track.getCapabilities ? track.getCapabilities() : {};
         if (caps.zoom) setZoomCapabilities(caps.zoom);
         if (caps.torch) setFlashSupported(true);
+
+        // Reset capabilities if new camera doesn't support them
+        if (!caps.zoom) setZoomCapabilities(null);
+        if (!caps.torch) setFlashSupported(false);
 
         // Try to enable continuous autofocus if supported on this browser/track
         if (track.applyConstraints) {
@@ -374,6 +400,21 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
     }
   };
 
+  const openCamera = async () => {
+    setUseFrontCamera(false);
+    await initCamera(false);
+  };
+
+  const handleCameraSwitch = async () => {
+    const nextFacing = !useFrontCamera;
+    setUseFrontCamera(nextFacing);
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+    }
+    setCameraStream(null);
+    await initCamera(nextFacing);
+  };
+
   useEffect(() => {
     if (showCamera && videoRef.current && cameraStream) {
       videoRef.current.srcObject = cameraStream;
@@ -390,6 +431,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
     setZoomCapabilities(null);
     setFlashOn(false);
     setFlashSupported(false);
+    setUseFrontCamera(false);
     document.body.classList.remove('camera-open');
   };
 
@@ -518,9 +560,17 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
               title={flashOn ? 'Matikan Flash' : 'Nyalakan Flash'}
               style={{ background: flashOn ? 'rgba(251, 191, 36, 0.3)' : undefined }}
             >
-              <span style={{ fontSize: '18px' }}>{flashOn ? '⚡' : '🔦'}</span>
+              {flashOn ? <Zap size={18} color="#fbbf24" fill="#fbbf24" /> : <ZapOff size={18} />}
             </button>
           )}
+          <button
+            type="button"
+            onClick={handleCameraSwitch}
+            className={styles.cameraCloseBtn}
+            title="Ganti Kamera"
+          >
+            <RefreshCw size={18} />
+          </button>
           <button type="button" onClick={closeCamera} className={styles.cameraCloseBtn}>
             <X size={20} />
           </button>
@@ -547,7 +597,9 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
       {/* Zoom slider */}
       {zoomCapabilities && (
         <div className={styles.cameraZoomBar}>
-          <span className={styles.cameraZoomLabel}>🔍 {zoomLevel.toFixed(1)}×</span>
+          <span className={styles.cameraZoomLabel}>
+            <ZoomIn size={14} style={{ marginRight: '4px' }} /> {zoomLevel.toFixed(1)}×
+          </span>
           <input
             type="range"
             min={zoomCapabilities.min || 1}
