@@ -6,12 +6,24 @@ import {
   Play, Pause, RotateCcw, CheckSquare, Trash2, Plus, 
   ChevronRight, ChevronDown, Check, X, Sparkles, Clock, 
   ArrowRight, ArrowLeft, PlusCircle, Briefcase, Info, 
-  Calendar, Edit3, ClipboardCheck, LayoutGrid 
+  Calendar, Edit3, ClipboardCheck, LayoutGrid,
+  GraduationCap, Award, Search, MapPin, Target, Coffee, Zap
 } from 'lucide-react';
 
 import { skpData } from '@/data/skpData';
 import { BPS_ROLES, ROLE_TEMPLATES, initialTasks } from '@/data/taskData';
 import styles from './page.module.css';
+
+function getRoleIcon(iconName, size = 14) {
+  switch (iconName) {
+    case 'Briefcase': return <Briefcase size={size} />;
+    case 'GraduationCap': return <GraduationCap size={size} />;
+    case 'Award': return <Award size={size} />;
+    case 'Search': return <Search size={size} />;
+    case 'MapPin': return <MapPin size={size} />;
+    default: return <Briefcase size={size} />;
+  }
+}
 
 export default function TasksPage() {
   const router = useRouter();
@@ -103,11 +115,11 @@ export default function TasksPage() {
             clearInterval(timerIntervalRef.current);
             setIsTimerRunning(false);
             if (timerType === 'pomodoro') {
-              showToast('Sesi fokus selesai! Istirahatlah sejenak ☕', 'success');
+              showToast('Sesi fokus selesai! Silakan istirahat sejenak.', 'success');
               setTimerSeconds(300); // 5 menit istirahat
               setTimerType('break');
             } else {
-              showToast('Waktu istirahat selesai! Mari fokus kembali 💪', 'success');
+              showToast('Waktu istirahat selesai! Mari mulai fokus kembali.', 'success');
               setTimerSeconds(1500); // 25 menit fokus
               setTimerType('pomodoro');
             }
@@ -403,7 +415,7 @@ export default function TasksPage() {
             <option value="all">Semua Peran Kerja</option>
             {BPS_ROLES.map((r) => (
               <option key={r.id} value={r.id}>
-                {r.icon} {r.name}
+                {r.name}
               </option>
             ))}
           </select>
@@ -534,7 +546,7 @@ export default function TasksPage() {
                 const roleObj = BPS_ROLES.find((r) => r.id === focusedTask.peran);
                 return roleObj ? (
                   <span className={styles.focusRoleBadge} style={{ background: roleObj.color }}>
-                    {roleObj.icon} Peran: {roleObj.name}
+                    {getRoleIcon(roleObj.iconName, 14)} Peran: {roleObj.name}
                   </span>
                 ) : null;
               })()}
@@ -579,7 +591,11 @@ export default function TasksPage() {
               {/* Right Column: Pomodoro Timer */}
               <div className={styles.focusTimerSection}>
                 <span className={styles.timerLabel}>
-                  {timerType === 'pomodoro' ? '⏱️ Sesi Fokus (25m)' : '☕ Rehat Sejenak'}
+                  {timerType === 'pomodoro' ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Zap size={12} /> Sesi Fokus (25m)</span>
+                  ) : (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><Coffee size={12} /> Rehat Sejenak</span>
+                  )}
                 </span>
                 
                 <div className={`${styles.timerDisplay} ${isTimerRunning ? styles.timerTicking : ''}`}>
@@ -690,7 +706,7 @@ export default function TasksPage() {
                   >
                     {BPS_ROLES.map((r) => (
                       <option key={r.id} value={r.id}>
-                        {r.icon} {r.name}
+                        {r.name}
                       </option>
                     ))}
                   </select>
@@ -825,12 +841,12 @@ function TaskCard({
       <div className={styles.cardTags}>
         {roleObj && (
           <span className={styles.roleTag} style={{ background: `${roleObj.color}25`, border: `1px solid ${roleObj.color}45`, color: roleObj.color }}>
-            {roleObj.icon} {roleObj.name}
+            {getRoleIcon(roleObj.iconName, 12)} {roleObj.name}
           </span>
         )}
         {skpObj && (
-          <span className={styles.skpTag} title={skpObj.nama}>
-            🎯 SKP #{task.skpId}: {skpObj.nama}
+          <span className={styles.skpTag} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }} title={skpObj.nama}>
+            <Target size={11} /> SKP #{task.skpId}: {skpObj.nama}
           </span>
         )}
       </div>
@@ -917,14 +933,14 @@ function TaskCard({
           {/* Focus button */}
           {task.status !== 'done' && (
             <button className={styles.focusBtn} onClick={onStartFocus} title="Mulai Mode Fokus Pomodoro">
-              ⏱️ Fokus
+              <Zap size={12} /> Fokus
             </button>
           )}
 
           {/* CKP integration button */}
           {task.status === 'done' && (
             <button className={styles.ckpBtn} onClick={onJadikanCKP} title="Kirim rincian tugas ke CKP Harian">
-              📝 CKP
+              <ClipboardCheck size={12} /> CKP
             </button>
           )}
         </div>

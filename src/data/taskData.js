@@ -1,11 +1,11 @@
 // Data Awal Tugas (Tasks) dengan Peran BPS dan Subtask Checklist
 
 export const BPS_ROLES = [
-  { id: 'admin', name: 'Admin', icon: '💼', color: '#38bdf8' },
-  { id: 'manajer_kelas', name: 'Manajer Kelas', icon: '👨‍🏫', color: '#a78bfa' },
-  { id: 'panitia', name: 'Panitia Acara', icon: '🎉', color: '#f472b6' },
-  { id: 'pemeriksa', name: 'Pemeriksa / Pengawas', icon: '🔍', color: '#fb923c' },
-  { id: 'petugas_lapangan', name: 'Petugas Lapangan', icon: '🚶‍♂️', color: '#4ade80' },
+  { id: 'admin', name: 'Admin', iconName: 'Briefcase', color: '#38bdf8' },
+  { id: 'manajer_kelas', name: 'Manajer Kelas', iconName: 'GraduationCap', color: '#a78bfa' },
+  { id: 'panitia', name: 'Panitia Acara', iconName: 'Award', color: '#f472b6' },
+  { id: 'pemeriksa', name: 'Pemeriksa / Pengawas', iconName: 'Search', color: '#fb923c' },
+  { id: 'petugas_lapangan', name: 'Petugas Lapangan', iconName: 'MapPin', color: '#4ade80' },
 ];
 
 export const ROLE_TEMPLATES = {
