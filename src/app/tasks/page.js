@@ -8,7 +8,7 @@ import {
   ArrowRight, ArrowLeft, PlusCircle, Briefcase, Info, 
   Calendar, Edit3, ClipboardCheck, LayoutGrid,
   GraduationCap, Award, Search, MapPin, Target, Coffee, Zap,
-  Monitor, Map as MapIcon, Book, Users, Folder, Network
+  Monitor, Map as MapIcon, Book, Users, Folder, Network, BarChart2, ClipboardList
 } from 'lucide-react';
 
 import { skpData } from '@/data/skpData';
