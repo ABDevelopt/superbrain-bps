@@ -8,7 +8,7 @@ import styles from './page.module.css';
 import { useFirestore } from '@/hooks/useFirestore';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchGCalEvents, createGCalEvent, updateGCalEvent, deleteGCalEvent } from '@/lib/gcal';
-import AddEventModal from './AddEventModal';
+import AddEventModal, { URGENSI_COLORS } from './AddEventModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
 const HARI = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
@@ -88,13 +88,14 @@ function EventCard({ event, onToggle, onEdit, onDelete, onJadikanCKP, ckpCount =
   const color = KATEGORI_COLORS[event.kategori] || KATEGORI_COLORS.Lainnya;
   const isSelesai = event.isSelesai;
   const hasCKP = ckpCount > 0;
+  const urgensiColor = event.urgensi ? URGENSI_COLORS[event.urgensi] : null;
 
   return (
     <div className={styles.eventCard} style={{ borderLeftColor: color, opacity: isSelesai ? 0.6 : 1 }}>
       <div className={styles.eventHeader}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <button 
-            onClick={(e) => { e.stopPropagation(); onToggle(event); }} 
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggle(event); }}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: isSelesai ? '#10b981' : '#cbd5e1', padding: 0, display: 'flex', alignItems: 'center' }}
             title={isSelesai ? "Tandai Belum Selesai" : "Tandai Selesai"}
           >
@@ -103,20 +104,30 @@ function EventCard({ event, onToggle, onEdit, onDelete, onJadikanCKP, ckpCount =
           <span className={styles.eventKategori} style={{ background: `${color}20`, color, textDecoration: isSelesai ? 'line-through' : 'none' }}>
             {event.kategori}
           </span>
+          {urgensiColor && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: '4px',
+              padding: '2px 8px', borderRadius: '20px', fontSize: '11px', fontWeight: '700',
+              background: urgensiColor.bg, border: `1px solid ${urgensiColor.border}`, color: urgensiColor.text
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: urgensiColor.dot, display: 'inline-block' }} />
+              {event.urgensi}
+            </span>
+          )}
           {hasCKP && (
             <span className={styles.ckpBadge}>
               <ClipboardCheck size={12} /> CKP Tercatat ({ckpCount})
             </span>
           )}
         </div>
-        <span className={styles.eventTime}>{event.waktu}</span>
+        <span className={styles.eventTime}>{event.waktu}{event.waktuSelesai ? ` – ${event.waktuSelesai}` : ''}</span>
       </div>
       <h4 className={styles.eventTitle} style={{ textDecoration: isSelesai ? 'line-through' : 'none', color: isSelesai ? '#94a3b8' : '#fff', paddingRight: '80px', position: 'relative' }}>
         {event.judul}
         <div style={{ position: 'absolute', right: 0, top: 0, display: 'flex', gap: '4px' }}>
-          <button 
-            onClick={(e) => { e.stopPropagation(); onJadikanCKP(event); }} 
-            style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '3px' }} 
+          <button
+            onClick={(e) => { e.stopPropagation(); onJadikanCKP(event); }}
+            style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '3px' }}
             title="Buat CKP dari jadwal ini"
           >
             <ClipboardCheck size={12} /> CKP
@@ -125,13 +136,19 @@ function EventCard({ event, onToggle, onEdit, onDelete, onJadikanCKP, ckpCount =
           <button onClick={(e) => { e.stopPropagation(); onDelete(event); }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }} title="Hapus"><Trash2 size={14} /></button>
         </div>
       </h4>
+      {event.lokasi && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: '#94a3b8', marginBottom: '4px' }}>
+          <MapPin size={12} />
+          <span>{event.lokasi}</span>
+        </div>
+      )}
       {event.deskripsi && <p className={styles.eventDesc}>{event.deskripsi}</p>}
       {skp && (
         <div className={styles.eventSkp}>
           SKP #{event.skpId}: {skp.nama}
         </div>
       )}
-      <div className={styles.eventReminder} style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
+      <div className={styles.eventReminder} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         <Bell size={14} /> Pengingat: {Array.isArray(event.reminders) ? event.reminders.join(', ') : (event.reminder || 'Tidak ada')}
       </div>
     </div>
@@ -721,27 +738,41 @@ export default function SchedulePage() {
                 <Clock size={18} color="#94a3b8" style={{ marginTop: '2px', flexShrink: 0 }} />
                 <div>
                   <div style={{ fontWeight: '500' }}>{formatDateLong(selectedEventForDetail.tanggal)}</div>
-                  <div style={{ color: '#94a3b8' }}>{selectedEventForDetail.waktu} {selectedEventForDetail.waktuSelesai ? `- ${selectedEventForDetail.waktuSelesai}` : ''} (WIB)</div>
+                  <div style={{ color: '#94a3b8' }}>{selectedEventForDetail.waktu} {selectedEventForDetail.waktuSelesai ? `\u2013 ${selectedEventForDetail.waktuSelesai}` : ''} (WIB)</div>
                 </div>
               </div>
 
-              {selectedEventForDetail.kategori && (
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <Tag size={18} color="#94a3b8" style={{ flexShrink: 0 }} />
-                  <div>
-                    <span style={{ 
-                      padding: '4px 10px', 
-                      background: KATEGORI_COLORS[selectedEventForDetail.kategori] || '#334155', 
-                      borderRadius: '6px', 
-                      fontSize: '12px', 
+              {/* Kategori + Urgensi row */}
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <Tag size={18} color="#94a3b8" style={{ flexShrink: 0 }} />
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  {selectedEventForDetail.kategori && (
+                    <span style={{
+                      padding: '4px 10px',
+                      background: KATEGORI_COLORS[selectedEventForDetail.kategori] || '#334155',
+                      borderRadius: '6px',
+                      fontSize: '12px',
                       fontWeight: '600',
                       color: 'white'
                     }}>
                       {selectedEventForDetail.kategori}
                     </span>
-                  </div>
+                  )}
+                  {selectedEventForDetail.urgensi && (() => {
+                    const uc = URGENSI_COLORS[selectedEventForDetail.urgensi];
+                    return uc ? (
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '5px',
+                        padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: '700',
+                        background: uc.bg, border: `1px solid ${uc.border}`, color: uc.text
+                      }}>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: uc.dot, display: 'inline-block' }} />
+                        {selectedEventForDetail.urgensi}
+                      </span>
+                    ) : null;
+                  })()}
                 </div>
-              )}
+              </div>
 
               {selectedEventForDetail.lokasi && (
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>

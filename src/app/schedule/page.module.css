@@ -589,6 +589,32 @@
   gap: 18px;
 }
 
+/* ===== Urgensi Selector ===== */
+.urgensiSelector {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.urgensiBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+}
+
+.urgensiBtn:hover {
+  filter: brightness(1.2);
+}
+
 .modalActions {
   display: flex;
   justify-content: flex-end;
