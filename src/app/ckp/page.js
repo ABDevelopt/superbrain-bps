@@ -1105,6 +1105,7 @@ function TabRekapHarian({ entries, onEdit, onDelete }) {
 
 // TAB 3: Rekap Bulanan
 function TabRekapBulanan({ entries }) {
+  const { showAlert } = useAlert();
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthStr());
 
   const monthData = useMemo(() => {
@@ -1252,6 +1253,7 @@ function TabRekapBulanan({ entries }) {
 }
 // TAB 4: Rekap Triwulanan
 function TabRekapTriwulanan({ entries }) {
+  const { showAlert } = useAlert();
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedQuarter, setSelectedQuarter] = useState(Math.floor(new Date().getMonth() / 3) + 1);
 
