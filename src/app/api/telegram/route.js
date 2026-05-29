@@ -85,38 +85,78 @@ async function handleTelegramWebhook(token, body) {
         parsedData = await parseInvitationText(messageText);
       }
 
-      // Save directly to Firestore
-      const docRef = await addDoc(collection(db, 'schedule'), {
-        judul: parsedData.judul,
-        tanggal: parsedData.tanggal,
-        waktu: parsedData.waktu,
-        waktuSelesai: parsedData.waktuSelesai || '',
-        lokasi: parsedData.lokasi || '',
-        deskripsi: parsedData.deskripsi || '',
-        kategori: parsedData.kategori,
-        urgensi: parsedData.urgensi,
-        skpId: parsedData.skpId ? Number(parsedData.skpId) : null,
-        reminders: ['1 Jam Sebelum', '5 Menit Sebelum'],
-        sentReminders: [],
-        isSelesai: false,
-        createdAt: serverTimestamp(),
-      });
+      let docRef;
+      let successMsg = '';
+      
+      const payloadType = parsedData.type;
+      const payloadData = parsedData.data;
 
-      // Find SKP info
-      const skpInfo = parsedData.skpId
-        ? `\n*Butir SKP Terkait:* SKP #${parsedData.skpId} - ${skpData.find(s => s.id === parsedData.skpId)?.nama || ''}`
+      // Find SKP info for response
+      const skpInfo = payloadData.skpId
+        ? `\n*Butir SKP Terkait:* SKP #${payloadData.skpId} - ${skpData.find(s => s.id === payloadData.skpId)?.nama || ''}`
         : '\n*Butir SKP Terkait:* Tidak ada SKP BPS yang cocok';
 
-      // Send Success response to user
-      const successMsg = 
-        `📅 *Agenda Berhasil Ditambahkan!*\n\n` +
-        `*Acara:* ${parsedData.judul}\n` +
-        `*Tanggal:* ${parsedData.tanggal}\n` +
-        `*Waktu:* ${parsedData.waktu}${parsedData.waktuSelesai ? ` - ${parsedData.waktuSelesai}` : ''} WIB\n` +
-        `*Tempat:* ${parsedData.lokasi || 'Tidak disebutkan'}\n` +
-        `*Kategori:* ${parsedData.kategori}\n` +
-        `*Urgensi:* ${parsedData.urgensi}${skpInfo}\n\n` +
-        `_Silakan buka aplikasi web SuperBrain untuk melakukan penyesuaian detail._`;
+      if (payloadType === 'JADWAL') {
+        docRef = await addDoc(collection(db, 'schedule'), {
+          judul: payloadData.judul || '',
+          tanggal: payloadData.tanggal || '',
+          waktu: payloadData.waktu || '09:00',
+          waktuSelesai: payloadData.waktuSelesai || '',
+          lokasi: payloadData.lokasi || '',
+          deskripsi: payloadData.deskripsi || '',
+          kategori: payloadData.kategori || 'Lainnya',
+          urgensi: payloadData.urgensi || 'Sedang',
+          skpId: payloadData.skpId ? Number(payloadData.skpId) : null,
+          reminders: ['1 Jam Sebelum', '5 Menit Sebelum'],
+          sentReminders: [],
+          isSelesai: false,
+          createdAt: serverTimestamp(),
+        });
+
+        successMsg = 
+          `📅 *Agenda Berhasil Ditambahkan!*\n\n` +
+          `*Acara:* ${payloadData.judul}\n` +
+          `*Tanggal:* ${payloadData.tanggal}\n` +
+          `*Waktu:* ${payloadData.waktu}${payloadData.waktuSelesai ? ` - ${payloadData.waktuSelesai}` : ''} WIB\n` +
+          `*Tempat:* ${payloadData.lokasi || 'Tidak disebutkan'}\n` +
+          `*Kategori:* ${payloadData.kategori}\n` +
+          `*Urgensi:* ${payloadData.urgensi}${skpInfo}\n\n` +
+          `_Silakan buka aplikasi web SuperBrain untuk melakukan penyesuaian detail._`;
+
+      } else if (payloadType === 'CKP') {
+        const ckpDoc = {
+          tanggal: payloadData.tanggal || '',
+          waktuMulai: payloadData.waktuMulai || '08:00',
+          waktuSelesai: payloadData.waktuSelesai || '16:00',
+          rincian: payloadData.rincian || '',
+          kuantitas: payloadData.kuantitas || 1,
+          satuan: payloadData.satuan || 'Kegiatan',
+          timKerja: payloadData.timKerja || 'Subbagian Umum',
+          skpId: payloadData.skpId ? String(payloadData.skpId) : '', // CKP stores skpId as string usually
+          createdAt: serverTimestamp(),
+        };
+
+        // Save fileId for auto-sync if present
+        if (fileId) {
+          ckpDoc.telegramFileId = fileId;
+        }
+
+        docRef = await addDoc(collection(db, 'ckp'), ckpDoc);
+
+        successMsg = 
+          `✅ *Laporan CKP Berhasil Ditambahkan!*\n\n` +
+          `*Tanggal:* ${payloadData.tanggal}\n` +
+          `*Waktu:* ${payloadData.waktuMulai} - ${payloadData.waktuSelesai} WIB\n` +
+          `*Output:* ${payloadData.kuantitas} ${payloadData.satuan}\n` +
+          `*Tim:* ${payloadData.timKerja}${skpInfo}\n\n` +
+          `_Laporan telah masuk ke catatan CKP Anda._`;
+        
+        if (fileId) {
+          successMsg += `\n\n📌 *Info Bukti Dukung:* Dokumen yang Anda lampirkan akan otomatis diunggah ke Google Drive sebagai Bukti Dukung saat Anda membuka web SuperBrain.`;
+        }
+      } else {
+        throw new Error('Tipe data tidak dikenali oleh AI.');
+      }
 
       await sendTelegramMessage(token, chatId, successMsg);
       return NextResponse.json({ success: true, docId: docRef.id });

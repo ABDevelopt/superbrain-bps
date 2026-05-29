@@ -1422,11 +1422,51 @@ function TabRekapTriwulanan({ entries }) {
 function CKPPageInner() {
   const searchParams = useSearchParams();
   const { showAlert } = useAlert();
+  const { accessToken } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const { docs: entries, loading, addDocument, updateDocument, deleteDocument } = useFirestore('ckp');
   const [toastVisible, setToastVisible] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+  // Handle auto-sync of telegram files to Google Drive
+  useEffect(() => {
+    if (loading || !entries || !accessToken) return;
+
+    const syncPendingFiles = async () => {
+      const pendingEntries = entries.filter(e => e.telegramFileId);
+      
+      for (const entry of pendingEntries) {
+        try {
+          // 1. Download from proxy
+          const res = await fetch(`/api/telegram-file?id=${entry.telegramFileId}`);
+          if (!res.ok) throw new Error('Gagal mengunduh dari server Telegram via proxy.');
+          
+          const blob = await res.blob();
+          const disp = res.headers.get('content-disposition');
+          const filenameMatch = disp ? disp.match(/filename="([^"]+)"/) : null;
+          const filename = filenameMatch ? filenameMatch[1] : `Dokumen_CKP_${entry.tanggal}.pdf`;
+          
+          const file = new File([blob], filename, { type: blob.type });
+
+          // 2. Upload to Google Drive
+          const driveUrl = await uploadFileToDrive(file, accessToken);
+
+          // 3. Update Firestore
+          await updateDocument(entry.id, {
+            buktiDukung: driveUrl,
+            telegramFileId: null // Clear the temporary ID
+          });
+          
+          showAlert(`Bukti dukung CKP untuk kegiatan '${entry.rincian.substring(0, 20)}...' berhasil disinkronisasi ke Google Drive.`);
+        } catch (err) {
+          console.error('Failed to sync telegram file for entry', entry.id, err);
+        }
+      }
+    };
+
+    syncPendingFiles();
+  }, [entries, loading, accessToken, updateDocument, showAlert]);
 
   // Handle prefill from schedule
   useEffect(() => {
