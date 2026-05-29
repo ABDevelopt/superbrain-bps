@@ -623,7 +623,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
       // remove internal field
       delete dataToSave._fromScheduleEventId;
 
-      if (initialData && onUpdate) {
+      if (initialData && initialData.id && onUpdate) {
         await onUpdate(initialData.id, dataToSave);
       } else {
         await onSubmit(dataToSave);
@@ -997,9 +997,9 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
           ) : (
             <span className={styles.submitIcon}><Save size={18} /></span>
           )}
-          {isUploading ? 'Menyimpan...' : (initialData ? 'Perbarui Kegiatan' : 'Simpan Kegiatan')}
+          {isUploading ? 'Menyimpan...' : ((initialData && initialData.id) ? 'Perbarui Kegiatan' : 'Simpan Kegiatan')}
         </button>
-        {initialData && (
+        {initialData && initialData.id && (
           <button type="button" onClick={onCancelEdit} style={{ padding: '0 24px', borderRadius: '12px', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', cursor: 'pointer', fontWeight: '500' }}>
             Batal Edit
           </button>
