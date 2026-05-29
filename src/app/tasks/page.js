@@ -82,6 +82,32 @@ export default function TasksPage() {
     setIsLoaded(true);
   }, []);
 
+  // Handle URL parameter filters and session prefill
+  useEffect(() => {
+    if (!isLoaded) return;
+    
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const skpParam = params.get('skpId');
+      if (skpParam) {
+        setFilterSkp(skpParam);
+      }
+      
+      const prefillSkpId = sessionStorage.getItem('prefill_task_skpId');
+      if (prefillSkpId) {
+        sessionStorage.removeItem('prefill_task_skpId');
+        setFormSkpId(Number(prefillSkpId));
+        setFormJudul('');
+        setFormDesc('');
+        setFormPeran('admin');
+        setFormChecklist([]);
+        setNewChecklistItem('');
+        setModalMode('add');
+        setIsModalOpen(true);
+      }
+    }
+  }, [isLoaded]);
+
   // Save tasks to LocalStorage helper
   const saveTasks = (newTasks) => {
     setTasks(newTasks);
