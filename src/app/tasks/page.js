@@ -7,7 +7,8 @@ import {
   ChevronRight, ChevronDown, Check, X, Sparkles, Clock, 
   ArrowRight, ArrowLeft, PlusCircle, Briefcase, Info, 
   Calendar, Edit3, ClipboardCheck, LayoutGrid,
-  GraduationCap, Award, Search, MapPin, Target, Coffee, Zap
+  GraduationCap, Award, Search, MapPin, Target, Coffee, Zap,
+  Monitor, Map as MapIcon, Book, Users, Folder, Network
 } from 'lucide-react';
 
 import { skpData } from '@/data/skpData';
@@ -28,16 +29,19 @@ function getRoleIcon(iconName, size = 14) {
 export default function TasksPage() {
   const router = useRouter();
 
+  // Tab Utama: 0 = Papan Kanban, 1 = Pemetaan SKP
+  const [activeTab, setActiveTab] = useState(0);
+
   // State utama daftar tugas
   const [tasks, setTasks] = useState([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Filter & Pencarian
+  // Filter & Pencarian (Kanban)
   const [filterRole, setFilterRole] = useState('all');
   const [filterSkp, setFilterSkp] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Modals & Forms
+  // Modals & Forms (Tugas)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('add'); // 'add' | 'edit'
   const [selectedTaskForEdit, setSelectedTaskForEdit] = useState(null);
@@ -61,6 +65,12 @@ export default function TasksPage() {
 
   // Toast Notification
   const [toast, setToast] = useState(null);
+
+  // Pemetaan Kerja (Tab 2) State
+  const [mappingViewMode, setMappingViewMode] = useState('tree'); // 'tree' | 'grid'
+  const [mappingGroupBy, setMappingGroupBy] = useState('cluster'); // 'cluster' | 'tim' | 'kategori'
+  const [expandedGroups, setExpandedGroups] = useState({});
+  const [selectedSkp, setSelectedSkp] = useState(null);
 
   // Refs
   const timerIntervalRef = useRef(null);
@@ -91,6 +101,7 @@ export default function TasksPage() {
       const skpParam = params.get('skpId');
       if (skpParam) {
         setFilterSkp(skpParam);
+        setActiveTab(0);
       }
       
       const prefillSkpId = sessionStorage.getItem('prefill_task_skpId');
@@ -104,6 +115,7 @@ export default function TasksPage() {
         setNewChecklistItem('');
         setModalMode('add');
         setIsModalOpen(true);
+        setActiveTab(0);
       }
     }
   }, [isLoaded]);
@@ -314,8 +326,6 @@ export default function TasksPage() {
   // Convert task to CKP (prefetch format and redirect)
   const handleJadikanCKP = (task) => {
     const today = new Date().toISOString().split('T')[0];
-    
-    // Compile checklist items that were completed
     const completedItems = task.checklist
       .filter((c) => c.completed)
       .map((c) => c.text)
@@ -336,7 +346,6 @@ export default function TasksPage() {
       sessionStorage.setItem('ckp_prefill', JSON.stringify(prefill));
       showToast('Mengarahkan ke halaman pencatatan CKP...', 'success');
       
-      // Let focus exit gracefully before routing
       if (focusedTask) {
         handleExitFocus();
       }
@@ -373,7 +382,7 @@ export default function TasksPage() {
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
-  // Filter tasks based on filters and search queries
+  // Filter tasks based on filters and search queries (Kanban)
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
       const matchRole = filterRole === 'all' || task.peran === filterRole;
@@ -400,6 +409,117 @@ export default function TasksPage() {
     return Math.round((doneCount / tasks.length) * 100);
   }, [tasks]);
 
+  // ============================================
+  // TAB 2: PEMETAAN KERJA LOGIC
+  // ============================================
+  const skpTasksMap = useMemo(() => {
+    const map = {};
+    tasks.forEach((task) => {
+      if (!map[task.skpId]) {
+        map[task.skpId] = [];
+      }
+      map[task.skpId].push(task);
+    });
+    return map;
+  }, [tasks]);
+
+  const groupedData = useMemo(() => {
+    const groupField = mappingGroupBy === 'kategori' ? 'kategori' : mappingGroupBy === 'tim' ? 'tim' : 'cluster';
+    
+    const groups = skpData.reduce((acc, item) => {
+      const key = item[groupField] || 'Lainnya';
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push(item);
+      return acc;
+    }, {});
+
+    // Auto expanded groups
+    const initialExpanded = {};
+    Object.keys(groups).forEach(key => {
+      initialExpanded[key] = true;
+    });
+    setExpandedGroups(prev => {
+      if (Object.keys(prev).length === 0) {
+        return initialExpanded;
+      }
+      return prev;
+    });
+
+    return groups;
+  }, [mappingGroupBy]);
+
+  const toggleGroup = (groupName) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [groupName]: !prev[groupName]
+    }));
+  };
+
+  const handleOpenSkpDetail = (skp) => {
+    setSelectedSkp(skp);
+  };
+
+  // Direct addition of task from SKP Modal
+  const handleAddNewTaskFromSkp = (skpId) => {
+    setFormSkpId(Number(skpId));
+    setFormJudul('');
+    setFormDesc('');
+    setFormPeran('admin');
+    setFormChecklist([]);
+    setNewChecklistItem('');
+    setModalMode('add');
+    setSelectedSkp(null);
+    setActiveTab(0); // switch to Kanban Papan Kerja
+    setIsModalOpen(true); // open modal
+  };
+
+  const handleManageTasksFromSkp = (skpId) => {
+    setFilterSkp(String(skpId));
+    setSelectedSkp(null);
+    setActiveTab(0); // switch to Kanban
+  };
+
+  // Helper BPS Group Icons
+  const getGroupIcon = (groupName) => {
+    switch (groupName) {
+      case 'IT & Digital': return <Monitor size={16} />;
+      case 'Geospasial': return <MapIcon size={16} />;
+      case 'Survei & Sensus': return <BarChart2 size={16} />;
+      case 'Publikasi & Data': return <Book size={16} />;
+      case 'Pelayanan & Koordinasi': return <Users size={16} />;
+      case 'Administrasi': return <ClipboardList size={16} />;
+      case 'utama': return <Target size={16} color="#6366f1" />;
+      case 'tambahan': return <Plus size={16} color="#f59e0b" />;
+      case 'Subbagian Umum': return <Folder size={16} />;
+      case 'Tim IPJKD & DLS': return <Network size={16} />;
+      case 'Tim Statistik Sosial': return <Users size={16} />;
+      case 'Tim Statistik Harga & Sensus Ekonomi': return <BarChart2 size={16} />;
+      default: return <Folder size={16} />;
+    }
+  };
+
+  const getStatusClass = (status) => {
+    switch (status) {
+      case 'belum': return styles.status_belum;
+      case 'progress': return styles.status_progress;
+      case 'selesai': return styles.status_selesai;
+      case 'terlambat': return styles.status_terlambat;
+      default: return styles.status_belum;
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'belum': return 'Belum Mulai';
+      case 'progress': return 'On Progress';
+      case 'selesai': return 'Selesai';
+      case 'terlambat': return 'Terlambat';
+      default: return 'Belum Mulai';
+    }
+  };
+
   return (
     <div className={styles.container}>
       {/* Toast */}
@@ -413,148 +533,343 @@ export default function TasksPage() {
       {/* Header */}
       <div className={styles.header}>
         <h1 className={styles.title}>
-          <LayoutGrid size={28} color="#6366f1" /> Papan Kerja & Fokus
+          <LayoutGrid size={28} color="#6366f1" /> Papan & Peta Kerja
         </h1>
         <p className={styles.subtitle}>
-          Kelola penugasan khusus organisasi BPS Anda. Uraikan menjadi checklist mikro untuk menghindari kejenuhan. 
-          {tasks.length > 0 && ` Progres tugas keseluruhan: ${completedRatio}% selesai (${tasks.filter(t => t.status === 'done').length}/${tasks.length} tugas).`}
+          Kelola penugasan khusus organisasi BPS Anda. Hubungkan tugas dengan SKP strategis dan urai menjadi checklist mikro.
+          {tasks.length > 0 && ` Progres keseluruhan: ${completedRatio}% selesai (${tasks.filter(t => t.status === 'done').length}/${tasks.length} tugas).`}
         </p>
       </div>
 
-      {/* Toolbar */}
-      <div className={styles.toolbar}>
-        <div className={styles.filters}>
-          <input 
-            type="text" 
-            placeholder="Cari tugas..." 
-            className={styles.searchInput}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-
-          {/* Filter Peran BPS */}
-          <select 
-            className={styles.filterSelect}
-            value={filterRole}
-            onChange={(e) => setFilterRole(e.target.value)}
-          >
-            <option value="all">Semua Peran Kerja</option>
-            {BPS_ROLES.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </select>
-
-          {/* Filter SKP */}
-          <select 
-            className={styles.filterSelect}
-            value={filterSkp}
-            onChange={(e) => setFilterSkp(e.target.value)}
-          >
-            <option value="all">Semua Target SKP</option>
-            {skpData.map((s) => (
-              <option key={s.id} value={s.id}>
-                SKP #{s.id}: {s.nama}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <button className={styles.addBtn} onClick={handleOpenAddModal}>
-          <Plus size={18} /> Tambah Tugas Baru
+      {/* Tab Switcher */}
+      <div className={styles.tabBar}>
+        <button 
+          className={`${styles.tab} ${activeTab === 0 ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab(0)}
+        >
+          <LayoutGrid size={16} /> Papan Kanban
+        </button>
+        <button 
+          className={`${styles.tab} ${activeTab === 1 ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab(1)}
+        >
+          <Network size={16} /> Peta Pohon SKP
         </button>
       </div>
 
-      {/* Kanban Board */}
-      <div className={styles.board}>
-        {/* Column 1: TODO */}
-        <div className={styles.column}>
-          <div className={styles.columnHeader}>
-            <span className={styles.columnTitle}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#38bdf8', display: 'inline-block' }} />
-              Rencana (To-Do)
-            </span>
-            <span className={styles.columnCount}>{todoTasks.length}</span>
-          </div>
-
-          <div className={styles.taskList}>
-            {todoTasks.map((task) => (
-              <TaskCard 
-                key={task.id}
-                task={task}
-                expanded={expandedCards[task.id]}
-                onToggleExpand={() => toggleCardAccordion(task.id)}
-                onToggleSubtask={(idx) => handleToggleSubtask(task.id, idx)}
-                onMoveStatus={(status) => handleMoveStatus(task.id, status)}
-                onDelete={() => handleDeleteTask(task.id)}
-                onEdit={() => handleOpenEditModal(task)}
-                onStartFocus={() => handleStartFocus(task)}
-                onJadikanCKP={() => handleJadikanCKP(task)}
+      {/* ============================================
+          TAB 1: PAPAN KANBAN VIEW
+          ============================================ */}
+      {activeTab === 0 && (
+        <>
+          {/* Toolbar */}
+          <div className={styles.toolbar}>
+            <div className={styles.filters}>
+              <input 
+                type="text" 
+                placeholder="Cari tugas..." 
+                className={styles.searchInput}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
-            ))}
-            {todoTasks.length === 0 && <EmptyColumnState />}
-          </div>
-        </div>
 
-        {/* Column 2: IN PROGRESS */}
-        <div className={styles.column}>
-          <div className={styles.columnHeader}>
-            <span className={styles.columnTitle}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#a78bfa', display: 'inline-block' }} />
-              Fokus Kerja
-            </span>
-            <span className={styles.columnCount}>{inProgressTasks.length}</span>
-          </div>
+              <select 
+                className={styles.filterSelect}
+                value={filterRole}
+                onChange={(e) => setFilterRole(e.target.value)}
+              >
+                <option value="all">Semua Peran Kerja</option>
+                {BPS_ROLES.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
 
-          <div className={styles.taskList}>
-            {inProgressTasks.map((task) => (
-              <TaskCard 
-                key={task.id}
-                task={task}
-                expanded={expandedCards[task.id]}
-                onToggleExpand={() => toggleCardAccordion(task.id)}
-                onToggleSubtask={(idx) => handleToggleSubtask(task.id, idx)}
-                onMoveStatus={(status) => handleMoveStatus(task.id, status)}
-                onDelete={() => handleDeleteTask(task.id)}
-                onEdit={() => handleOpenEditModal(task)}
-                onStartFocus={() => handleStartFocus(task)}
-                onJadikanCKP={() => handleJadikanCKP(task)}
-              />
-            ))}
-            {inProgressTasks.length === 0 && <EmptyColumnState />}
-          </div>
-        </div>
+              <select 
+                className={styles.filterSelect}
+                value={filterSkp}
+                onChange={(e) => setFilterSkp(e.target.value)}
+              >
+                <option value="all">Semua Target SKP</option>
+                {skpData.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    SKP #{s.id}: {s.nama}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        {/* Column 3: DONE */}
-        <div className={styles.column}>
-          <div className={styles.columnHeader}>
-            <span className={styles.columnTitle}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#4ade80', display: 'inline-block' }} />
-              Selesai
-            </span>
-            <span className={styles.columnCount}>{doneTasks.length}</span>
+            <button className={styles.addBtn} onClick={handleOpenAddModal}>
+              <Plus size={18} /> Tambah Tugas Baru
+            </button>
           </div>
 
-          <div className={styles.taskList}>
-            {doneTasks.map((task) => (
-              <TaskCard 
-                key={task.id}
-                task={task}
-                expanded={expandedCards[task.id]}
-                onToggleExpand={() => toggleCardAccordion(task.id)}
-                onToggleSubtask={(idx) => handleToggleSubtask(task.id, idx)}
-                onMoveStatus={(status) => handleMoveStatus(task.id, status)}
-                onDelete={() => handleDeleteTask(task.id)}
-                onEdit={() => handleOpenEditModal(task)}
-                onStartFocus={() => handleStartFocus(task)}
-                onJadikanCKP={() => handleJadikanCKP(task)}
-              />
-            ))}
-            {doneTasks.length === 0 && <EmptyColumnState />}
+          {/* Kanban Board columns */}
+          <div className={styles.board}>
+            {/* Column 1: TODO */}
+            <div className={styles.column}>
+              <div className={styles.columnHeader}>
+                <span className={styles.columnTitle}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#38bdf8', display: 'inline-block' }} />
+                  Rencana (To-Do)
+                </span>
+                <span className={styles.columnCount}>{todoTasks.length}</span>
+              </div>
+
+              <div className={styles.taskList}>
+                {todoTasks.map((task) => (
+                  <TaskCard 
+                    key={task.id}
+                    task={task}
+                    expanded={expandedCards[task.id]}
+                    onToggleExpand={() => toggleCardAccordion(task.id)}
+                    onToggleSubtask={(idx) => handleToggleSubtask(task.id, idx)}
+                    onMoveStatus={(status) => handleMoveStatus(task.id, status)}
+                    onDelete={() => handleDeleteTask(task.id)}
+                    onEdit={() => handleOpenEditModal(task)}
+                    onStartFocus={() => handleStartFocus(task)}
+                    onJadikanCKP={() => handleJadikanCKP(task)}
+                  />
+                ))}
+                {todoTasks.length === 0 && <EmptyColumnState />}
+              </div>
+            </div>
+
+            {/* Column 2: IN PROGRESS */}
+            <div className={styles.column}>
+              <div className={styles.columnHeader}>
+                <span className={styles.columnTitle}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#a78bfa', display: 'inline-block' }} />
+                  Fokus Kerja
+                </span>
+                <span className={styles.columnCount}>{inProgressTasks.length}</span>
+              </div>
+
+              <div className={styles.taskList}>
+                {inProgressTasks.map((task) => (
+                  <TaskCard 
+                    key={task.id}
+                    task={task}
+                    expanded={expandedCards[task.id]}
+                    onToggleExpand={() => toggleCardAccordion(task.id)}
+                    onToggleSubtask={(idx) => handleToggleSubtask(task.id, idx)}
+                    onMoveStatus={(status) => handleMoveStatus(task.id, status)}
+                    onDelete={() => handleDeleteTask(task.id)}
+                    onEdit={() => handleOpenEditModal(task)}
+                    onStartFocus={() => handleStartFocus(task)}
+                    onJadikanCKP={() => handleJadikanCKP(task)}
+                  />
+                ))}
+                {inProgressTasks.length === 0 && <EmptyColumnState />}
+              </div>
+            </div>
+
+            {/* Column 3: DONE */}
+            <div className={styles.column}>
+              <div className={styles.columnHeader}>
+                <span className={styles.columnTitle}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#4ade80', display: 'inline-block' }} />
+                  Selesai
+                </span>
+                <span className={styles.columnCount}>{doneTasks.length}</span>
+              </div>
+
+              <div className={styles.taskList}>
+                {doneTasks.map((task) => (
+                  <TaskCard 
+                    key={task.id}
+                    task={task}
+                    expanded={expandedCards[task.id]}
+                    onToggleExpand={() => toggleCardAccordion(task.id)}
+                    onToggleSubtask={(idx) => handleToggleSubtask(task.id, idx)}
+                    onMoveStatus={(status) => handleMoveStatus(task.id, status)}
+                    onDelete={() => handleDeleteTask(task.id)}
+                    onEdit={() => handleOpenEditModal(task)}
+                    onStartFocus={() => handleStartFocus(task)}
+                    onJadikanCKP={() => handleJadikanCKP(task)}
+                  />
+                ))}
+                {doneTasks.length === 0 && <EmptyColumnState />}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
+
+      {/* ============================================
+          TAB 2: PEMETAAN POHON SKP VIEW
+          ============================================ */}
+      {activeTab === 1 && (
+        <>
+          {/* Toolbar Peta */}
+          <div className={styles.toolbar}>
+            <div className={styles.toggleGroup}>
+              <button 
+                className={`${styles.toggleBtn} ${mappingViewMode === 'tree' ? styles.toggleBtnActive : ''}`}
+                onClick={() => setMappingViewMode('tree')}
+              >
+                <Network size={16} /> Pohon Interaktif
+              </button>
+              <button 
+                className={`${styles.toggleBtn} ${mappingViewMode === 'grid' ? styles.toggleBtnActive : ''}`}
+                onClick={() => setMappingViewMode('grid')}
+              >
+                <LayoutGrid size={16} /> Tampilan Grid
+              </button>
+            </div>
+
+            {mappingViewMode === 'tree' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>CABANG POHON:</span>
+                <select 
+                  className={styles.filterSelect}
+                  value={mappingGroupBy}
+                  onChange={(e) => setMappingGroupBy(e.target.value)}
+                >
+                  <option value="cluster">Kelompok Bidang (Klaster)</option>
+                  <option value="tim">Tim Kerja BPS</option>
+                  <option value="kategori">Kategori (Utama/Tambahan)</option>
+                </select>
+              </div>
+            )}
+          </div>
+
+          {/* Visual Container */}
+          <div className={styles.mapContainer}>
+            {mappingViewMode === 'tree' ? (
+              /* HORIZONTAL MIND-MAP TREE */
+              <div className={styles.treeWrapper}>
+                <div className={styles.treeBranch}>
+                  {/* Root Node */}
+                  <div className={`${styles.nodeCard} ${styles.rootNodeCard}`}>
+                    <div className={styles.rootSubtitle}>SASARAN KINERJA</div>
+                    <h2 className={styles.rootTitle}>SuperBrain BPS</h2>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#818cf8', fontWeight: '600', marginTop: '8px' }}>
+                      <CheckSquare size={13} /> {tasks.length} Tugas Terhubung
+                    </div>
+                  </div>
+
+                  {/* Branches */}
+                  <div className={styles.branchChildren}>
+                    {Object.entries(groupedData).map(([groupName, items]) => {
+                      const isExpanded = !!expandedGroups[groupName];
+                      const totalGroupTasks = items.reduce((acc, item) => {
+                        return acc + (skpTasksMap[item.id] || []).length;
+                      }, 0);
+
+                      return (
+                        <div key={groupName} className={styles.childContainer}>
+                          {/* Intermediate Node Card */}
+                          <div 
+                            className={`${styles.nodeCard} ${styles.groupNodeCard} ${!isExpanded ? styles.collapsedBranchCard : ''}`}
+                            onClick={() => toggleGroup(groupName)}
+                          >
+                            <div className={styles.groupHeader}>
+                              {getGroupIcon(groupName)}
+                              <span style={{ textTransform: mappingGroupBy === 'kategori' ? 'capitalize' : 'none' }}>
+                                {groupName}
+                              </span>
+                            </div>
+                            <div className={styles.groupMeta}>
+                              <span>{items.length} SKP</span>
+                              {totalGroupTasks > 0 && (
+                                <span className={styles.taskCountBadge} style={{ fontSize: '9px', padding: '1px 5px' }}>
+                                  {totalGroupTasks} Tugas
+                                </span>
+                              )}
+                              <span className={styles.collapseIndicator}>
+                                {isExpanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Leaves Column */}
+                          {isExpanded && (
+                            <div className={styles.branchChildren} style={{ gap: '12px' }}>
+                              {items.map((item) => {
+                                const itemTasks = skpTasksMap[item.id] || [];
+                                const activeTasks = itemTasks.filter(t => t.status !== 'done').length;
+                                const doneTasks = itemTasks.filter(t => t.status === 'done').length;
+
+                                return (
+                                  <div 
+                                    key={item.id} 
+                                    className={`${styles.nodeCard} ${styles.skpNodeCard}`}
+                                    onClick={() => handleOpenSkpDetail(item)}
+                                  >
+                                    <div className={styles.skpHeader}>
+                                      <span className={styles.skpBadge} style={{ background: item.kategori === 'utama' ? 'rgba(99,102,241,0.15)' : 'rgba(245,158,11,0.15)', color: item.kategori === 'utama' ? '#818cf8' : '#f59e0b' }}>
+                                        {item.kategori}
+                                      </span>
+                                      {itemTasks.length > 0 && (
+                                        <span className={`${styles.taskCountBadge} ${activeTasks === 0 ? styles.taskCountBadgeCompleted : ''}`}>
+                                          {activeTasks > 0 ? `📋 ${activeTasks} Aktif` : `✓ ${doneTasks} Selesai`}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <h3 className={styles.skpTitle} title={item.nama}>{item.nama}</h3>
+                                    <div className={styles.skpMetaRow}>
+                                      <span>SKP #{item.id}</span>
+                                      <span style={{ opacity: 0.8 }} title={item.tim}>{item.tim.split(' ').slice(-2).join(' ')}</span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* GRID LAYOUT FALLBACK */
+              <div className={styles.clusterGrid}>
+                {Object.entries(groupedData).map(([groupName, items]) => (
+                  <div key={groupName} className={styles.cluster}>
+                    <div className={styles.clusterHeader}>
+                      <span>{getGroupIcon(groupName)}</span>
+                      <span style={{ textTransform: mappingGroupBy === 'kategori' ? 'capitalize' : 'none' }}>{groupName}</span>
+                      <span style={{ fontSize: '11px', opacity: 0.8, marginLeft: '8px' }}>({items.length} kegiatan)</span>
+                    </div>
+                    
+                    <div className={styles.nodes}>
+                      {items.map(item => {
+                        const itemTasks = skpTasksMap[item.id] || [];
+                        return (
+                          <div 
+                            key={item.id} 
+                            className={styles.gridNode}
+                            onClick={() => handleOpenSkpDetail(item)}
+                          >
+                            <div className={styles.skpHeader}>
+                              <span className={`${styles.statusBadge} ${getStatusClass(item.status)}`}>
+                                {getStatusLabel(item.status)}
+                              </span>
+                              {itemTasks.length > 0 && (
+                                <span className={styles.taskCountBadge}>
+                                  📋 {itemTasks.length} Tugas
+                                </span>
+                              )}
+                            </div>
+                            <h3 className={styles.skpTitle} style={{ fontSize: '13.5px', margin: 0 }}>{item.nama}</h3>
+                            <div className={styles.skpMetaRow}>
+                              <span>SKP #{item.id} | {item.kategori}</span>
+                              <span>{item.tim}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Mode Fokus Tenang (Overlay) */}
       {focusedTask && (
@@ -658,7 +973,6 @@ export default function TasksPage() {
                       <button 
                         className={styles.focusSuccessBtn}
                         onClick={() => {
-                          // Update status to done if not already
                           if (focusedTask.status !== 'done') {
                             handleMoveStatus(focusedTask.id, 'done');
                           }
@@ -696,7 +1010,6 @@ export default function TasksPage() {
             </div>
 
             <form className={styles.form} onSubmit={handleSubmitForm}>
-              {/* Judul */}
               <div className={styles.formGroup}>
                 <label>Judul Tugas</label>
                 <input 
@@ -709,7 +1022,6 @@ export default function TasksPage() {
                 />
               </div>
 
-              {/* Deskripsi */}
               <div className={styles.formGroup}>
                 <label>Deskripsi (Opsional)</label>
                 <textarea 
@@ -720,7 +1032,6 @@ export default function TasksPage() {
                 />
               </div>
 
-              {/* Peran BPS & Template Button */}
               <div className={styles.formGroup}>
                 <label>Peran Kerja Organisasi BPS</label>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -747,7 +1058,6 @@ export default function TasksPage() {
                 </div>
               </div>
 
-              {/* Target SKP Mapped */}
               <div className={styles.formGroup}>
                 <label>Butir Target SKP Terkait</label>
                 <select 
@@ -763,7 +1073,6 @@ export default function TasksPage() {
                 </select>
               </div>
 
-              {/* Subtask Checklist Builder */}
               <div className={styles.formGroup}>
                 <label>Langkah Kerja Mikro Checklist ({formChecklist.length})</label>
                 
@@ -818,7 +1127,6 @@ export default function TasksPage() {
                 </div>
               </div>
 
-              {/* Modal Actions */}
               <div className={styles.modalActions}>
                 <button 
                   type="button" 
@@ -835,6 +1143,106 @@ export default function TasksPage() {
           </div>
         </div>
       )}
+
+      {/* SKP Detail Modal from Tree Map */}
+      {selectedSkp && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <div className={styles.modalHeader}>
+              <div className={styles.modalTitleArea}>
+                <span className={styles.skpBadge} style={{ background: selectedSkp.kategori === 'utama' ? 'rgba(99,102,241,0.15)' : 'rgba(245,158,11,0.15)', color: selectedSkp.kategori === 'utama' ? '#818cf8' : '#f59e0b', alignSelf: 'flex-start' }}>
+                  Sasaran {selectedSkp.kategori}
+                </span>
+                <h3 className={styles.modalTitle}>{selectedSkp.nama}</h3>
+                <div className={styles.modalMetaRow}>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>Nomor SKP: #{selectedSkp.id}</span>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>•</span>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>Tim: {selectedSkp.tim}</span>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>•</span>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>Klaster: {selectedSkp.cluster}</span>
+                </div>
+              </div>
+              <button className={styles.modalCloseBtn} onClick={() => setSelectedSkp(null)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Target & Realisasi Progress */}
+            <div className={styles.modalContentSection}>
+              <h4 className={styles.sectionTitle}>Indikator Sasaran Kinerja</h4>
+              <div className={styles.indicatorCardList}>
+                {selectedSkp.indikator && selectedSkp.indikator.map((ind, idx) => (
+                  <div key={idx} className={styles.indicatorCard}>
+                    <div className={styles.indicatorInfo}>
+                      <span className={styles.indicatorLabel}>Target {ind.jenis}</span>
+                      <span className={styles.indicatorVal}>Realisasi: {ind.realisasi}% / Target: {ind.target}%</span>
+                    </div>
+                    <div className={styles.barTrack}>
+                      <div className={styles.barFill} style={{ width: `${ind.realisasi}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Associated Tasks from Papan Tugas */}
+            <div className={styles.modalContentSection}>
+              <h4 className={styles.sectionTitle}>Daftar Tugas Terkait di Papan Tugas</h4>
+              <div className={styles.modalTasksList}>
+                {(() => {
+                  const itemTasks = skpTasksMap[selectedSkp.id] || [];
+                  if (itemTasks.length === 0) {
+                    return (
+                      <p className={styles.emptyStateText}>
+                        Belum ada tugas di papan tugas yang dihubungkan ke SKP ini.
+                      </p>
+                    );
+                  }
+
+                  return itemTasks.map((t) => {
+                    const totalSub = t.checklist ? t.checklist.length : 0;
+                    const doneSub = t.checklist ? t.checklist.filter(c => c.completed).length : 0;
+                    const roleObj = BPS_ROLES.find(r => r.id === t.peran);
+
+                    return (
+                      <div key={t.id} className={styles.modalTaskItem}>
+                        <div>
+                          <div className={styles.modalTaskTitle}>{t.judul}</div>
+                          <div className={styles.modalTaskSub}>
+                            {roleObj && `${getRoleIcon(roleObj.iconName, 12)} Peran: ${roleObj.name}`} 
+                            {totalSub > 0 && ` • Checklist: ${doneSub}/${totalSub}`}
+                          </div>
+                        </div>
+                        <span className={`${styles.modalTaskStatus} ${styles[`taskStatus_${t.status}`]}`}>
+                          {t.status === 'in_progress' ? 'Focus' : t.status}
+                        </span>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+
+            {/* Action Buttons inside SKP Modal */}
+            <div className={styles.modalActionsPanel}>
+              <button 
+                type="button" 
+                className={styles.actionBtnSecondary}
+                onClick={() => handleManageTasksFromSkp(selectedSkp.id)}
+              >
+                <CheckSquare size={14} /> Kelola di Papan Tugas
+              </button>
+              <button 
+                type="button" 
+                className={styles.actionBtnPrimary}
+                onClick={() => handleAddNewTaskFromSkp(selectedSkp.id)}
+              >
+                <Plus size={14} /> + Tugas Baru untuk SKP Ini
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -847,7 +1255,6 @@ function TaskCard({
   const roleObj = BPS_ROLES.find((r) => r.id === task.peran);
   const skpObj = skpData.find((s) => s.id === task.skpId);
 
-  // Calculate checklist progress
   const totalSubtasks = task.checklist ? task.checklist.length : 0;
   const completedSubtasks = task.checklist ? task.checklist.filter((c) => c.completed).length : 0;
   const progressPercent = totalSubtasks > 0 ? Math.round((completedSubtasks / totalSubtasks) * 100) : 0;
@@ -863,7 +1270,6 @@ function TaskCard({
 
       {task.deskripsi && <p className={styles.taskDesc}>{task.deskripsi}</p>}
 
-      {/* Metadata Tags */}
       <div className={styles.cardTags}>
         {roleObj && (
           <span className={styles.roleTag} style={{ background: `${roleObj.color}25`, border: `1px solid ${roleObj.color}45`, color: roleObj.color }}>
@@ -877,7 +1283,6 @@ function TaskCard({
         )}
       </div>
 
-      {/* Subtask Progress Bar */}
       {totalSubtasks > 0 && (
         <div className={styles.progressContainer}>
           <div className={styles.progressLabelRow}>
@@ -890,7 +1295,6 @@ function TaskCard({
         </div>
       )}
 
-      {/* Accordion checklist expander */}
       {totalSubtasks > 0 && (
         <>
           <button className={styles.checklistToggle} onClick={onToggleExpand}>
@@ -912,7 +1316,7 @@ function TaskCard({
                   <input 
                     type="checkbox" 
                     checked={item.completed}
-                    onChange={() => {}} // Handled by label click
+                    onChange={() => {}} 
                     style={{ marginRight: '6px' }}
                   />
                   <span className={item.completed ? styles.subtaskCompleted : ''}>
@@ -925,10 +1329,8 @@ function TaskCard({
         </>
       )}
 
-      {/* Task Card Footer Actions */}
       <div className={styles.cardActions}>
         <div className={styles.cardActionGroup}>
-          {/* Shift status columns */}
           {task.status !== 'todo' && (
             <button 
               className={styles.cardActionBtn} 
@@ -956,14 +1358,12 @@ function TaskCard({
         </div>
 
         <div style={{ display: 'flex', gap: '6px' }}>
-          {/* Focus button */}
           {task.status !== 'done' && (
             <button className={styles.focusBtn} onClick={onStartFocus} title="Mulai Mode Fokus Pomodoro">
               <Zap size={12} /> Fokus
             </button>
           )}
 
-          {/* CKP integration button */}
           {task.status === 'done' && (
             <button className={styles.ckpBtn} onClick={onJadikanCKP} title="Kirim rincian tugas ke CKP Harian">
               <ClipboardCheck size={12} /> CKP
@@ -975,7 +1375,6 @@ function TaskCard({
   );
 }
 
-// Sub-Component: Empty Column
 function EmptyColumnState() {
   return (
     <div style={{

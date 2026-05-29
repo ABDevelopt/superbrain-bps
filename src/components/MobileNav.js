@@ -2,16 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, ClipboardList, Map as MapIcon, Edit3, Calendar, CheckSquare } from 'lucide-react';
+import { Home, ClipboardList, Edit3, Calendar, CheckSquare } from 'lucide-react';
 import styles from './MobileNav.module.css';
 
 const navItems = [
   { href: '/',         icon: <Home size={20} />, label: 'Beranda' },
-  { href: '/tasks',    icon: <CheckSquare size={20} />, label: 'Tugas' },
+  { href: '/tasks',    icon: <CheckSquare size={20} />, label: 'Papan' },
   { href: '/schedule', icon: <Calendar size={20} />, label: 'Jadwal' },
   { href: '/ckp',      icon: <Edit3 size={20} />, label: 'CKP' },
   { href: '/skp',      icon: <ClipboardList size={20} />, label: 'SKP' },
-  { href: '/mapping',  icon: <MapIcon size={20} />, label: 'Mapping' },
 ];
 
 export default function MobileNav() {
