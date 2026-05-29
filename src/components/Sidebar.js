@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, ClipboardList, Map as MapIcon, Edit3, Calendar, BrainCircuit, LogOut, PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react';
+import { Home, ClipboardList, Map as MapIcon, Edit3, Calendar, BrainCircuit, LogOut, PanelLeftClose, PanelLeftOpen, Settings, CheckSquare } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import { useAuth } from '@/contexts/AuthContext';
 import ConfirmDialog from './ConfirmDialog';
@@ -10,6 +10,7 @@ import { useState } from 'react';
 
 const navItems = [
   { href: '/',         icon: <Home size={20} />, label: 'Dashboard' },
+  { href: '/tasks',    icon: <CheckSquare size={20} />, label: 'Papan Tugas' },
   { href: '/schedule', icon: <Calendar size={20} />, label: 'Jadwal & Agenda' },
   { href: '/ckp',      icon: <Edit3 size={20} />, label: 'CKP Harian' },
   { href: '/skp',      icon: <ClipboardList size={20} />, label: 'Manajemen SKP' },
