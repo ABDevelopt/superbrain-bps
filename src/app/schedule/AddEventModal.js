@@ -77,12 +77,12 @@ export default function AddEventModal({ isOpen, onClose, onSubmit, initialData, 
     const dataToSave = {
       ...form,
       skpId: form.skpId ? Number(form.skpId) : null,
-      sentReminders: initialData ? initialData.sentReminders || [] : [],
-      gcalEventId: initialData ? initialData.gcalEventId : null,
-      isGCal: initialData ? initialData.isGCal : false,
+      sentReminders: (initialData && initialData.sentReminders) ? initialData.sentReminders : [],
+      gcalEventId: (initialData && initialData.gcalEventId) ? initialData.gcalEventId : null,
+      isGCal: (initialData && initialData.isGCal) ? initialData.isGCal : false,
     };
 
-    if (initialData && onUpdate) {
+    if (initialData && initialData.id && onUpdate) {
       onUpdate(initialData.id, dataToSave);
     } else {
       onSubmit(dataToSave);

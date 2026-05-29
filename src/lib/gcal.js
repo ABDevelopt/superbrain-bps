@@ -19,6 +19,13 @@ export const fetchGCalEvents = async (accessToken, timeMin, timeMax) => {
     });
 
     if (!res.ok) {
+      if (res.status === 401) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('sb_google_access_token');
+        }
+        console.warn('Google Calendar access token is invalid or expired. Persisted token cleared.');
+        return [];
+      }
       const errText = await res.text();
       throw new Error(`Failed to fetch GCal events: ${res.status} ${errText}`);
     }
@@ -99,7 +106,16 @@ export const createGCalEvent = async (accessToken, appEvent) => {
       },
       body: JSON.stringify(mapToGCalEvent(appEvent)),
     });
-    if (!res.ok) throw new Error('Failed to create GCal event');
+    if (!res.ok) {
+      if (res.status === 401) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('sb_google_access_token');
+        }
+        console.warn('Google Calendar access token is invalid or expired. Persisted token cleared.');
+        return null;
+      }
+      throw new Error('Failed to create GCal event');
+    }
     const data = await res.json();
     return data.id; // Return the created GCal event ID
   } catch (err) {
@@ -119,7 +135,16 @@ export const updateGCalEvent = async (accessToken, gcalEventId, appEvent) => {
       },
       body: JSON.stringify(mapToGCalEvent(appEvent)),
     });
-    if (!res.ok) throw new Error('Failed to update GCal event');
+    if (!res.ok) {
+      if (res.status === 401) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('sb_google_access_token');
+        }
+        console.warn('Google Calendar access token is invalid or expired. Persisted token cleared.');
+        return;
+      }
+      throw new Error('Failed to update GCal event');
+    }
   } catch (err) {
     console.error("GCal update error:", err);
   }
@@ -128,12 +153,22 @@ export const updateGCalEvent = async (accessToken, gcalEventId, appEvent) => {
 export const deleteGCalEvent = async (accessToken, gcalEventId) => {
   if (!accessToken || !gcalEventId) return;
   try {
-    await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${gcalEventId}`, {
+    const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${gcalEventId}`, {
       method: 'DELETE',
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
     });
+    if (!res.ok) {
+      if (res.status === 401) {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('sb_google_access_token');
+        }
+        console.warn('Google Calendar access token is invalid or expired. Persisted token cleared.');
+        return;
+      }
+      throw new Error('Failed to delete GCal event');
+    }
   } catch (err) {
     console.error("GCal delete error:", err);
   }

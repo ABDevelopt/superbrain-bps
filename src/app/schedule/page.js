@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Bell, X, Plus, ChevronLeft, ChevronRight, CheckCircle, Circle, Edit3, Trash2, LayoutGrid, List, MapPin, Video, User, Link as LinkIcon, AlignLeft, Clock, Tag, ClipboardCheck } from 'lucide-react';
+import { Calendar, Bell, X, Plus, ChevronLeft, ChevronRight, CheckCircle, Circle, Edit3, Trash2, LayoutGrid, List, MapPin, Video, User, Link as LinkIcon, AlignLeft, Clock, Tag, ClipboardCheck, FileText, Loader2 } from 'lucide-react';
 import { skpData } from '@/data/skpData';
 import styles from './page.module.css';
 import { useFirestore } from '@/hooks/useFirestore';
@@ -194,6 +194,71 @@ export default function SchedulePage() {
   
   const [modalOpen, setModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [isParsing, setIsParsing] = useState(false);
+  const [parseError, setParseError] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const handleImportInvitation = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsParsing(true);
+    setParseError(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/api/parse-invitation', {
+        method: 'POST',
+        body: formData,
+      });
+
+      // Safely parse response — it may not be JSON if server crashed
+      let result;
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        result = await response.json();
+      } else {
+        // Server returned non-JSON (e.g. HTML error page)
+        const text = await response.text();
+        throw new Error(
+          response.ok
+            ? 'Respon server tidak dalam format JSON.'
+            : `Server error ${response.status}: AI sedang sibuk atau tidak tersedia. Silakan coba lagi dalam beberapa saat.`
+        );
+      }
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Gagal memproses dokumen.');
+      }
+
+      if (result.success && result.data) {
+        setEditingEvent({
+          judul: result.data.judul || '',
+          tanggal: result.data.tanggal || toDateStr(new Date()),
+          waktu: result.data.waktu || '09:00',
+          waktuSelesai: result.data.waktuSelesai || '',
+          kategori: result.data.kategori || 'Lainnya',
+          urgensi: result.data.urgensi || 'Sedang',
+          lokasi: result.data.lokasi || '',
+          skpId: result.data.skpId || '',
+          deskripsi: result.data.deskripsi || '',
+          reminders: ['1 Jam Sebelum', '5 Menit Sebelum'],
+        });
+        setModalOpen(true);
+      }
+    } catch (err) {
+      console.error('Import error:', err);
+      setParseError(err.message || 'Terjadi kesalahan saat memproses berkas.');
+      alert('Gagal membaca undangan: ' + err.message);
+    } finally {
+      setIsParsing(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
   const [selectedEventForDetail, setSelectedEventForDetail] = useState(null);
   const [confirmDeleteEvent, setConfirmDeleteEvent] = useState(null);
   const [editingEvent, setEditingEvent] = useState(null);
@@ -416,7 +481,12 @@ export default function SchedulePage() {
   const handleAddEvent = useCallback(async (formData) => {
     let gcalEventId = null;
     if (accessToken) {
-      gcalEventId = await createGCalEvent(accessToken, formData);
+      try {
+        gcalEventId = await createGCalEvent(accessToken, formData);
+      } catch (gcalErr) {
+        console.error('Failed to sync to Google Calendar:', gcalErr);
+        alert('Gagal mensinkronisasi ke Google Calendar (kredensial kedaluwarsa atau tidak valid). Jadwal tetap akan disimpan secara lokal di SuperBrain.');
+      }
     }
 
     await addDocument({ ...formData, gcalEventId });
@@ -534,6 +604,22 @@ export default function SchedulePage() {
             <button className={`${styles.viewBtn} ${viewMode === 'month' ? styles.viewBtnActive : ''}`} onClick={() => setViewMode('month')}>Bulan</button>
             <button className={`${styles.viewBtn} ${viewMode === 'week' ? styles.viewBtnActive : ''}`} onClick={() => setViewMode('week')}>Minggu</button>
           </div>
+          <button 
+            className={styles.importBtn} 
+            onClick={() => fileInputRef.current?.click()} 
+            disabled={isParsing}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            {isParsing ? <Loader2 size={18} className="animate-spin" /> : <FileText size={18} />}
+            {isParsing ? 'Membaca Undangan...' : 'Impor dari Undangan'}
+          </button>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleImportInvitation} 
+            style={{ display: 'none' }} 
+            accept="application/pdf,image/*" 
+          />
           <button className={styles.addBtn} onClick={() => { setEditingEvent(null); setModalOpen(true); }} style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
             <Plus size={18} /> Tambah Jadwal
           </button>
@@ -630,9 +716,9 @@ export default function SchedulePage() {
                     <EventCard 
                       event={ev} 
                       onToggle={handleToggleSelesai} 
-                      onEdit={(e) => { e.stopPropagation(); handleEdit(ev); }} 
-                      onDelete={(e) => { e.stopPropagation(); handleDelete(ev); }}
-                      onJadikanCKP={(e) => { handleJadikanCKP(ev); }}
+                      onEdit={() => handleEdit(ev)} 
+                      onDelete={() => handleDelete(ev)}
+                      onJadikanCKP={() => handleJadikanCKP(ev)}
                       ckpCount={ckpCountByEventId[ev.id] || 0}
                     />
                   </div>
