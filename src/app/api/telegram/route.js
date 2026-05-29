@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { parseInvitation } from '@/lib/invitationParser';
+import { parseInvitation, parseInvitationText } from '@/lib/invitationParser';
 import { skpData } from '@/data/skpData';
 
 // Helper to send message back to Telegram
@@ -42,52 +42,48 @@ async function handleTelegramWebhook(token, body) {
     return NextResponse.json({ success: true });
   }
 
-  // 2. Detect Document or Photo
+  // 2. Detect Document, Photo, or Text
   const document = tgMessage.document;
   const photo = tgMessage.photo;
 
-  if (document || photo) {
-    await sendTelegramMessage(token, chatId, `Surat undangan diterima. Sedang menganalisis dengan AI...`);
-
-    let fileId;
-    let mimeType;
-
-    if (document) {
-      fileId = document.file_id;
-      mimeType = document.mime_type;
-    } else {
-      // Pick the largest photo size
-      const largestPhoto = photo[photo.length - 1];
-      fileId = largestPhoto.file_id;
-      mimeType = 'image/jpeg'; // Default for Telegram photos
-    }
+  if (document || photo || messageText) {
+    await sendTelegramMessage(token, chatId, `Pesan diterima. Sedang menganalisis kegiatan dengan AI...`);
 
     try {
-      // Get file path from Telegram
-      const getFileUrl = `https://api.telegram.org/bot${token}/getFile?file_id=${fileId}`;
-      const getFileRes = await fetch(getFileUrl);
-      if (!getFileRes.ok) {
-        throw new Error('Gagal mendapatkan lokasi berkas dari Telegram.');
-      }
-      
-      const getFileData = await getFileRes.json();
-      if (!getFileData.ok || !getFileData.result?.file_path) {
-        throw new Error('Gagal memproses detail berkas dari Telegram.');
-      }
-      
-      const filePath = getFileData.result.file_path;
+      let parsedData;
 
-      // Download file content
-      const downloadUrl = `https://api.telegram.org/file/bot${token}/${filePath}`;
-      const downloadRes = await fetch(downloadUrl);
-      if (!downloadRes.ok) {
-        throw new Error('Gagal mengunduh berkas dari server Telegram.');
+      if (document || photo) {
+        let fileId;
+        let mimeType;
+
+        if (document) {
+          fileId = document.file_id;
+          mimeType = document.mime_type;
+        } else {
+          const largestPhoto = photo[photo.length - 1];
+          fileId = largestPhoto.file_id;
+          mimeType = 'image/jpeg';
+        }
+
+        const getFileUrl = `https://api.telegram.org/bot${token}/getFile?file_id=${fileId}`;
+        const getFileRes = await fetch(getFileUrl);
+        if (!getFileRes.ok) throw new Error('Gagal mendapatkan lokasi berkas dari Telegram.');
+        
+        const getFileData = await getFileRes.json();
+        if (!getFileData.ok || !getFileData.result?.file_path) {
+          throw new Error('Gagal memproses detail berkas dari Telegram.');
+        }
+        
+        const filePath = getFileData.result.file_path;
+        const downloadUrl = `https://api.telegram.org/file/bot${token}/${filePath}`;
+        const downloadRes = await fetch(downloadUrl);
+        if (!downloadRes.ok) throw new Error('Gagal mengunduh berkas dari server Telegram.');
+
+        const fileBuffer = Buffer.from(await downloadRes.arrayBuffer());
+        parsedData = await parseInvitation(fileBuffer, mimeType);
+      } else {
+        parsedData = await parseInvitationText(messageText);
       }
-
-      const fileBuffer = Buffer.from(await downloadRes.arrayBuffer());
-
-      // Parse using Gemini AI
-      const parsedData = await parseInvitation(fileBuffer, mimeType);
 
       // Save directly to Firestore
       const docRef = await addDoc(collection(db, 'schedule'), {
@@ -126,19 +122,16 @@ async function handleTelegramWebhook(token, body) {
       return NextResponse.json({ success: true, docId: docRef.id });
 
     } catch (error) {
-      console.error('Error handling Telegram file upload:', error);
+      console.error('Error handling Telegram message:', error);
       await sendTelegramMessage(
         token, 
         chatId, 
-        `Gagal menganalisis dokumen undangan. Terjadi kesalahan:\n_${error.message}_`
+        `Gagal menganalisis informasi kegiatan. Terjadi kesalahan:\n_${error.message}_`
       );
       return NextResponse.json({ success: false, error: error.message });
     }
   }
 
-  // Fallback for non-media text messages
-  const helpMsg = `Kirimkan dokumen surat undangan (.pdf) atau gambar/foto surat fisik undangan untuk dikonversi menjadi jadwal otomatis.`;
-  await sendTelegramMessage(token, chatId, helpMsg);
   return NextResponse.json({ success: true });
 }
 

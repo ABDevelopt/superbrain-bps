@@ -151,6 +151,11 @@ function EventCard({ event, onToggle, onEdit, onDelete, onJadikanCKP, ckpCount =
       <div className={styles.eventReminder} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         <Bell size={14} /> Pengingat: {Array.isArray(event.reminders) ? event.reminders.join(', ') : (event.reminder || 'Tidak ada')}
       </div>
+      {event.createdAt && (
+        <div style={{ fontSize: '11px', color: '#64748b', marginTop: '6px', textAlign: 'right' }}>
+          Ditambahkan: {event.createdAt?.toDate ? event.createdAt.toDate().toLocaleString('id-ID') : new Date(event.createdAt).toLocaleString('id-ID')}
+        </div>
+      )}
     </div>
   );
 }

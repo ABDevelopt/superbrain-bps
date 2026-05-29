@@ -145,3 +145,108 @@ PENTING:
     throw new Error('Gagal memproses keluaran AI menjadi JSON yang valid.');
   }
 }
+
+/**
+ * Parses invitation text using Gemini 1.5 Flash API.
+ * @param {string} textContent - The raw text of the message or invitation.
+ * @returns {Promise<object>} The structured event object.
+ */
+export async function parseInvitationText(textContent) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('Kunci API Gemini tidak dikonfigurasi di server. Silakan tambahkan GEMINI_API_KEY di file .env.local Anda.');
+  }
+
+  const skpContext = skpData
+    .map((item) => `ID: ${item.id}, Nama: "${item.nama}"`)
+    .join('\n');
+
+  const prompt = `
+Anda adalah asisten kecerdasan buatan untuk Badan Pusat Statistik (BPS).
+Tugas Anda adalah membaca dan menganalisis teks pesan/undangan berikut, lalu mengekstrak detail informasi acara.
+
+Teks pesan:
+"${textContent}"
+
+Berikut adalah daftar 29 Sasaran Kinerja Pegawai (SKP) BPS sebagai referensi pencocokan kegiatan:
+${skpContext}
+
+Silakan analisis teks tersebut dan ekstrak informasi berikut ke dalam format JSON sesuai schema:
+- judul: Nama atau judul rapat/kegiatan utama (string, ringkas dan formal).
+- tanggal: Tanggal pelaksanaan kegiatan dalam format YYYY-MM-DD (string). Jika terdapat rentang, ambil hari pertama.
+- waktu: Waktu mulai kegiatan dalam format HH:MM (24 jam) (string). Jika tidak spesifik, gunakan "09:00".
+- waktuSelesai: Waktu selesai kegiatan dalam format HH:MM (string, opsional). Jika tidak ada, gunakan string kosong "".
+- lokasi: Tempat fisik atau tautan online (string).
+- deskripsi: Ringkasan singkat tujuan kegiatan/pengundang (string).
+- skpId: ID SKP yang paling cocok secara semantik (integer, 1-29). Jika tidak cocok satupun, kosongkan (null).
+- kategori: Harus salah satu dari: "Deadline", "Rapat", "Survei", "Pelatihan", "Lainnya".
+- urgensi: Harus salah satu dari: "Rendah", "Sedang", "Tinggi", "Kritis". Default "Sedang".
+
+PENTING:
+- Pastikan respon HANYA berupa JSON valid sesuai schema. Jangan tambahkan markdown \`\`\`json.
+- Jangan gunakan emoji.
+`;
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const requestBody = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'OBJECT',
+        properties: {
+          judul: { type: 'STRING' },
+          tanggal: { type: 'STRING' },
+          waktu: { type: 'STRING' },
+          waktuSelesai: { type: 'STRING' },
+          lokasi: { type: 'STRING' },
+          deskripsi: { type: 'STRING' },
+          skpId: { type: 'INTEGER' },
+          kategori: { type: 'STRING', enum: ['Deadline', 'Rapat', 'Survei', 'Pelatihan', 'Lainnya'] },
+          urgensi: { type: 'STRING', enum: ['Rendah', 'Sedang', 'Tinggi', 'Kritis'] },
+        },
+        required: ['judul', 'tanggal', 'waktu', 'kategori', 'urgensi'],
+      },
+    },
+  };
+
+  let response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(requestBody),
+  });
+
+  if (response.status === 503) {
+    console.warn('Gemini API returned 503 (overloaded). Retrying in 3 seconds...');
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+    });
+  }
+
+  if (!response.ok) {
+    if (response.status === 503) {
+      throw new Error('Server AI Gemini sedang sibuk (overloaded). Silakan coba lagi dalam beberapa saat.');
+    }
+    throw new Error(\`Gagal menghubungi Gemini API: \${response.status} \${response.statusText}\`);
+  }
+
+  const responseData = await response.json();
+  const rawText = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!rawText) throw new Error('Respon Gemini API kosong.');
+
+  let cleanText = rawText.trim();
+  const firstBrace = cleanText.indexOf('{');
+  const lastBrace = cleanText.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    cleanText = cleanText.substring(firstBrace, lastBrace + 1);
+  }
+
+  try {
+    return JSON.parse(cleanText);
+  } catch (err) {
+    throw new Error('Gagal memproses keluaran AI menjadi JSON yang valid.');
+  }
+}
