@@ -1421,6 +1421,7 @@ function TabRekapTriwulanan({ entries }) {
 // Main Page (inner component - needs Suspense for useSearchParams)
 function CKPPageInner() {
   const searchParams = useSearchParams();
+  const { showAlert } = useAlert();
   const [activeTab, setActiveTab] = useState(0);
   const { docs: entries, loading, addDocument, updateDocument, deleteDocument } = useFirestore('ckp');
   const [toastVisible, setToastVisible] = useState(false);
