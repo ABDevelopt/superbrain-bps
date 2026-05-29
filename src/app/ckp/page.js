@@ -616,7 +616,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         skpId: Number(form.skpId),
         kuantitas: Number(form.kuantitas) || 1,
         durasi: duration,
-        buktiDukung: buktiDukungLink || (initialData ? initialData.buktiDukung : null),
+        buktiDukung: buktiDukungLink || (initialData ? initialData.buktiDukung : null) || null,
         fromScheduleEventId: form._fromScheduleEventId || (initialData ? initialData.fromScheduleEventId : null) || null,
       };
 
