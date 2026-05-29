@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Calendar, Bell, X, Plus, ChevronLeft, ChevronRight, CheckCircle, Circle, Edit3, Trash2, LayoutGrid, List, MapPin, Video, User, Link as LinkIcon, AlignLeft, Clock, Tag } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Calendar, Bell, X, Plus, ChevronLeft, ChevronRight, CheckCircle, Circle, Edit3, Trash2, LayoutGrid, List, MapPin, Video, User, Link as LinkIcon, AlignLeft, Clock, Tag, ClipboardCheck } from 'lucide-react';
 import { skpData } from '@/data/skpData';
 import styles from './page.module.css';
 import { useFirestore } from '@/hooks/useFirestore';
@@ -82,15 +83,16 @@ function getCalendarDays(year, month) {
 }
 
 // Event Card
-function EventCard({ event, onToggle, onEdit, onDelete }) {
+function EventCard({ event, onToggle, onEdit, onDelete, onJadikanCKP, ckpCount = 0 }) {
   const skp = event.skpId ? skpData.find((s) => s.id === event.skpId) : null;
   const color = KATEGORI_COLORS[event.kategori] || KATEGORI_COLORS.Lainnya;
   const isSelesai = event.isSelesai;
+  const hasCKP = ckpCount > 0;
 
   return (
     <div className={styles.eventCard} style={{ borderLeftColor: color, opacity: isSelesai ? 0.6 : 1 }}>
       <div className={styles.eventHeader}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <button 
             onClick={(e) => { e.stopPropagation(); onToggle(event); }} 
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: isSelesai ? '#10b981' : '#cbd5e1', padding: 0, display: 'flex', alignItems: 'center' }}
@@ -101,14 +103,26 @@ function EventCard({ event, onToggle, onEdit, onDelete }) {
           <span className={styles.eventKategori} style={{ background: `${color}20`, color, textDecoration: isSelesai ? 'line-through' : 'none' }}>
             {event.kategori}
           </span>
+          {hasCKP && (
+            <span className={styles.ckpBadge}>
+              <ClipboardCheck size={12} /> CKP Tercatat ({ckpCount})
+            </span>
+          )}
         </div>
         <span className={styles.eventTime}>{event.waktu}</span>
       </div>
-      <h4 className={styles.eventTitle} style={{ textDecoration: isSelesai ? 'line-through' : 'none', color: isSelesai ? '#94a3b8' : '#fff', paddingRight: '48px', position: 'relative' }}>
+      <h4 className={styles.eventTitle} style={{ textDecoration: isSelesai ? 'line-through' : 'none', color: isSelesai ? '#94a3b8' : '#fff', paddingRight: '80px', position: 'relative' }}>
         {event.judul}
         <div style={{ position: 'absolute', right: 0, top: 0, display: 'flex', gap: '4px' }}>
-          <button onClick={() => onEdit(event)} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: '4px' }} title="Edit"><Edit3 size={14} /></button>
-          <button onClick={() => onDelete(event)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }} title="Hapus"><Trash2 size={14} /></button>
+          <button 
+            onClick={(e) => { e.stopPropagation(); onJadikanCKP(event); }} 
+            style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '3px' }} 
+            title="Buat CKP dari jadwal ini"
+          >
+            <ClipboardCheck size={12} /> CKP
+          </button>
+          <button onClick={(e) => { e.stopPropagation(); onEdit(event); }} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: '4px' }} title="Edit"><Edit3 size={14} /></button>
+          <button onClick={(e) => { e.stopPropagation(); onDelete(event); }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }} title="Hapus"><Trash2 size={14} /></button>
         </div>
       </h4>
       {event.deskripsi && <p className={styles.eventDesc}>{event.deskripsi}</p>}
@@ -126,6 +140,7 @@ function EventCard({ event, onToggle, onEdit, onDelete }) {
 
 export default function SchedulePage() {
   const { accessToken } = useAuth();
+  const router = useRouter();
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
@@ -134,6 +149,31 @@ export default function SchedulePage() {
   
   const { docs: events = [], addDocument, updateDocument, deleteDocument } = useFirestore('schedule');
   const { docs: ckpEvents = [] } = useFirestore('ckp');
+
+  // Map: scheduleEventId -> count of CKP entries
+  const ckpCountByEventId = useMemo(() => {
+    const map = {};
+    ckpEvents.forEach(ckp => {
+      if (ckp.fromScheduleEventId) {
+        map[ckp.fromScheduleEventId] = (map[ckp.fromScheduleEventId] || 0) + 1;
+      }
+    });
+    return map;
+  }, [ckpEvents]);
+
+  const handleJadikanCKP = useCallback((event) => {
+    const prefillData = {
+      tanggal: event.tanggal,
+      waktuMulai: event.waktu || '',
+      waktuSelesai: event.waktuSelesai || '',
+      skpId: event.skpId ? String(event.skpId) : '',
+      rincian: event.judul + (event.deskripsi ? '\n' + event.deskripsi : ''),
+      fromScheduleEventId: event.id,
+      scheduleEventTitle: event.judul,
+    };
+    sessionStorage.setItem('ckp_prefill', JSON.stringify(prefillData));
+    router.push('/ckp?fromSchedule=1');
+  }, [router]);
   
   const [modalOpen, setModalOpen] = useState(false);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -570,7 +610,14 @@ export default function SchedulePage() {
                     setSelectedEventForDetail(ev);
                     setDetailModalOpen(true);
                   }} style={{cursor: 'pointer'}}>
-                    <EventCard event={ev} onToggle={handleToggleSelesai} onEdit={(e) => { e.stopPropagation(); handleEdit(ev); }} onDelete={(e) => { e.stopPropagation(); handleDelete(ev); }} />
+                    <EventCard 
+                      event={ev} 
+                      onToggle={handleToggleSelesai} 
+                      onEdit={(e) => { e.stopPropagation(); handleEdit(ev); }} 
+                      onDelete={(e) => { e.stopPropagation(); handleDelete(ev); }}
+                      onJadikanCKP={(e) => { handleJadikanCKP(ev); }}
+                      ckpCount={ckpCountByEventId[ev.id] || 0}
+                    />
                   </div>
                 ))}
               </div>
@@ -650,7 +697,19 @@ export default function SchedulePage() {
           <div className={styles.modal} style={{ maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader} style={{ paddingBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '16px' }}>
               <h2 className={styles.modalTitle} style={{ fontSize: '20px', lineHeight: '1.4' }}>{selectedEventForDetail.judul}</h2>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {ckpCountByEventId[selectedEventForDetail.id] > 0 && (
+                  <span className={styles.ckpBadge} style={{ fontSize: '12px' }}>
+                    <ClipboardCheck size={13} /> CKP ({ckpCountByEventId[selectedEventForDetail.id]})
+                  </span>
+                )}
+                <button 
+                  onClick={() => { setDetailModalOpen(false); handleJadikanCKP(selectedEventForDetail); }} 
+                  style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid rgba(16,185,129,0.3)', color: '#10b981', cursor: 'pointer', padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px' }}
+                  title="Buat CKP dari jadwal ini"
+                >
+                  <ClipboardCheck size={15} /> Jadikan CKP
+                </button>
                 <button onClick={() => handleEdit(selectedEventForDetail)} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: '4px' }} title="Edit"><Edit3 size={18} /></button>
                 <button onClick={() => handleDelete(selectedEventForDetail)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }} title="Hapus"><Trash2 size={18} /></button>
                 <button className={styles.modalClose} onClick={() => setDetailModalOpen(false)}><X size={20} /></button>

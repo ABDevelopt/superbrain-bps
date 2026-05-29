@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { useAlert } from '@/contexts/AlertContext';
-import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn } from 'lucide-react';
+import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn, CalendarClock, ChevronDown } from 'lucide-react';
 import { skpData } from '@/data/skpData';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
@@ -189,11 +190,35 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         kuantitas: initialData.kuantitas || '',
         satuan: initialData.satuan || 'Kegiatan',
         timKerja: initialData.timKerja || TIM_KERJA_OPTIONS[0],
+        // Carry over fromScheduleEventId if present
+        _fromScheduleEventId: initialData.fromScheduleEventId || null,
       });
       setPreviewImage(null);
       setFile(null);
     }
   }, [initialData]);
+
+  // ===== AMBIL DARI JADWAL feature =====
+  const { docs: scheduleEvents = [] } = useFirestore('schedule');
+  const [showSchedulePicker, setShowSchedulePicker] = useState(false);
+
+  const todayScheduleEvents = useMemo(() => {
+    return scheduleEvents
+      .filter(ev => ev.tanggal === form.tanggal)
+      .sort((a, b) => (a.waktu || '').localeCompare(b.waktu || ''));
+  }, [scheduleEvents, form.tanggal]);
+
+  const handleAmbilDariJadwal = (event) => {
+    setForm(prev => ({
+      ...prev,
+      waktuMulai: event.waktu || prev.waktuMulai,
+      waktuSelesai: event.waktuSelesai || prev.waktuSelesai,
+      skpId: event.skpId ? String(event.skpId) : prev.skpId,
+      rincian: event.judul + (event.deskripsi ? '\n' + event.deskripsi : ''),
+      _fromScheduleEventId: event.id,
+    }));
+    setShowSchedulePicker(false);
+  };
 
   const duration = useMemo(
     () => calcDurationMinutes(form.waktuMulai, form.waktuSelesai),
@@ -591,8 +616,12 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         skpId: Number(form.skpId),
         kuantitas: Number(form.kuantitas) || 1,
         durasi: duration,
-        buktiDukung: buktiDukungLink || (initialData ? initialData.buktiDukung : null)
+        buktiDukung: buktiDukungLink || (initialData ? initialData.buktiDukung : null),
+        fromScheduleEventId: form._fromScheduleEventId || (initialData ? initialData.fromScheduleEventId : null) || null,
       };
+
+      // remove internal field
+      delete dataToSave._fromScheduleEventId;
 
       if (initialData && onUpdate) {
         await onUpdate(initialData.id, dataToSave);
@@ -766,6 +795,39 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
 
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
+      {/* Ambil dari Jadwal */}
+      {todayScheduleEvents.length > 0 && (
+        <div style={{ marginBottom: '16px' }}>
+          <button
+            type="button"
+            onClick={() => setShowSchedulePicker(!showSchedulePicker)}
+            className={styles.ambilJadwalBtn}
+          >
+            <CalendarClock size={16} />
+            Ambil dari Jadwal ({todayScheduleEvents.length} agenda)
+            <ChevronDown size={14} style={{ marginLeft: 'auto', transition: 'transform 0.2s', transform: showSchedulePicker ? 'rotate(180deg)' : 'rotate(0deg)' }} />
+          </button>
+          {showSchedulePicker && (
+            <div className={styles.schedulePicker}>
+              {todayScheduleEvents.map(ev => (
+                <button
+                  key={ev.id}
+                  type="button"
+                  className={styles.schedulePickerItem}
+                  onClick={() => handleAmbilDariJadwal(ev)}
+                >
+                  <div className={styles.schedulePickerTime}>{ev.waktu}{ev.waktuSelesai ? ` - ${ev.waktuSelesai}` : ''}</div>
+                  <div className={styles.schedulePickerTitle}>{ev.judul}</div>
+                  {ev.skpId && (
+                    <div className={styles.schedulePickerSkp}>SKP #{ev.skpId}</div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className={styles.formRow}>
         <div className={styles.formGroup}>
           <label className={styles.label}>Tanggal Kegiatan</label>
@@ -1354,13 +1416,42 @@ function TabRekapTriwulanan({ entries }) {
     </div>
   );
 }
-// Main Page
-export default function CKPPage() {
+// Main Page (inner component - needs Suspense for useSearchParams)
+function CKPPageInner() {
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState(0);
   const { docs: entries, loading, addDocument, updateDocument, deleteDocument } = useFirestore('ckp');
   const [toastVisible, setToastVisible] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+  // Handle prefill from schedule
+  useEffect(() => {
+    const fromSchedule = searchParams.get('fromSchedule');
+    if (fromSchedule) {
+      try {
+        const raw = sessionStorage.getItem('ckp_prefill');
+        if (raw) {
+          const prefill = JSON.parse(raw);
+          sessionStorage.removeItem('ckp_prefill');
+          setEditingEntry(null); // clear any existing edit
+          // Use a special "fromSchedule" prefill object
+          setEditingEntry({
+            _isPrefill: true,
+            tanggal: prefill.tanggal || '',
+            waktuMulai: prefill.waktuMulai || '',
+            waktuSelesai: prefill.waktuSelesai || '',
+            skpId: prefill.skpId || '',
+            rincian: prefill.rincian || '',
+            fromScheduleEventId: prefill.fromScheduleEventId || null,
+          });
+          setActiveTab(0);
+        }
+      } catch (e) {
+        console.error('Failed to read CKP prefill:', e);
+      }
+    }
+  }, [searchParams]);
 
   const handleEdit = (entry) => {
     setEditingEntry(entry);
@@ -1482,5 +1573,13 @@ export default function CKPPage() {
 
       <Toast message="Kegiatan berhasil disimpan!" visible={toastVisible} onClose={hideToast} />
     </div>
+  );
+}
+
+export default function CKPPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '40px', color: '#94a3b8', textAlign: 'center' }}>Memuat...</div>}>
+      <CKPPageInner />
+    </Suspense>
   );
 }
