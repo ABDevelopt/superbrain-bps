@@ -360,11 +360,11 @@ export default function SchedulePage() {
               console.error('Failed to update linked task', taskId, err);
             }
           }
-          showAlert('Semua tugas terkait berhasil ditandai selesai.');
+          alert('Semua tugas terkait berhasil ditandai selesai.');
         }
       }
     } catch (e) {
-      showAlert("Gagal memperbarui status: " + e.message);
+      alert("Gagal memperbarui status: " + e.message);
     }
   };
 
@@ -620,7 +620,7 @@ export default function SchedulePage() {
       setModalOpen(false);
       setEditingEvent(null);
     } catch (e) {
-      showAlert("Gagal memperbarui jadwal: " + e.message);
+      alert("Gagal memperbarui jadwal: " + e.message);
     }
   };
 
@@ -666,7 +666,7 @@ export default function SchedulePage() {
       setDetailModalOpen(false);
       setConfirmDeleteEvent(null);
     } catch (e) {
-      showAlert("Gagal menghapus jadwal: " + e.message);
+      alert("Gagal menghapus jadwal: " + e.message);
     }
   };
 
@@ -945,9 +945,9 @@ export default function SchedulePage() {
                         linkedTaskIds: [...currentLinks, newTaskRef.id]
                       });
                       
-                      showAlert('Tugas berhasil dibuat di Papan Kanban!');
+                      alert('Tugas berhasil dibuat di Papan Kanban!');
                     } catch (e) {
-                      showAlert('Gagal membuat tugas: ' + e.message);
+                      alert('Gagal membuat tugas: ' + e.message);
                     }
                   }} 
                   style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)', color: '#8b5cf6', cursor: 'pointer', padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px' }}
