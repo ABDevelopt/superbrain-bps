@@ -312,18 +312,22 @@
 
 .activitySection {
   grid-area: activity;
+  min-width: 0;
 }
 
 .scheduleSection {
   grid-area: schedule;
+  min-width: 0;
 }
 
 .actionsSection {
   grid-area: actions;
+  min-width: 0;
 }
 
 .quoteSection {
   grid-area: quote;
+  min-width: 0;
 }
 
 /* ---- Section Headers ---- */
