@@ -12,6 +12,8 @@ import AddEventModal, { URGENSI_COLORS } from './AddEventModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useChatAction } from '@/contexts/ChatActionContext';
 import { useAIContext } from '@/contexts/AIContext';
+import { db } from '@/lib/firebase';
+import { doc, updateDoc as firestoreUpdateDoc } from 'firebase/firestore';
 
 const HARI = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 const BULAN = [
@@ -346,7 +348,21 @@ export default function SchedulePage() {
 
   const handleToggleSelesai = async (event) => {
     try {
-      await updateDocument(event.id, { isSelesai: !event.isSelesai });
+      const isMarkingDone = !event.isSelesai;
+      await updateDocument(event.id, { isSelesai: isMarkingDone });
+      
+      if (isMarkingDone && event.linkedTaskIds && event.linkedTaskIds.length > 0) {
+        if (window.confirm(`Jadwal ini tertaut dengan ${event.linkedTaskIds.length} tugas di Papan Kanban.\nApakah Anda juga ingin menandai semua tugas tersebut selesai?`)) {
+          for (const taskId of event.linkedTaskIds) {
+            try {
+              await firestoreUpdateDoc(doc(db, 'tasks', taskId), { status: 'done' });
+            } catch (err) {
+              console.error('Failed to update linked task', taskId, err);
+            }
+          }
+          showAlert('Semua tugas terkait berhasil ditandai selesai.');
+        }
+      }
     } catch (e) {
       showAlert("Gagal memperbarui status: " + e.message);
     }

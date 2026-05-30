@@ -243,6 +243,17 @@ export default function TasksPage() {
     try {
       await updateDoc(doc(db, 'tasks', taskId), { status: newStatus });
       showToast(`Status tugas berhasil dipindahkan.`, 'success');
+      
+      const taskObj = tasks.find(t => t.id === taskId);
+      if (taskObj && taskObj.linkedScheduleId && newStatus === 'done') {
+        const scheduleId = taskObj.linkedScheduleId;
+        const siblingTasks = tasks.filter(t => t.linkedScheduleId === scheduleId && t.id !== taskId);
+        const allDone = siblingTasks.every(t => t.status === 'done');
+        if (allDone) {
+          await updateDoc(doc(db, 'schedule', scheduleId), { isSelesai: true });
+          showToast('Semua tugas selesai, jadwal terkait otomatis diselesaikan!', 'success');
+        }
+      }
     } catch(e) { console.error(e); }
   };
 
