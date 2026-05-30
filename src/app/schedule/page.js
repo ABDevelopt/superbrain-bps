@@ -11,6 +11,7 @@ import { fetchGCalEvents, createGCalEvent, updateGCalEvent, deleteGCalEvent } fr
 import AddEventModal, { URGENSI_COLORS } from './AddEventModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useChatAction } from '@/contexts/ChatActionContext';
+import { useAIContext } from '@/contexts/AIContext';
 
 const HARI = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 const BULAN = [
@@ -172,6 +173,11 @@ export default function SchedulePage() {
   
   const { docs: events = [], addDocument, updateDocument, deleteDocument } = useFirestore('schedule');
   const { docs: ckpEvents = [] } = useFirestore('ckp');
+  const { setPageData } = useAIContext();
+
+  useEffect(() => {
+    setPageData(events);
+  }, [events, setPageData]);
 
   // Handle AI Create Schedule
   const handleAICreateSchedule = useCallback(async (data) => {
@@ -191,7 +197,29 @@ export default function SchedulePage() {
     }
   }, [addDocument]);
 
+  const handleAIUpdateSchedule = useCallback(async (data) => {
+    if (!data.id) return;
+    try {
+      const updates = {};
+      if (data.judul) updates.judul = data.judul;
+      if (data.tanggal) updates.tanggal = data.tanggal;
+      if (data.waktu) updates.waktu = data.waktu;
+      if (data.kategori) updates.kategori = data.kategori;
+      if (data.reminder) updates.reminder = data.reminder;
+      await updateDocument(data.id, updates);
+    } catch(e) { console.error(e); }
+  }, [updateDocument]);
+
+  const handleAIDeleteSchedule = useCallback(async (data) => {
+    if (!data.id) return;
+    try {
+      await deleteDocument(data.id);
+    } catch(e) { console.error(e); }
+  }, [deleteDocument]);
+
   useChatAction('CREATE_SCHEDULE', handleAICreateSchedule);
+  useChatAction('UPDATE_SCHEDULE', handleAIUpdateSchedule);
+  useChatAction('DELETE_SCHEDULE', handleAIDeleteSchedule);
 
   // Map: scheduleEventId -> count of CKP entries
   const ckpCountByEventId = useMemo(() => {

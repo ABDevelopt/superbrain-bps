@@ -12,6 +12,7 @@ import { useFirestore } from '@/hooks/useFirestore';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { uploadFileToDrive } from '@/lib/drive';
 import { useChatAction } from '@/contexts/ChatActionContext';
+import { useAIContext } from '@/contexts/AIContext';
 import * as XLSX from 'xlsx';
 
 const SATUAN_OPTIONS = ['Kegiatan', 'Lembar', 'File', 'Dokumen', 'Orang', 'Lainnya'];
@@ -1426,6 +1427,12 @@ function CKPPageInner() {
   const { accessToken } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const { docs: entries, loading, addDocument, updateDocument, deleteDocument } = useFirestore('ckp');
+  const { setPageData } = useAIContext();
+
+  useEffect(() => {
+    setPageData(entries);
+  }, [entries, setPageData]);
+
   const [toastVisible, setToastVisible] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
@@ -1445,7 +1452,28 @@ function CKPPageInner() {
     }
   }, [addDocument, showAlert]);
 
+  const handleAIUpdateCKP = useCallback(async (data) => {
+    if (!data.id) return;
+    try {
+      const updates = {};
+      if (data.rincian) updates.rincian = data.rincian;
+      if (data.outputKuantitas) updates.outputKuantitas = Number(data.outputKuantitas);
+      await updateDocument(data.id, updates);
+      showAlert('Laporan CKP berhasil diperbarui oleh AI!', 'success');
+    } catch(e) { console.error(e); }
+  }, [updateDocument, showAlert]);
+
+  const handleAIDeleteCKP = useCallback(async (data) => {
+    if (!data.id) return;
+    try {
+      await deleteDocument(data.id);
+      showAlert('Laporan CKP berhasil dihapus oleh AI!', 'success');
+    } catch(e) { console.error(e); }
+  }, [deleteDocument, showAlert]);
+
   useChatAction('CREATE_CKP', handleAICreateCKP);
+  useChatAction('UPDATE_CKP', handleAIUpdateCKP);
+  useChatAction('DELETE_CKP', handleAIDeleteCKP);
 
   // Handle auto-sync of telegram files to Google Drive
   useEffect(() => {

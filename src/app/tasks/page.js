@@ -15,6 +15,7 @@ import { skpData } from '@/data/skpData';
 import { BPS_ROLES, ROLE_TEMPLATES, initialTasks } from '@/data/taskData';
 import styles from './page.module.css';
 import { useChatAction } from '@/contexts/ChatActionContext';
+import { useAIContext } from '@/contexts/AIContext';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 
@@ -37,6 +38,14 @@ export default function TasksPage() {
 
   // State utama daftar tugas
   const [tasks, setTasks] = useState([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { setPageData } = useAIContext();
+
+  // Register tasks to AIContext
+  useEffect(() => {
+    setPageData(tasks);
+  }, [tasks, setPageData]);
+
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Filter & Pencarian (Kanban)
@@ -390,6 +399,7 @@ export default function TasksPage() {
       deskripsi: taskData.deskripsi,
       peran: taskData.peran || 'admin',
       skpId: taskData.skpId || 1,
+      urgensi: taskData.urgensi || 'Sedang',
       status: 'todo',
       checklist: (taskData.checklist || []).map(item => ({
         id: Math.random().toString(36).substring(7),
@@ -405,7 +415,34 @@ export default function TasksPage() {
     } catch(e) { console.error(e); }
   }, []);
 
+  const handleAIUpdateTask = useCallback(async (taskData) => {
+    if (!taskData.id) return;
+    try {
+      const taskRef = doc(db, 'tasks', taskData.id);
+      const updates = {};
+      if (taskData.judul) updates.judul = taskData.judul;
+      if (taskData.deskripsi) updates.deskripsi = taskData.deskripsi;
+      if (taskData.status) updates.status = taskData.status;
+      if (taskData.urgensi) updates.urgensi = taskData.urgensi;
+      
+      await updateDoc(taskRef, updates);
+      setToast({ message: `Tugas "${taskData.judul || taskData.id}" berhasil diperbarui oleh AI!` });
+      setTimeout(() => setToast(null), 3000);
+    } catch(e) { console.error(e); }
+  }, []);
+
+  const handleAIDeleteTask = useCallback(async (taskData) => {
+    if (!taskData.id) return;
+    try {
+      await deleteDoc(doc(db, 'tasks', taskData.id));
+      setToast({ message: `Tugas berhasil dihapus oleh AI!` });
+      setTimeout(() => setToast(null), 3000);
+    } catch(e) { console.error(e); }
+  }, []);
+
   useChatAction('CREATE_TASK', handleAICreateTask);
+  useChatAction('UPDATE_TASK', handleAIUpdateTask);
+  useChatAction('DELETE_TASK', handleAIDeleteTask);
   // Helper formats
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60);

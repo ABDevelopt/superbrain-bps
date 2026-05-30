@@ -10,7 +10,7 @@ export async function POST(request) {
 
   try {
     const body = await request.json();
-    const { messages, currentPath } = body;
+    const { messages, currentPath, pageData } = body;
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'Invalid messages array.' }, { status: 400 });
@@ -29,13 +29,17 @@ Pengguna saat ini berada di halaman: ${currentPath || 'Dashboard'}
 Berikut adalah daftar 29 Sasaran Kinerja Pegawai (SKP) BPS sebagai referensi pencocokan kegiatan:
 ${skpContext}
 
-Anda memiliki 3 FUNGSI (TOOLS) utama. Panggil fungsi yang paling tepat sesuai dengan intensi pengguna:
+Berikut adalah data (records) yang saat ini ada di halaman pengguna:
+${pageData ? JSON.stringify(pageData, null, 2) : 'Tidak ada data spesifik di halaman ini.'}
 
-1. 'create_task': Gunakan fungsi ini jika pengguna merencanakan proyek, memecah langkah kerja menjadi checklist, atau meminta dibuatkan kartu tugas di Papan Kanban.
-2. 'create_schedule': Gunakan fungsi ini jika pengguna menyebutkan suatu acara, pertemuan, batas waktu (deadline), atau kegiatan di masa depan yang perlu diingat (misalnya "rapat besok jam 10", "batas pengumpulan jumat").
-3. 'create_ckp': Gunakan fungsi ini jika pengguna melaporkan kegiatan yang SUDAH SELESAI hari ini atau di masa lalu, dan menyebutkan kuantitas/hasil (misalnya "hari ini saya mengentri 5 dokumen", "saya telah selesai merekap data").
+Anda memiliki beberapa FUNGSI (TOOLS) utama. Panggil fungsi yang paling tepat sesuai dengan intensi pengguna:
 
-Jika pengguna melampirkan file (gambar/PDF), bacalah isi file tersebut untuk mengekstrak detail (misal: baca undangan rapat dari gambar PDF lalu buat jadwalnya).
+1. 'create_task', 'update_task', 'delete_task': Untuk manipulasi tugas (Papan Kanban).
+2. 'create_schedule', 'update_schedule', 'delete_schedule': Untuk manipulasi agenda/kalender.
+3. 'create_ckp', 'update_ckp', 'delete_ckp': Untuk manipulasi laporan harian (CKP).
+
+Ketika mengedit (update) atau menghapus (delete) sesuatu, WAJIB merujuk pada 'id' record yang sesuai dengan "data yang saat ini ada di halaman pengguna" (jika tersedia).
+Jika pengguna melampirkan file (gambar/PDF), bacalah isi file tersebut untuk mengekstrak detail (misal: baca undangan rapat dari gambar PDF lalu buat jadwalnya). Selalu ekstrak detail seperti judul, waktu (jam & tanggal), deskripsi, dan tingkat urgensi (Tinggi/Sedang/Rendah) dengan saksama.
 `;
 
     // Filter out any leading assistant messages (Gemini API requires conversation to start with user)
@@ -93,6 +97,7 @@ Jika pengguna melampirkan file (gambar/PDF), bacalah isi file tersebut untuk men
                     deskripsi: { type: "STRING", description: "Deskripsi rinci mengenai tujuan tugas." },
                     peran: { type: "STRING", enum: ["admin", "sosial", "ipjkd", "harga"] },
                     skpId: { type: "INTEGER", description: "ID SKP yang paling relevan (1-29)." },
+                    urgensi: { type: "STRING", enum: ["Tinggi", "Sedang", "Rendah"], description: "Tingkat urgensi atau prioritas tugas." },
                     checklist: {
                       type: "ARRAY",
                       items: { type: "STRING" },
@@ -100,6 +105,32 @@ Jika pengguna melampirkan file (gambar/PDF), bacalah isi file tersebut untuk men
                     }
                   },
                   required: ["judul", "deskripsi", "peran", "skpId", "checklist"]
+                }
+              },
+              {
+                name: "update_task",
+                description: "Mengedit tugas yang sudah ada.",
+                parameters: {
+                  type: "OBJECT",
+                  properties: {
+                    id: { type: "STRING", description: "ID tugas yang akan diedit." },
+                    judul: { type: "STRING", description: "Judul tugas baru." },
+                    deskripsi: { type: "STRING", description: "Deskripsi baru." },
+                    status: { type: "STRING", enum: ["todo", "in_progress", "done"], description: "Status tugas" },
+                    urgensi: { type: "STRING", enum: ["Tinggi", "Sedang", "Rendah"] }
+                  },
+                  required: ["id"]
+                }
+              },
+              {
+                name: "delete_task",
+                description: "Menghapus tugas yang sudah ada.",
+                parameters: {
+                  type: "OBJECT",
+                  properties: {
+                    id: { type: "STRING", description: "ID tugas yang akan dihapus." }
+                  },
+                  required: ["id"]
                 }
               },
               {
@@ -111,11 +142,38 @@ Jika pengguna melampirkan file (gambar/PDF), bacalah isi file tersebut untuk men
                     judul: { type: "STRING", description: "Nama agenda/rapat/tenggat waktu." },
                     tanggal: { type: "STRING", description: "Tanggal agenda dalam format YYYY-MM-DD." },
                     waktu: { type: "STRING", description: "Waktu mulai dalam format HH:MM (contoh: 09:00)." },
-                    kategori: { type: "STRING", enum: ["Deadline", "Rapat", "Survei", "Lainnya"] },
+                    kategori: { type: "STRING", enum: ["Deadline", "Rapat", "Survei", "Pelatihan", "Lainnya"] },
                     skpId: { type: "INTEGER", description: "ID SKP yang relevan (1-29)." },
-                    reminder: { type: "STRING", enum: ["H-1", "H-3", "H-7", "Tidak ada"] }
+                    reminder: { type: "STRING", enum: ["H-1", "H-3", "H-7", "1 Jam Sebelum", "5 Menit Sebelum", "Tidak ada"] }
                   },
                   required: ["judul", "tanggal", "waktu", "kategori", "skpId"]
+                }
+              },
+              {
+                name: "update_schedule",
+                description: "Mengedit jadwal atau agenda yang sudah ada.",
+                parameters: {
+                  type: "OBJECT",
+                  properties: {
+                    id: { type: "STRING", description: "ID jadwal yang akan diedit." },
+                    judul: { type: "STRING" },
+                    tanggal: { type: "STRING" },
+                    waktu: { type: "STRING" },
+                    kategori: { type: "STRING" },
+                    reminder: { type: "STRING" }
+                  },
+                  required: ["id"]
+                }
+              },
+              {
+                name: "delete_schedule",
+                description: "Menghapus jadwal yang sudah ada.",
+                parameters: {
+                  type: "OBJECT",
+                  properties: {
+                    id: { type: "STRING", description: "ID jadwal yang akan dihapus." }
+                  },
+                  required: ["id"]
                 }
               },
               {
@@ -134,6 +192,30 @@ Jika pengguna melampirkan file (gambar/PDF), bacalah isi file tersebut untuk men
                     tim: { type: "STRING", enum: ["Subbagian Umum", "Tim IPJKD & DLS", "Tim Statistik Sosial", "Tim Statistik Harga & Sensus Ekonomi"] }
                   },
                   required: ["tanggal", "waktuMulai", "waktuSelesai", "skpId", "rincian", "outputKuantitas", "satuan", "tim"]
+                }
+              },
+              {
+                name: "update_ckp",
+                description: "Mengedit data CKP yang sudah ada.",
+                parameters: {
+                  type: "OBJECT",
+                  properties: {
+                    id: { type: "STRING", description: "ID CKP yang akan diedit." },
+                    rincian: { type: "STRING" },
+                    outputKuantitas: { type: "INTEGER" }
+                  },
+                  required: ["id"]
+                }
+              },
+              {
+                name: "delete_ckp",
+                description: "Menghapus laporan CKP yang sudah ada.",
+                parameters: {
+                  type: "OBJECT",
+                  properties: {
+                    id: { type: "STRING", description: "ID CKP yang akan dihapus." }
+                  },
+                  required: ["id"]
                 }
               }
             ]
@@ -173,9 +255,15 @@ Jika pengguna melampirkan file (gambar/PDF), bacalah isi file tersebut untuk men
           const functionCall = functionCallPart.functionCall;
           
           let messageSuffix = '';
-          if (functionCall.name === 'create_task') messageSuffix = 'Saya telah membuatkan papan tugas tersebut.';
+          if (functionCall.name === 'create_task') messageSuffix = 'Saya telah membuatkan tugas tersebut.';
+          else if (functionCall.name === 'update_task') messageSuffix = 'Saya telah mengupdate tugas tersebut.';
+          else if (functionCall.name === 'delete_task') messageSuffix = 'Tugas telah dihapus.';
           else if (functionCall.name === 'create_schedule') messageSuffix = 'Jadwal telah ditambahkan ke Kalender Anda.';
-          else if (functionCall.name === 'create_ckp') messageSuffix = 'Laporan kegiatan telah dicatat di CKP Harian.';
+          else if (functionCall.name === 'update_schedule') messageSuffix = 'Jadwal telah diperbarui.';
+          else if (functionCall.name === 'delete_schedule') messageSuffix = 'Jadwal telah dihapus.';
+          else if (functionCall.name === 'create_ckp') messageSuffix = 'Laporan kegiatan telah dicatat.';
+          else if (functionCall.name === 'update_ckp') messageSuffix = 'Laporan CKP telah diperbarui.';
+          else if (functionCall.name === 'delete_ckp') messageSuffix = 'Laporan CKP telah dihapus.';
 
           return NextResponse.json({
             type: 'function_call',

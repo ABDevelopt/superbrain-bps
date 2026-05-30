@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Bot, Send, X, Sparkles, Paperclip } from 'lucide-react';
 import styles from './AIChatbot.module.css';
 import { useChatAction } from '@/contexts/ChatActionContext';
+import { useAIContext } from '@/contexts/AIContext';
 
 export default function AIChatbot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -17,6 +18,7 @@ export default function AIChatbot() {
   const fileInputRef = useRef(null);
   
   const { dispatchAction } = useChatAction();
+  const { pageData } = useAIContext();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -95,8 +97,8 @@ export default function AIChatbot() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           messages: newMessages,
-          // We pass current page context so AI knows where we are
-          currentPath: window.location.pathname
+          currentPath: window.location.pathname,
+          pageData: pageData
         }),
       });
 
@@ -117,10 +119,22 @@ export default function AIChatbot() {
         // Dispatch to global event bus
         if (functionName === 'create_task') {
           dispatchAction('CREATE_TASK', args);
+        } else if (functionName === 'update_task') {
+          dispatchAction('UPDATE_TASK', args);
+        } else if (functionName === 'delete_task') {
+          dispatchAction('DELETE_TASK', args);
         } else if (functionName === 'create_schedule') {
           dispatchAction('CREATE_SCHEDULE', args);
+        } else if (functionName === 'update_schedule') {
+          dispatchAction('UPDATE_SCHEDULE', args);
+        } else if (functionName === 'delete_schedule') {
+          dispatchAction('DELETE_SCHEDULE', args);
         } else if (functionName === 'create_ckp') {
           dispatchAction('CREATE_CKP', args);
+        } else if (functionName === 'update_ckp') {
+          dispatchAction('UPDATE_CKP', args);
+        } else if (functionName === 'delete_ckp') {
+          dispatchAction('DELETE_CKP', args);
         }
         
         setMessages(prev => [...prev, { 
