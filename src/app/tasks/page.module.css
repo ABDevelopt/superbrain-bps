@@ -305,10 +305,9 @@
   border-radius: 16px;
   padding: 16px;
   backdrop-filter: blur(10px);
-  min-height: 500px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .columnHeader {
