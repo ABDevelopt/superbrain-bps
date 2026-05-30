@@ -13,7 +13,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { useChatAction } from '@/contexts/ChatActionContext';
 import { useAIContext } from '@/contexts/AIContext';
 import { db } from '@/lib/firebase';
-import { doc, updateDoc as firestoreUpdateDoc } from 'firebase/firestore';
+import { doc, updateDoc as firestoreUpdateDoc, collection, getDocs, query, where, writeBatch, addDoc, deleteDoc } from 'firebase/firestore';
 
 const HARI = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 const BULAN = [
@@ -598,6 +598,25 @@ export default function SchedulePage() {
         }
         await updateDocument(id, formData);
       }
+      
+      // Sync update to linked tasks
+      try {
+        const q = query(collection(db, 'tasks'), where('linkedScheduleId', '==', id));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          const batch = writeBatch(db);
+          snapshot.forEach(docSnap => {
+            const updates = {};
+            if (formData.judul) updates.judul = formData.judul;
+            // Map jadwal 'tanggal' to task 'deadline' if appropriate
+            batch.update(docSnap.ref, updates);
+          });
+          await batch.commit();
+        }
+      } catch (err) {
+        console.error('Failed to sync update to linked tasks:', err);
+      }
+
       setModalOpen(false);
       setEditingEvent(null);
     } catch (e) {
@@ -628,6 +647,22 @@ export default function SchedulePage() {
       } else {
         await deleteDocument(event.id);
       }
+
+      // Sync delete to linked tasks
+      try {
+        const q = query(collection(db, 'tasks'), where('linkedScheduleId', '==', event.id));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          const batch = writeBatch(db);
+          snapshot.forEach(docSnap => {
+            batch.delete(docSnap.ref);
+          });
+          await batch.commit();
+        }
+      } catch (err) {
+        console.error('Failed to sync delete to linked tasks:', err);
+      }
+
       setDetailModalOpen(false);
       setConfirmDeleteEvent(null);
     } catch (e) {
@@ -887,6 +922,38 @@ export default function SchedulePage() {
                   title="Buat CKP dari jadwal ini"
                 >
                   <ClipboardCheck size={15} /> Jadikan CKP
+                </button>
+                <button 
+                  onClick={async () => {
+                    const event = selectedEventForDetail;
+                    try {
+                      // Create task in background
+                      const newTaskRef = await addDoc(collection(db, 'tasks'), {
+                        judul: event.judul,
+                        deskripsi: event.deskripsi || '',
+                        skpId: event.skpId || 1,
+                        peran: 'admin',
+                        status: 'todo',
+                        checklist: [],
+                        linkedScheduleId: event.id,
+                        createdAt: new Date().toISOString()
+                      });
+                      
+                      // Update schedule to link this task
+                      const currentLinks = event.linkedTaskIds || [];
+                      await firestoreUpdateDoc(doc(db, 'schedule', event.id), {
+                        linkedTaskIds: [...currentLinks, newTaskRef.id]
+                      });
+                      
+                      showAlert('Tugas berhasil dibuat di Papan Kanban!');
+                    } catch (e) {
+                      showAlert('Gagal membuat tugas: ' + e.message);
+                    }
+                  }} 
+                  style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)', color: '#8b5cf6', cursor: 'pointer', padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px' }}
+                  title="Buat Tugas terkait di Papan Kanban"
+                >
+                  <ListTodo size={15} /> Buat Tugas
                 </button>
                 <button onClick={() => handleEdit(selectedEventForDetail)} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', padding: '4px' }} title="Edit"><Edit3 size={18} /></button>
                 <button onClick={() => handleDelete(selectedEventForDetail)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }} title="Hapus"><Trash2 size={18} /></button>

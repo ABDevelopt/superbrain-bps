@@ -5,6 +5,7 @@ import { Bot, Send, X, Sparkles, Paperclip } from 'lucide-react';
 import styles from './AIChatbot.module.css';
 import { useChatAction } from '@/contexts/ChatActionContext';
 import { useAIContext } from '@/contexts/AIContext';
+import { useFirestore } from '@/hooks/useFirestore';
 
 export default function AIChatbot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -19,6 +20,11 @@ export default function AIChatbot() {
   
   const { dispatchAction } = useChatAction();
   const { pageData } = useAIContext();
+  
+  // Global context for AI
+  const { docs: tasks = [] } = useFirestore('tasks');
+  const { docs: schedule = [] } = useFirestore('schedule');
+  const { docs: ckp = [] } = useFirestore('ckp');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -98,7 +104,15 @@ export default function AIChatbot() {
         body: JSON.stringify({ 
           messages: newMessages,
           currentPath: window.location.pathname,
-          pageData: pageData
+          pageData: pageData,
+          globalStats: {
+            totalTasks: tasks.length,
+            uncompletedTasks: tasks.filter(t => t.status !== 'done').length,
+            totalSchedules: schedule.length,
+            uncompletedSchedules: schedule.filter(s => !s.isSelesai).length,
+            totalCkp: ckp.length,
+            ckpToday: ckp.filter(c => c.tanggal === new Date().toISOString().split('T')[0]).length,
+          }
         }),
       });
 

@@ -10,7 +10,7 @@ export async function POST(request) {
 
   try {
     const body = await request.json();
-    const { messages, currentPath, pageData } = body;
+    const { messages, currentPath, pageData, globalStats } = body;
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'Invalid messages array.' }, { status: 400 });
@@ -25,6 +25,10 @@ Anda adalah SuperBrain AI, asisten produktivitas cerdas untuk pegawai Badan Pusa
 Tugas Anda adalah berdiskusi, menganalisis lampiran file (jika ada), dan membantu pengguna merencanakan pekerjaan, mencatat agenda, atau melaporkan capaian.
 
 Pengguna saat ini berada di halaman: ${currentPath || 'Dashboard'}
+
+Berikut adalah ringkasan lintas-modul (Global Stats) pengguna saat ini:
+${globalStats ? JSON.stringify(globalStats, null, 2) : 'Data global tidak tersedia.'}
+Gunakan informasi di atas jika pengguna bertanya tentang ringkasan atau status pekerjaannya secara keseluruhan.
 
 Berikut adalah daftar 29 Sasaran Kinerja Pegawai (SKP) BPS sebagai referensi pencocokan kegiatan:
 ${skpContext}
