@@ -80,6 +80,7 @@ export default function AddEventModal({ isOpen, onClose, onSubmit, initialData, 
       sentReminders: (initialData && initialData.sentReminders) ? initialData.sentReminders : [],
       gcalEventId: (initialData && initialData.gcalEventId) ? initialData.gcalEventId : null,
       isGCal: (initialData && initialData.isGCal) ? initialData.isGCal : false,
+      linkedTaskIds: (initialData && initialData.linkedTaskIds) ? initialData.linkedTaskIds : [],
     };
 
     if (initialData && initialData.id && onUpdate) {
