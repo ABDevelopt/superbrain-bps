@@ -181,6 +181,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
     timKerja: TIM_KERJA_OPTIONS[0],
   });
 
+  useEffect(() => {
     if (initialData) {
       setForm({
         tanggal: initialData.tanggal || getTodayStr(),
