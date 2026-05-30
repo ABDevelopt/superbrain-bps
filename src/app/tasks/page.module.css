@@ -52,23 +52,23 @@
   flex-wrap: wrap;
 }
 
-/* ===== Progress Card ===== */
+/* ===== Progress Card — Compact ===== */
 .progressCard {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 24px;
-  margin-bottom: 24px;
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 16px;
   backdrop-filter: blur(10px);
 }
 
 .progressCircleWrapper {
   position: relative;
-  width: 80px;
-  height: 80px;
+  width: 52px;
+  height: 52px;
   flex-shrink: 0;
 }
 
@@ -81,91 +81,144 @@
 .progressCircleBg {
   fill: none;
   stroke: rgba(255, 255, 255, 0.1);
-  stroke-width: 8;
+  stroke-width: 10;
 }
 
 .progressCircleFill {
   fill: none;
   stroke: url(#progressGradient);
-  stroke-width: 8;
+  stroke-width: 10;
   stroke-linecap: round;
   transition: stroke-dashoffset 1s ease-out;
 }
 
 .progressTextAbsolute {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 13px;
   font-weight: 700;
   color: #fff;
 }
 
 .progressInfo {
   flex: 1;
+  min-width: 0;
 }
 
 .progressTitle {
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 600;
   color: #f1f5f9;
-  margin-bottom: 4px;
-}
-
-.progressDesc {
-  font-size: 13px;
-  color: #94a3b8;
-  margin-bottom: 12px;
-}
-
-.progressBarContainer {
-  height: 8px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 4px;
-  overflow: hidden;
-  width: 100%;
-}
-
-.progressBarFill {
-  height: 100%;
-  background: linear-gradient(90deg, #6366f1, #22d3ee);
-  border-radius: 4px;
-  transition: width 1s ease-out;
+  margin-bottom: 6px;
 }
 
 .progressStatsRow {
   display: flex;
-  gap: 16px;
-  margin-top: 12px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .progressStatItem {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #cbd5e1;
+  gap: 5px;
+  font-size: 12px;
+  color: #94a3b8;
 }
 
 .progressStatDot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
+  flex-shrink: 0;
 }
 
-@media (max-width: 768px) {
-  .progressCard {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
+
+
+/* ===== Toolbar ===== */
+.toolbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-grow: 1;
 }
 
+.filterToggleBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 38px;
+  height: 38px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: #94a3b8;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.filterToggleBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.filterToggleActive {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #818cf8;
+}
+
+.filterDot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f59e0b;
+}
+
+.filterPanel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  animation: filterSlideDown 0.2s ease-out;
+}
+
+@keyframes filterSlideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.clearFilterBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 8px;
+  color: #f87171;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.clearFilterBtn:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
 
 .filters {
   display: flex;
