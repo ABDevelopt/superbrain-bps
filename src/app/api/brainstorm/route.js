@@ -38,8 +38,12 @@ Anda memiliki 3 FUNGSI (TOOLS) utama. Panggil fungsi yang paling tepat sesuai de
 Jika pengguna melampirkan file (gambar/PDF), bacalah isi file tersebut untuk mengekstrak detail (misal: baca undangan rapat dari gambar PDF lalu buat jadwalnya).
 `;
 
+    // Filter out any leading assistant messages (Gemini API requires conversation to start with user)
+    const firstUserIndex = messages.findIndex(m => m.role === 'user');
+    const validMessages = firstUserIndex !== -1 ? messages.slice(firstUserIndex) : messages;
+
     // Map messages to Gemini format
-    const geminiMessages = messages.map(msg => {
+    const geminiMessages = validMessages.map(msg => {
       const parts = [{ text: msg.content }];
       
       // If user uploaded a file, attach it as inlineData
