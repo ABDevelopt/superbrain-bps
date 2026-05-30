@@ -62,123 +62,151 @@ Jika pengguna melampirkan file (gambar/PDF), bacalah isi file tersebut untuk men
       };
     });
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-    
-    const requestBody = {
-      systemInstruction: {
-        parts: [{ text: systemInstruction }]
-      },
-      contents: geminiMessages,
-      tools: [
-        {
-          functionDeclarations: [
-            {
-              name: "create_task",
-              description: "Membuat tugas atau papan kerja baru ke dalam sistem Papan Kanban.",
-              parameters: {
-                type: "OBJECT",
-                properties: {
-                  judul: { type: "STRING", description: "Judul tugas yang singkat dan jelas." },
-                  deskripsi: { type: "STRING", description: "Deskripsi rinci mengenai tujuan tugas." },
-                  peran: { type: "STRING", enum: ["admin", "sosial", "ipjkd", "harga"] },
-                  skpId: { type: "INTEGER", description: "ID SKP yang paling relevan (1-29)." },
-                  checklist: {
-                    type: "ARRAY",
-                    items: { type: "STRING" },
-                    description: "Daftar langkah-langkah konkret atau sub-tugas."
-                  }
-                },
-                required: ["judul", "deskripsi", "peran", "skpId", "checklist"]
-              }
-            },
-            {
-              name: "create_schedule",
-              description: "Membuat entri jadwal, agenda, rapat, atau tenggat waktu ke dalam sistem Kalender.",
-              parameters: {
-                type: "OBJECT",
-                properties: {
-                  judul: { type: "STRING", description: "Nama agenda/rapat/tenggat waktu." },
-                  tanggal: { type: "STRING", description: "Tanggal agenda dalam format YYYY-MM-DD." },
-                  waktu: { type: "STRING", description: "Waktu mulai dalam format HH:MM (contoh: 09:00)." },
-                  kategori: { type: "STRING", enum: ["Deadline", "Rapat", "Survei", "Lainnya"] },
-                  skpId: { type: "INTEGER", description: "ID SKP yang relevan (1-29)." },
-                  reminder: { type: "STRING", enum: ["H-1", "H-3", "H-7", "Tidak ada"] }
-                },
-                required: ["judul", "tanggal", "waktu", "kategori", "skpId"]
-              }
-            },
-            {
-              name: "create_ckp",
-              description: "Mencatat laporan Capaian Kinerja Pegawai (CKP) Harian untuk pekerjaan yang sudah selesai.",
-              parameters: {
-                type: "OBJECT",
-                properties: {
-                  tanggal: { type: "STRING", description: "Tanggal kegiatan dilakukan (YYYY-MM-DD)." },
-                  waktuMulai: { type: "STRING", description: "Waktu mulai (HH:MM)." },
-                  waktuSelesai: { type: "STRING", description: "Waktu selesai (HH:MM)." },
-                  skpId: { type: "INTEGER", description: "ID SKP yang relevan (1-29)." },
-                  rincian: { type: "STRING", description: "Penjelasan lengkap kegiatan yang dilakukan." },
-                  outputKuantitas: { type: "INTEGER", description: "Jumlah output yang dihasilkan." },
-                  satuan: { type: "STRING", enum: ["Kegiatan", "Lembar", "File", "Dokumen", "Orang", "Lainnya"] },
-                  tim: { type: "STRING", enum: ["Subbagian Umum", "Tim IPJKD & DLS", "Tim Statistik Sosial", "Tim Statistik Harga & Sensus Ekonomi"] }
-                },
-                required: ["tanggal", "waktuMulai", "waktuSelesai", "skpId", "rincian", "outputKuantitas", "satuan", "tim"]
-              }
-            }
-          ]
-        }
-      ]
-    };
+    const modelsToTry = [
+      'gemini-1.5-flash',
+      'gemini-1.5-pro',
+      'gemini-2.5-flash',
+      'gemini-1.0-pro'
+    ];
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
-    });
+    let lastError = null;
+    let lastStatus = 500;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Gemini error:', errorText);
-      let errMsg = 'Gagal menghubungi Gemini API';
-      if (response.status === 429) {
-        errMsg = 'Batas limit (kuota) penggunaan AI telah tercapai. Silakan tunggu beberapa saat lagi.';
-      }
-      return NextResponse.json({ error: errMsg }, { status: response.status });
-    }
-
-    const data = await response.json();
-    const candidate = data.candidates?.[0];
-
-    if (!candidate) {
-      return NextResponse.json({ error: 'Tidak ada respons dari AI.' }, { status: 500 });
-    }
-
-    // Check if the model decided to call a function
-    const parts = candidate.content?.parts || [];
-    const functionCallPart = parts.find(p => p.functionCall);
-
-    if (functionCallPart) {
-      const functionCall = functionCallPart.functionCall;
+    for (const model of modelsToTry) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
       
-      let messageSuffix = '';
-      if (functionCall.name === 'create_task') messageSuffix = 'Saya telah membuatkan papan tugas tersebut.';
-      else if (functionCall.name === 'create_schedule') messageSuffix = 'Jadwal telah ditambahkan ke Kalender Anda.';
-      else if (functionCall.name === 'create_ckp') messageSuffix = 'Laporan kegiatan telah dicatat di CKP Harian.';
+      const requestBody = {
+        systemInstruction: {
+          parts: [{ text: systemInstruction }]
+        },
+        contents: geminiMessages,
+        tools: [
+          {
+            functionDeclarations: [
+              {
+                name: "create_task",
+                description: "Membuat tugas atau papan kerja baru ke dalam sistem Papan Kanban.",
+                parameters: {
+                  type: "OBJECT",
+                  properties: {
+                    judul: { type: "STRING", description: "Judul tugas yang singkat dan jelas." },
+                    deskripsi: { type: "STRING", description: "Deskripsi rinci mengenai tujuan tugas." },
+                    peran: { type: "STRING", enum: ["admin", "sosial", "ipjkd", "harga"] },
+                    skpId: { type: "INTEGER", description: "ID SKP yang paling relevan (1-29)." },
+                    checklist: {
+                      type: "ARRAY",
+                      items: { type: "STRING" },
+                      description: "Daftar langkah-langkah konkret atau sub-tugas."
+                    }
+                  },
+                  required: ["judul", "deskripsi", "peran", "skpId", "checklist"]
+                }
+              },
+              {
+                name: "create_schedule",
+                description: "Membuat entri jadwal, agenda, rapat, atau tenggat waktu ke dalam sistem Kalender.",
+                parameters: {
+                  type: "OBJECT",
+                  properties: {
+                    judul: { type: "STRING", description: "Nama agenda/rapat/tenggat waktu." },
+                    tanggal: { type: "STRING", description: "Tanggal agenda dalam format YYYY-MM-DD." },
+                    waktu: { type: "STRING", description: "Waktu mulai dalam format HH:MM (contoh: 09:00)." },
+                    kategori: { type: "STRING", enum: ["Deadline", "Rapat", "Survei", "Lainnya"] },
+                    skpId: { type: "INTEGER", description: "ID SKP yang relevan (1-29)." },
+                    reminder: { type: "STRING", enum: ["H-1", "H-3", "H-7", "Tidak ada"] }
+                  },
+                  required: ["judul", "tanggal", "waktu", "kategori", "skpId"]
+                }
+              },
+              {
+                name: "create_ckp",
+                description: "Mencatat laporan Capaian Kinerja Pegawai (CKP) Harian untuk pekerjaan yang sudah selesai.",
+                parameters: {
+                  type: "OBJECT",
+                  properties: {
+                    tanggal: { type: "STRING", description: "Tanggal kegiatan dilakukan (YYYY-MM-DD)." },
+                    waktuMulai: { type: "STRING", description: "Waktu mulai (HH:MM)." },
+                    waktuSelesai: { type: "STRING", description: "Waktu selesai (HH:MM)." },
+                    skpId: { type: "INTEGER", description: "ID SKP yang relevan (1-29)." },
+                    rincian: { type: "STRING", description: "Penjelasan lengkap kegiatan yang dilakukan." },
+                    outputKuantitas: { type: "INTEGER", description: "Jumlah output yang dihasilkan." },
+                    satuan: { type: "STRING", enum: ["Kegiatan", "Lembar", "File", "Dokumen", "Orang", "Lainnya"] },
+                    tim: { type: "STRING", enum: ["Subbagian Umum", "Tim IPJKD & DLS", "Tim Statistik Sosial", "Tim Statistik Harga & Sensus Ekonomi"] }
+                  },
+                  required: ["tanggal", "waktuMulai", "waktuSelesai", "skpId", "rincian", "outputKuantitas", "satuan", "tim"]
+                }
+              }
+            ]
+          }
+        ]
+      };
 
-      return NextResponse.json({
-        type: 'function_call',
-        functionName: functionCall.name,
-        arguments: functionCall.args,
-        message: messageSuffix
-      });
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (!response.ok) {
+          lastError = await response.text();
+          lastStatus = response.status;
+          console.warn(`[Gemini] Model ${model} failed with ${lastStatus}:`, lastError);
+          if (lastStatus === 400) break; // Bad request means payload is invalid, no point trying other models
+          continue; // Try next model
+        }
+
+        const data = await response.json();
+        const candidate = data.candidates?.[0];
+
+        if (!candidate) {
+          console.warn(`[Gemini] Model ${model} returned empty candidates.`);
+          lastError = 'No response candidates';
+          continue;
+        }
+
+        // Check if the model decided to call a function
+        const parts = candidate.content?.parts || [];
+        const functionCallPart = parts.find(p => p.functionCall);
+
+        if (functionCallPart) {
+          const functionCall = functionCallPart.functionCall;
+          
+          let messageSuffix = '';
+          if (functionCall.name === 'create_task') messageSuffix = 'Saya telah membuatkan papan tugas tersebut.';
+          else if (functionCall.name === 'create_schedule') messageSuffix = 'Jadwal telah ditambahkan ke Kalender Anda.';
+          else if (functionCall.name === 'create_ckp') messageSuffix = 'Laporan kegiatan telah dicatat di CKP Harian.';
+
+          return NextResponse.json({
+            type: 'function_call',
+            functionName: functionCall.name,
+            arguments: functionCall.args,
+            message: messageSuffix
+          });
+        }
+
+        // Otherwise, return normal text response
+        const textPart = parts.find(p => p.text);
+        return NextResponse.json({
+          type: 'text',
+          message: textPart ? textPart.text : "..."
+        });
+      } catch (err) {
+        console.error(`[Gemini] Fetch error for model ${model}:`, err);
+        lastError = err.message;
+        lastStatus = 500;
+        continue;
+      }
     }
 
-    // Otherwise, return normal text response
-    const textPart = parts.find(p => p.text);
-    return NextResponse.json({
-      type: 'text',
-      message: textPart ? textPart.text : "..."
-    });
+    // If all models failed
+    let errMsg = 'Gagal menghubungi Gemini API setelah mencoba berbagai model cadangan.';
+    if (lastStatus === 429) {
+      errMsg = 'Batas limit (kuota) penggunaan AI telah tercapai di semua model. Silakan tunggu beberapa saat lagi.';
+    } else if (lastStatus === 400) {
+      errMsg = 'Format pesan ditolak oleh AI.';
+    }
+    return NextResponse.json({ error: errMsg }, { status: lastStatus });
 
   } catch (error) {
     console.error('Brainstorm API error:', error);
