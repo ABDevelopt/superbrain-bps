@@ -388,7 +388,7 @@ export default function TasksPage() {
       checklist: (taskData.checklist || []).map(item => ({
         id: Math.random().toString(36).substring(7),
         text: item,
-        done: false
+        completed: false
       }))
     };
     
@@ -1343,7 +1343,7 @@ function TaskCard({
                 >
                   <input 
                     type="checkbox" 
-                    checked={item.completed}
+                    checked={item.completed || false}
                     onChange={() => {}} 
                     style={{ marginRight: '6px' }}
                   />
