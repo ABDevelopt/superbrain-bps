@@ -964,6 +964,26 @@
   }
 }
 
+@media (max-width: 768px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+  .searchInput, .filterSelect {
+    width: 100%;
+    min-width: 0;
+  }
+  .addBtn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 /* ===== Tab Switcher for Tasks vs Mapping ===== */
 .tabBar {
   display: flex;
