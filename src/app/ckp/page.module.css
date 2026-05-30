@@ -2,7 +2,7 @@
 
 .page {
   min-height: 100vh;
-  background: #0a0e1a;
+  background: transparent;
   color: #f1f5f9;
   font-family: 'Inter', sans-serif;
   padding: 24px;
