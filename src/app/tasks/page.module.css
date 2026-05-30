@@ -17,13 +17,22 @@
 /* ===== Header & Toolbar ===== */
 .header {
   margin-bottom: 24px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 24px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .title {
   font-size: 28px;
   font-weight: 700;
   margin: 0 0 8px 0;
-  color: var(--text-light, #f1f5f9);
+  background: linear-gradient(135deg, #6366f1, #22d3ee);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   display: flex;
   align-items: center;
   gap: 10px;
