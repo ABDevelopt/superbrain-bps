@@ -553,6 +553,23 @@ export default function SchedulePage() {
     setSelectedDate(todayStr);
   };
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('fromTask') === 'true') {
+        const prefillStr = sessionStorage.getItem('schedule_prefill_from_task');
+        if (prefillStr) {
+          try {
+            const prefill = JSON.parse(prefillStr);
+            setEditingEvent(prefill);
+            setModalOpen(true);
+            sessionStorage.removeItem('schedule_prefill_from_task');
+          } catch(e) {}
+        }
+      }
+    }
+  }, []);
+
   const handleAddEvent = useCallback(async (formData) => {
     let gcalEventId = null;
     if (accessToken) {
@@ -564,8 +581,21 @@ export default function SchedulePage() {
       }
     }
 
-    await addDocument({ ...formData, gcalEventId });
+    const docRef = await addDocument({ ...formData, gcalEventId });
     setModalOpen(false);
+
+    // If this schedule was created from a task, update the task with this new schedule ID
+    if (formData.linkedTaskIds && formData.linkedTaskIds.length > 0) {
+      try {
+        for (const taskId of formData.linkedTaskIds) {
+          await firestoreUpdateDoc(doc(db, 'tasks', taskId), {
+            linkedScheduleId: docRef.id
+          });
+        }
+      } catch (e) {
+        console.error('Failed to link schedule to tasks:', e);
+      }
+    }
 
     // Telegram Notification
     const chatId = localStorage.getItem('telegramChatId');

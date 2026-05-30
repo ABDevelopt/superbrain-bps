@@ -329,21 +329,9 @@ export default function TasksPage() {
     }
 
     try {
-      let finalScheduleId = formLinkedScheduleId || null;
+      let finalScheduleId = formLinkedScheduleId === 'NEW' ? null : (formLinkedScheduleId || null);
 
-      if (formLinkedScheduleId === 'NEW') {
-        const newScheduleRef = await addDoc(collection(db, 'schedule'), {
-          judul: formJudul,
-          deskripsi: formDesc,
-          kategori: 'Lainnya',
-          tanggal: new Date().toISOString().split('T')[0],
-          waktu: '09:00',
-          skpId: Number(formSkpId),
-          isSelesai: false
-        });
-        finalScheduleId = newScheduleRef.id;
-      }
-
+      let savedTaskId = null;
       if (modalMode === 'add') {
         const newTask = {
           judul: formJudul.trim(),
@@ -355,10 +343,12 @@ export default function TasksPage() {
           checklist: formChecklist,
           linkedScheduleId: finalScheduleId
         };
-        await addDoc(collection(db, 'tasks'), newTask);
+        const ref = await addDoc(collection(db, 'tasks'), newTask);
+        savedTaskId = ref.id;
         showToast('Tugas baru berhasil ditambahkan.', 'success');
       } else {
-        await updateDoc(doc(db, 'tasks', selectedTaskForEdit.id), {
+        savedTaskId = selectedTaskForEdit.id;
+        await updateDoc(doc(db, 'tasks', savedTaskId), {
           judul: formJudul.trim(),
           deskripsi: formDesc.trim(),
           peran: formPeran,
@@ -368,7 +358,19 @@ export default function TasksPage() {
         });
         showToast('Tugas berhasil diperbarui.', 'success');
       }
+
       setIsModalOpen(false);
+
+      if (formLinkedScheduleId === 'NEW') {
+        const prefill = {
+          judul: formJudul.trim(),
+          deskripsi: formDesc.trim(),
+          skpId: Number(formSkpId),
+          linkedTaskIds: [savedTaskId]
+        };
+        sessionStorage.setItem('schedule_prefill_from_task', JSON.stringify(prefill));
+        router.push('/schedule?fromTask=true');
+      }
     } catch (e) {
       console.error(e);
       showToast('Gagal menyimpan tugas.', 'error');
