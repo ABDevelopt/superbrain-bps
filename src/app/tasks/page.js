@@ -15,6 +15,8 @@ import { skpData } from '@/data/skpData';
 import { BPS_ROLES, ROLE_TEMPLATES, initialTasks } from '@/data/taskData';
 import styles from './page.module.css';
 import { useChatAction } from '@/contexts/ChatActionContext';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 
 function getRoleIcon(iconName, size = 14) {
   switch (iconName) {
@@ -76,21 +78,43 @@ export default function TasksPage() {
   // Refs
   const timerIntervalRef = useRef(null);
 
-  // Load tasks from LocalStorage
+  // Load tasks from Firebase
   useEffect(() => {
-    try {
-      const savedTasks = localStorage.getItem('bps_superbrain_tasks');
-      if (savedTasks) {
-        setTasks(JSON.parse(savedTasks));
-      } else {
-        setTasks(initialTasks);
-        localStorage.setItem('bps_superbrain_tasks', JSON.stringify(initialTasks));
+    const unsubscribe = onSnapshot(collection(db, 'tasks'), (snapshot) => {
+      const fetchedTasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Migration: if Firestore is empty but we have local tasks, upload them
+      if (fetchedTasks.length === 0) {
+        const localTasks = localStorage.getItem('bps_superbrain_tasks');
+        if (localTasks) {
+          try {
+            const parsed = JSON.parse(localTasks);
+            if (parsed.length > 0) {
+              const batch = writeBatch(db);
+              parsed.forEach(task => {
+                const taskRef = doc(collection(db, 'tasks'));
+                const { id, ...dataToUpload } = task; // Exclude old local ID
+                batch.set(taskRef, dataToUpload);
+              });
+              batch.commit().then(() => {
+                localStorage.removeItem('bps_superbrain_tasks');
+              }).catch(console.error);
+              return; // Wait for the next snapshot
+            }
+          } catch(e) { console.error(e); }
+        } else {
+          // If totally empty everywhere, we can optionally populate initialTasks, but we'll leave it empty.
+        }
       }
-    } catch (e) {
-      console.error('Failed to load tasks:', e);
-      setTasks(initialTasks);
-    }
-    setIsLoaded(true);
+      
+      setTasks(fetchedTasks);
+      setIsLoaded(true);
+    }, (error) => {
+      console.error("Firebase fetch error:", error);
+      setIsLoaded(true);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   // Handle URL parameter filters and session prefill
@@ -121,15 +145,7 @@ export default function TasksPage() {
     }
   }, [isLoaded]);
 
-  // Save tasks to LocalStorage helper
-  const saveTasks = (newTasks) => {
-    setTasks(newTasks);
-    try {
-      localStorage.setItem('bps_superbrain_tasks', JSON.stringify(newTasks));
-    } catch (e) {
-      console.error('Failed to save tasks:', e);
-    }
-  };
+
 
   // Toast Helper
   const showToast = (message, type = 'info') => {
@@ -192,44 +208,39 @@ export default function TasksPage() {
   };
 
   // Toggle subtask checkbox
-  const handleToggleSubtask = (taskId, index) => {
-    const updated = tasks.map((t) => {
-      if (t.id === taskId) {
-        const newChecklist = [...t.checklist];
-        newChecklist[index] = {
-          ...newChecklist[index],
-          completed: !newChecklist[index].completed,
-        };
-        return { ...t, checklist: newChecklist };
+  const handleToggleSubtask = async (taskId, index) => {
+    const taskToUpdate = tasks.find((t) => t.id === taskId);
+    if (!taskToUpdate) return;
+    
+    const newChecklist = [...taskToUpdate.checklist];
+    newChecklist[index] = {
+      ...newChecklist[index],
+      completed: !newChecklist[index].completed,
+    };
+    
+    try {
+      await updateDoc(doc(db, 'tasks', taskId), { checklist: newChecklist });
+      // Update focused task state if currently in focus mode
+      if (focusedTask && focusedTask.id === taskId) {
+        setFocusedTask({ ...taskToUpdate, checklist: newChecklist });
       }
-      return t;
-    });
-    saveTasks(updated);
-
-    // Update focused task state if currently in focus mode
-    if (focusedTask && focusedTask.id === taskId) {
-      const found = updated.find((t) => t.id === taskId);
-      setFocusedTask(found);
-    }
+    } catch(e) { console.error(e); }
   };
 
   // Move task to next/prev column status
-  const handleMoveStatus = (taskId, newStatus) => {
-    const updated = tasks.map((t) => {
-      if (t.id === taskId) {
-        return { ...t, status: newStatus };
-      }
-      return t;
-    });
-    saveTasks(updated);
-    showToast(`Status tugas berhasil dipindahkan.`, 'success');
+  const handleMoveStatus = async (taskId, newStatus) => {
+    try {
+      await updateDoc(doc(db, 'tasks', taskId), { status: newStatus });
+      showToast(`Status tugas berhasil dipindahkan.`, 'success');
+    } catch(e) { console.error(e); }
   };
 
   // Delete Task
-  const handleDeleteTask = (taskId) => {
-    const updated = tasks.filter((t) => t.id !== taskId);
-    saveTasks(updated);
-    showToast('Tugas berhasil dihapus.', 'info');
+  const handleDeleteTask = async (taskId) => {
+    try {
+      await deleteDoc(doc(db, 'tasks', taskId));
+      showToast('Tugas berhasil dihapus.', 'info');
+    } catch(e) { console.error(e); }
   };
 
   // Open modal in Add mode
@@ -283,45 +294,41 @@ export default function TasksPage() {
   };
 
   // Save / Submit Form Modal
-  const handleSubmitForm = (e) => {
+  const handleSubmitForm = async (e) => {
     e.preventDefault();
     if (!formJudul.trim()) {
       showToast('Judul tugas wajib diisi!', 'error');
       return;
     }
 
-    if (modalMode === 'add') {
-      const newTask = {
-        id: `task-${Date.now()}`,
-        judul: formJudul.trim(),
-        deskripsi: formDesc.trim(),
-        status: 'todo',
-        peran: formPeran,
-        skpId: Number(formSkpId),
-        tanggalDibuat: new Date().toISOString().split('T')[0],
-        checklist: formChecklist,
-      };
-      saveTasks([newTask, ...tasks]);
-      showToast('Tugas baru berhasil ditambahkan.', 'success');
-    } else {
-      const updated = tasks.map((t) => {
-        if (t.id === selectedTaskForEdit.id) {
-          return {
-            ...t,
-            judul: formJudul.trim(),
-            deskripsi: formDesc.trim(),
-            peran: formPeran,
-            skpId: Number(formSkpId),
-            checklist: formChecklist,
-          };
-        }
-        return t;
-      });
-      saveTasks(updated);
-      showToast('Perubahan tugas berhasil disimpan.', 'success');
+    try {
+      if (modalMode === 'add') {
+        const newTask = {
+          judul: formJudul.trim(),
+          deskripsi: formDesc.trim(),
+          status: 'todo',
+          peran: formPeran,
+          skpId: Number(formSkpId),
+          tanggalDibuat: new Date().toISOString().split('T')[0],
+          checklist: formChecklist,
+        };
+        await addDoc(collection(db, 'tasks'), newTask);
+        showToast('Tugas baru berhasil ditambahkan.', 'success');
+      } else {
+        await updateDoc(doc(db, 'tasks', selectedTaskForEdit.id), {
+          judul: formJudul.trim(),
+          deskripsi: formDesc.trim(),
+          peran: formPeran,
+          skpId: Number(formSkpId),
+          checklist: formChecklist,
+        });
+        showToast('Tugas berhasil diperbarui.', 'success');
+      }
+      setIsModalOpen(false);
+    } catch (e) {
+      console.error(e);
+      showToast('Gagal menyimpan tugas.', 'error');
     }
-
-    setIsModalOpen(false);
   };
 
   // Convert task to CKP (prefetch format and redirect)
@@ -377,9 +384,8 @@ export default function TasksPage() {
   };
 
   // Handle AI Task Creation
-  const handleAICreateTask = useCallback((taskData) => {
+  const handleAICreateTask = useCallback(async (taskData) => {
     const newTask = {
-      id: Date.now(),
       judul: taskData.judul,
       deskripsi: taskData.deskripsi,
       peran: taskData.peran || 'admin',
@@ -392,14 +398,11 @@ export default function TasksPage() {
       }))
     };
     
-    setTasks(prev => {
-      const updated = [...prev, newTask];
-      localStorage.setItem('bps_superbrain_tasks', JSON.stringify(updated));
-      return updated;
-    });
-    
-    setToast({ message: `Tugas "${taskData.judul}" berhasil ditambahkan oleh AI!` });
-    setTimeout(() => setToast(null), 3000);
+    try {
+      await addDoc(collection(db, 'tasks'), newTask);
+      setToast({ message: `Tugas "${taskData.judul}" berhasil ditambahkan oleh AI!` });
+      setTimeout(() => setToast(null), 3000);
+    } catch(e) { console.error(e); }
   }, []);
 
   useChatAction('CREATE_TASK', handleAICreateTask);
