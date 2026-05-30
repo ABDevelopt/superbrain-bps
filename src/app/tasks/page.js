@@ -19,6 +19,7 @@ import { useChatAction } from '@/contexts/ChatActionContext';
 import { useAIContext } from '@/contexts/AIContext';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, writeBatch } from 'firebase/firestore';
+import { useFirestore } from '@/hooks/useFirestore';
 
 function getRoleIcon(iconName, size = 14) {
   switch (iconName) {
@@ -41,6 +42,7 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const { setPageData } = useAIContext();
+  const { docs: schedules } = useFirestore('schedule');
 
   // Register tasks to AIContext
   useEffect(() => {
@@ -67,6 +69,7 @@ export default function TasksPage() {
   const [formSkpId, setFormSkpId] = useState(1);
   const [formChecklist, setFormChecklist] = useState([]);
   const [newChecklistItem, setNewChecklistItem] = useState('');
+  const [formLinkedScheduleId, setFormLinkedScheduleId] = useState('');
 
   // Mode Fokus Tenang
   const [focusedTask, setFocusedTask] = useState(null);
@@ -274,6 +277,7 @@ export default function TasksPage() {
     setFormSkpId(1);
     setFormChecklist([]);
     setNewChecklistItem('');
+    setFormLinkedScheduleId('');
     setIsModalOpen(true);
   };
 
@@ -287,6 +291,7 @@ export default function TasksPage() {
     setFormSkpId(task.skpId || 1);
     setFormChecklist(task.checklist || []);
     setNewChecklistItem('');
+    setFormLinkedScheduleId(task.linkedScheduleId || '');
     setIsModalOpen(true);
   };
 
@@ -333,6 +338,7 @@ export default function TasksPage() {
           skpId: Number(formSkpId),
           tanggalDibuat: new Date().toISOString().split('T')[0],
           checklist: formChecklist,
+          linkedScheduleId: finalScheduleId
         };
         await addDoc(collection(db, 'tasks'), newTask);
         showToast('Tugas baru berhasil ditambahkan.', 'success');
@@ -343,6 +349,7 @@ export default function TasksPage() {
           peran: formPeran,
           skpId: Number(formSkpId),
           checklist: formChecklist,
+          linkedScheduleId: finalScheduleId
         });
         showToast('Tugas berhasil diperbarui.', 'success');
       }
@@ -1194,6 +1201,23 @@ export default function TasksPage() {
                     <Sparkles size={13} /> Pakai Template
                   </button>
                 </div>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Jadwal Terkait (Opsional)</label>
+                <select 
+                  className={styles.select}
+                  value={formLinkedScheduleId}
+                  onChange={(e) => setFormLinkedScheduleId(e.target.value)}
+                >
+                  <option value="">-- Tidak ada --</option>
+                  <option value="NEW">+ Buat Jadwal Baru (Otomatis hari ini)</option>
+                  {schedules.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.tanggal} - {s.judul} {s.isSelesai ? '(Selesai)' : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className={styles.formGroup}>
