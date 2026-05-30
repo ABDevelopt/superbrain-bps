@@ -571,6 +571,22 @@ export default function TasksPage() {
         </p>
       </div>
 
+      {/* Tab Switcher */}
+      <div className={styles.tabBar}>
+        <button 
+          className={`${styles.tab} ${activeTab === 0 ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab(0)}
+        >
+          <LayoutGrid size={16} /> Papan Kanban
+        </button>
+        <button 
+          className={`${styles.tab} ${activeTab === 1 ? styles.tabActive : ''}`}
+          onClick={() => setActiveTab(1)}
+        >
+          <Network size={16} /> Peta Pohon SKP
+        </button>
+      </div>
+
       {tasks.length > 0 && (
         <div className={styles.progressCard}>
           <svg width="0" height="0" style={{ position: 'absolute' }}>
@@ -619,21 +635,7 @@ export default function TasksPage() {
         </div>
       )}
 
-      {/* Tab Switcher */}
-      <div className={styles.tabBar}>
-        <button 
-          className={`${styles.tab} ${activeTab === 0 ? styles.tabActive : ''}`}
-          onClick={() => setActiveTab(0)}
-        >
-          <LayoutGrid size={16} /> Papan Kanban
-        </button>
-        <button 
-          className={`${styles.tab} ${activeTab === 1 ? styles.tabActive : ''}`}
-          onClick={() => setActiveTab(1)}
-        >
-          <Network size={16} /> Peta Pohon SKP
-        </button>
-      </div>
+
 
       {/* ============================================
           TAB 1: PAPAN KANBAN VIEW
