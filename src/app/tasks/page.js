@@ -14,6 +14,7 @@ import {
 import { skpData } from '@/data/skpData';
 import { BPS_ROLES, ROLE_TEMPLATES, initialTasks } from '@/data/taskData';
 import styles from './page.module.css';
+import AIChatbot from '@/components/AIChatbot';
 
 function getRoleIcon(iconName, size = 14) {
   switch (iconName) {
@@ -373,6 +374,31 @@ export default function TasksPage() {
     setTimerSeconds(1500);
     setTimerType('pomodoro');
     setIsTimerRunning(false);
+  };
+
+  // Handle AI Task Creation
+  const handleAICreateTask = (taskData) => {
+    const newTask = {
+      id: Date.now(),
+      judul: taskData.judul,
+      deskripsi: taskData.deskripsi,
+      peran: taskData.peran || 'admin',
+      skpId: taskData.skpId || 1,
+      status: 'todo',
+      checklist: (taskData.checklist || []).map(item => ({
+        id: Math.random().toString(36).substring(7),
+        text: item,
+        done: false
+      }))
+    };
+    
+    setTasks(prev => {
+      const updated = [...prev, newTask];
+      localStorage.setItem('bps_superbrain_tasks', JSON.stringify(updated));
+      return updated;
+    });
+    
+    showToast(`Tugas "${taskData.judul}" berhasil ditambahkan oleh AI!`, 'success');
   };
 
   // Helper formats
@@ -1243,6 +1269,8 @@ export default function TasksPage() {
           </div>
         </div>
       )}
+      {/* AI Chatbot Component */}
+      <AIChatbot onTaskCreate={handleAICreateTask} />
     </div>
   );
 }
@@ -1395,3 +1423,5 @@ function EmptyColumnState() {
     </div>
   );
 }
+
+export { EmptyColumnState };
