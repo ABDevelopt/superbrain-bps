@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Bell, X, Plus, ChevronLeft, ChevronRight, CheckCircle, Circle, Edit3, Trash2, LayoutGrid, List, MapPin, Video, User, Link as LinkIcon, AlignLeft, Clock, Tag, ClipboardCheck, FileText, Loader2 } from 'lucide-react';
+import { Calendar, Bell, X, Plus, ChevronLeft, ChevronRight, CheckCircle, Circle, Edit3, Trash2, LayoutGrid, List, MapPin, Video, User, Link as LinkIcon, AlignLeft, Clock, Tag, ClipboardCheck, FileText, Loader2, ListTodo } from 'lucide-react';
 import { skpData } from '@/data/skpData';
 import styles from './page.module.css';
 import { useFirestore } from '@/hooks/useFirestore';
@@ -228,6 +228,9 @@ export default function SchedulePage() {
       if (ckp.fromScheduleEventId) {
         map[ckp.fromScheduleEventId] = (map[ckp.fromScheduleEventId] || 0) + 1;
       }
+      if (ckp.sourceScheduleId && ckp.sourceScheduleId !== ckp.fromScheduleEventId) {
+        map[ckp.sourceScheduleId] = (map[ckp.sourceScheduleId] || 0) + 1;
+      }
     });
     return map;
   }, [ckpEvents]);
@@ -239,7 +242,9 @@ export default function SchedulePage() {
       waktuSelesai: event.waktuSelesai || '',
       skpId: event.skpId ? String(event.skpId) : '',
       rincian: event.judul + (event.deskripsi ? '\n' + event.deskripsi : ''),
-      fromScheduleEventId: event.id,
+      sumber: 'jadwal',
+      sourceScheduleId: event.id,
+      fromScheduleEventId: event.id, // fallback
       scheduleEventTitle: event.judul,
     };
     sessionStorage.setItem('ckp_prefill', JSON.stringify(prefillData));
@@ -913,6 +918,17 @@ export default function SchedulePage() {
                   })()}
                 </div>
               </div>
+
+              {selectedEventForDetail.linkedTaskIds && selectedEventForDetail.linkedTaskIds.length > 0 && (
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                  <ListTodo size={18} color="#94a3b8" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  <div>
+                    <span style={{ color: '#818cf8', fontWeight: '500' }}>
+                      Tertaut dengan {selectedEventForDetail.linkedTaskIds.length} Tugas
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {selectedEventForDetail.lokasi && (
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>

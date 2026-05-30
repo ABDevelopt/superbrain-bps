@@ -358,7 +358,9 @@ export default function TasksPage() {
       waktuSelesai: '10:00',
       skpId: task.skpId,
       rincian: ckpDescription,
-      fromScheduleEventId: `task-conversion-${task.id}`,
+      sumber: 'tugas',
+      sourceTaskId: task.id,
+      fromScheduleEventId: `task-conversion-${task.id}`, // fallback
     };
 
     try {
@@ -1404,6 +1406,11 @@ function TaskCard({
         {skpObj && (
           <span className={styles.skpTag} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }} title={skpObj.nama}>
             <Target size={11} /> SKP #{task.skpId}: {skpObj.nama}
+          </span>
+        )}
+        {task.linkedScheduleId && (
+          <span className={styles.skpTag} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(14, 165, 233, 0.15)', borderColor: 'rgba(14, 165, 233, 0.3)', color: '#38bdf8' }} title="Tertaut dengan Jadwal">
+            <Calendar size={11} /> Tertaut Jadwal
           </span>
         )}
       </div>

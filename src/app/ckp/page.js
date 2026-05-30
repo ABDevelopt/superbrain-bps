@@ -181,7 +181,6 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
     timKerja: TIM_KERJA_OPTIONS[0],
   });
 
-  useEffect(() => {
     if (initialData) {
       setForm({
         tanggal: initialData.tanggal || getTodayStr(),
@@ -192,8 +191,12 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         kuantitas: initialData.kuantitas || '',
         satuan: initialData.satuan || 'Kegiatan',
         timKerja: initialData.timKerja || TIM_KERJA_OPTIONS[0],
-        // Carry over fromScheduleEventId if present
+        // Backward compatibility
         _fromScheduleEventId: initialData.fromScheduleEventId || null,
+        // New normalized source fields
+        _sumber: initialData.sumber || 'manual',
+        _sourceScheduleId: initialData.sourceScheduleId || null,
+        _sourceTaskId: initialData.sourceTaskId || null,
       });
       setPreviewImage(null);
       setFile(null);
@@ -217,7 +220,9 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
       waktuSelesai: event.waktuSelesai || prev.waktuSelesai,
       skpId: event.skpId ? String(event.skpId) : prev.skpId,
       rincian: event.judul + (event.deskripsi ? '\n' + event.deskripsi : ''),
-      _fromScheduleEventId: event.id,
+      _sumber: 'jadwal',
+      _sourceScheduleId: event.id,
+      _fromScheduleEventId: event.id, // For backward compatibility if needed
     }));
     setShowSchedulePicker(false);
   };
@@ -620,10 +625,16 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         durasi: duration,
         buktiDukung: buktiDukungLink || (initialData ? initialData.buktiDukung : null) || null,
         fromScheduleEventId: form._fromScheduleEventId || (initialData ? initialData.fromScheduleEventId : null) || null,
+        sumber: form._sumber || (initialData ? initialData.sumber : 'manual') || 'manual',
+        sourceScheduleId: form._sourceScheduleId || (initialData ? initialData.sourceScheduleId : null) || null,
+        sourceTaskId: form._sourceTaskId || (initialData ? initialData.sourceTaskId : null) || null,
       };
 
-      // remove internal field
+      // remove internal fields
       delete dataToSave._fromScheduleEventId;
+      delete dataToSave._sumber;
+      delete dataToSave._sourceScheduleId;
+      delete dataToSave._sourceTaskId;
 
       if (initialData && initialData.id && onUpdate) {
         await onUpdate(initialData.id, dataToSave);
@@ -641,6 +652,10 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         kuantitas: '',
         satuan: 'Kegiatan',
         timKerja: TIM_KERJA_OPTIONS[0],
+        _sumber: 'manual',
+        _sourceScheduleId: null,
+        _sourceTaskId: null,
+        _fromScheduleEventId: null,
       });
       setFile(null);
       setPreviewImage(null);
@@ -1533,6 +1548,9 @@ function CKPPageInner() {
             skpId: prefill.skpId || '',
             rincian: prefill.rincian || '',
             fromScheduleEventId: prefill.fromScheduleEventId || null,
+            sumber: prefill.sumber || 'manual',
+            sourceScheduleId: prefill.sourceScheduleId || null,
+            sourceTaskId: prefill.sourceTaskId || null,
           });
           setActiveTab(0);
         }
