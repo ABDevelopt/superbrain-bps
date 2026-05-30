@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useRef, useCallback, useEffect } from 'react';
 
 const ChatActionContext = createContext({
   dispatchAction: () => {},
@@ -8,32 +8,29 @@ const ChatActionContext = createContext({
 });
 
 export function ChatActionProvider({ children }) {
-  const [listeners, setListeners] = useState({});
+  const listenersRef = useRef({});
 
   const dispatchAction = useCallback((type, payload) => {
     console.log(`[ChatAction] Dispatching ${type}`, payload);
-    if (listeners[type]) {
-      listeners[type].forEach(callback => callback(payload));
+    const handlers = listenersRef.current[type];
+    if (handlers && handlers.length > 0) {
+      handlers.forEach(callback => callback(payload));
     } else {
       console.warn(`[ChatAction] No listeners found for action type: ${type}`);
     }
-  }, [listeners]);
+  }, []);
 
   const listenAction = useCallback((type, callback) => {
-    setListeners(prev => {
-      const existing = prev[type] || [];
-      return { ...prev, [type]: [...existing, callback] };
-    });
+    if (!listenersRef.current[type]) {
+      listenersRef.current[type] = [];
+    }
+    listenersRef.current[type].push(callback);
 
     // Return cleanup function
     return () => {
-      setListeners(prev => {
-        const existing = prev[type] || [];
-        return {
-          ...prev,
-          [type]: existing.filter(cb => cb !== callback)
-        };
-      });
+      if (listenersRef.current[type]) {
+        listenersRef.current[type] = listenersRef.current[type].filter(cb => cb !== callback);
+      }
     };
   }, []);
 
