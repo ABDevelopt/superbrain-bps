@@ -8,7 +8,15 @@
  * Usage: node scripts/telegram-poll.mjs
  */
 
-const BOT_TOKEN = '8979507746:AAGD2b4u7r40S657bS8FK_HoNhXJt9OgRVM';
+import 'dotenv/config'; // Make sure to load environment variables
+
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+
+if (!BOT_TOKEN) {
+  console.error("❌ ERROR: TELEGRAM_BOT_TOKEN tidak ditemukan di environment variables (misalnya di .env.local).");
+  process.exit(1);
+}
+
 const LOCAL_WEBHOOK_URL = 'http://localhost:3000/api/telegram';
 const POLL_INTERVAL_MS = 2000;
 
