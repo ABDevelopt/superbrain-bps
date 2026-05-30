@@ -329,6 +329,21 @@ export default function TasksPage() {
     }
 
     try {
+      let finalScheduleId = formLinkedScheduleId || null;
+
+      if (formLinkedScheduleId === 'NEW') {
+        const newScheduleRef = await addDoc(collection(db, 'schedule'), {
+          judul: formJudul,
+          deskripsi: formDesc,
+          kategori: 'Lainnya',
+          tanggal: new Date().toISOString().split('T')[0],
+          waktu: '09:00',
+          skpId: Number(formSkpId),
+          isSelesai: false
+        });
+        finalScheduleId = newScheduleRef.id;
+      }
+
       if (modalMode === 'add') {
         const newTask = {
           judul: formJudul.trim(),

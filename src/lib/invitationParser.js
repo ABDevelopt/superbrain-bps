@@ -49,7 +49,7 @@ PENTING:
 - Jangan gunakan emoji.
 `;
 }
-
+const responseSchema = {
   type: 'OBJECT',
   properties: {
     type: { type: 'STRING', enum: ['CREATE_JADWAL', 'UPDATE_JADWAL', 'DELETE_JADWAL', 'CREATE_CKP', 'UPDATE_CKP', 'DELETE_CKP', 'CREATE_TASK', 'UPDATE_TASK', 'DELETE_TASK', 'REPLY_TEXT'] },
