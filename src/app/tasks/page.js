@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Play, Pause, RotateCcw, CheckSquare, Trash2, Plus, 
@@ -14,7 +14,7 @@ import {
 import { skpData } from '@/data/skpData';
 import { BPS_ROLES, ROLE_TEMPLATES, initialTasks } from '@/data/taskData';
 import styles from './page.module.css';
-import AIChatbot from '@/components/AIChatbot';
+import { useChatAction } from '@/contexts/ChatActionContext';
 
 function getRoleIcon(iconName, size = 14) {
   switch (iconName) {
@@ -377,7 +377,7 @@ export default function TasksPage() {
   };
 
   // Handle AI Task Creation
-  const handleAICreateTask = (taskData) => {
+  const handleAICreateTask = useCallback((taskData) => {
     const newTask = {
       id: Date.now(),
       judul: taskData.judul,
@@ -398,9 +398,11 @@ export default function TasksPage() {
       return updated;
     });
     
-    showToast(`Tugas "${taskData.judul}" berhasil ditambahkan oleh AI!`, 'success');
-  };
+    setToast({ message: `Tugas "${taskData.judul}" berhasil ditambahkan oleh AI!` });
+    setTimeout(() => setToast(null), 3000);
+  }, []);
 
+  useChatAction('CREATE_TASK', handleAICreateTask);
   // Helper formats
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60);
@@ -1269,8 +1271,6 @@ export default function TasksPage() {
           </div>
         </div>
       )}
-      {/* AI Chatbot Component */}
-      <AIChatbot onTaskCreate={handleAICreateTask} />
     </div>
   );
 }

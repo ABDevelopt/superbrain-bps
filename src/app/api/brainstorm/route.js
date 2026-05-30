@@ -10,7 +10,7 @@ export async function POST(request) {
 
   try {
     const body = await request.json();
-    const { messages } = body;
+    const { messages, currentPath } = body;
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'Invalid messages array.' }, { status: 400 });
@@ -21,22 +21,42 @@ export async function POST(request) {
       .join('\n');
 
     const systemInstruction = `
-Anda adalah SuperBrain AI, asisten produktivitas untuk Badan Pusat Statistik (BPS).
-Tugas Anda adalah berdiskusi, melakukan brainstorming, dan membantu pengguna merencanakan pekerjaan.
+Anda adalah SuperBrain AI, asisten produktivitas cerdas untuk pegawai Badan Pusat Statistik (BPS).
+Tugas Anda adalah berdiskusi, menganalisis lampiran file (jika ada), dan membantu pengguna merencanakan pekerjaan, mencatat agenda, atau melaporkan capaian.
+
+Pengguna saat ini berada di halaman: ${currentPath || 'Dashboard'}
 
 Berikut adalah daftar 29 Sasaran Kinerja Pegawai (SKP) BPS sebagai referensi pencocokan kegiatan:
 ${skpContext}
 
-Jika pengguna meminta untuk membuat papan tugas, daftar pekerjaan, atau checklist pekerjaan, 
-GUNAKAN fungsi (tool) 'create_task' untuk secara otomatis membuatkannya ke dalam sistem pengguna.
-Saat memanggil 'create_task', berikan judul tugas, rincian, perkirakan 'peran' (admin, sosial, ipjkd, harga), pilih 'skpId' yang relevan (1-29), dan susun 'checklist' langkah-langkah detail secara komprehensif.
+Anda memiliki 3 FUNGSI (TOOLS) utama. Panggil fungsi yang paling tepat sesuai dengan intensi pengguna:
+
+1. 'create_task': Gunakan fungsi ini jika pengguna merencanakan proyek, memecah langkah kerja menjadi checklist, atau meminta dibuatkan kartu tugas di Papan Kanban.
+2. 'create_schedule': Gunakan fungsi ini jika pengguna menyebutkan suatu acara, pertemuan, batas waktu (deadline), atau kegiatan di masa depan yang perlu diingat (misalnya "rapat besok jam 10", "batas pengumpulan jumat").
+3. 'create_ckp': Gunakan fungsi ini jika pengguna melaporkan kegiatan yang SUDAH SELESAI hari ini atau di masa lalu, dan menyebutkan kuantitas/hasil (misalnya "hari ini saya mengentri 5 dokumen", "saya telah selesai merekap data").
+
+Jika pengguna melampirkan file (gambar/PDF), bacalah isi file tersebut untuk mengekstrak detail (misal: baca undangan rapat dari gambar PDF lalu buat jadwalnya).
 `;
 
     // Map messages to Gemini format
-    const geminiMessages = messages.map(msg => ({
-      role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: msg.content }],
-    }));
+    const geminiMessages = messages.map(msg => {
+      const parts = [{ text: msg.content }];
+      
+      // If user uploaded a file, attach it as inlineData
+      if (msg.inlineData) {
+        parts.push({
+          inlineData: {
+            mimeType: msg.inlineData.mimeType,
+            data: msg.inlineData.data
+          }
+        });
+      }
+
+      return {
+        role: msg.role === 'assistant' ? 'model' : 'user',
+        parts: parts,
+      };
+    });
 
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
     
@@ -50,34 +70,55 @@ Saat memanggil 'create_task', berikan judul tugas, rincian, perkirakan 'peran' (
           functionDeclarations: [
             {
               name: "create_task",
-              description: "Membuat tugas atau papan kerja baru ke dalam sistem aplikasi secara otomatis berdasarkan hasil brainstorming.",
+              description: "Membuat tugas atau papan kerja baru ke dalam sistem Papan Kanban.",
               parameters: {
                 type: "OBJECT",
                 properties: {
-                  judul: {
-                    type: "STRING",
-                    description: "Judul tugas yang singkat dan jelas."
-                  },
-                  deskripsi: {
-                    type: "STRING",
-                    description: "Deskripsi rinci mengenai tujuan dan latar belakang tugas."
-                  },
-                  peran: {
-                    type: "STRING",
-                    description: "Pilih divisi/peran yang paling cocok.",
-                    enum: ["admin", "sosial", "ipjkd", "harga"]
-                  },
-                  skpId: {
-                    type: "INTEGER",
-                    description: "Pilih ID SKP yang paling cocok secara semantik (1-29)."
-                  },
+                  judul: { type: "STRING", description: "Judul tugas yang singkat dan jelas." },
+                  deskripsi: { type: "STRING", description: "Deskripsi rinci mengenai tujuan tugas." },
+                  peran: { type: "STRING", enum: ["admin", "sosial", "ipjkd", "harga"] },
+                  skpId: { type: "INTEGER", description: "ID SKP yang paling relevan (1-29)." },
                   checklist: {
                     type: "ARRAY",
                     items: { type: "STRING" },
-                    description: "Daftar langkah-langkah konkret atau sub-tugas yang perlu diselesaikan."
+                    description: "Daftar langkah-langkah konkret atau sub-tugas."
                   }
                 },
                 required: ["judul", "deskripsi", "peran", "skpId", "checklist"]
+              }
+            },
+            {
+              name: "create_schedule",
+              description: "Membuat entri jadwal, agenda, rapat, atau tenggat waktu ke dalam sistem Kalender.",
+              parameters: {
+                type: "OBJECT",
+                properties: {
+                  judul: { type: "STRING", description: "Nama agenda/rapat/tenggat waktu." },
+                  tanggal: { type: "STRING", description: "Tanggal agenda dalam format YYYY-MM-DD." },
+                  waktu: { type: "STRING", description: "Waktu mulai dalam format HH:MM (contoh: 09:00)." },
+                  kategori: { type: "STRING", enum: ["Deadline", "Rapat", "Survei", "Lainnya"] },
+                  skpId: { type: "INTEGER", description: "ID SKP yang relevan (1-29)." },
+                  reminder: { type: "STRING", enum: ["H-1", "H-3", "H-7", "Tidak ada"] }
+                },
+                required: ["judul", "tanggal", "waktu", "kategori", "skpId"]
+              }
+            },
+            {
+              name: "create_ckp",
+              description: "Mencatat laporan Capaian Kinerja Pegawai (CKP) Harian untuk pekerjaan yang sudah selesai.",
+              parameters: {
+                type: "OBJECT",
+                properties: {
+                  tanggal: { type: "STRING", description: "Tanggal kegiatan dilakukan (YYYY-MM-DD)." },
+                  waktuMulai: { type: "STRING", description: "Waktu mulai (HH:MM)." },
+                  waktuSelesai: { type: "STRING", description: "Waktu selesai (HH:MM)." },
+                  skpId: { type: "INTEGER", description: "ID SKP yang relevan (1-29)." },
+                  rincian: { type: "STRING", description: "Penjelasan lengkap kegiatan yang dilakukan." },
+                  outputKuantitas: { type: "INTEGER", description: "Jumlah output yang dihasilkan." },
+                  satuan: { type: "STRING", enum: ["Kegiatan", "Lembar", "File", "Dokumen", "Orang", "Lainnya"] },
+                  tim: { type: "STRING", enum: ["Subbagian Umum", "Tim IPJKD & DLS", "Tim Statistik Sosial", "Tim Statistik Harga & Sensus Ekonomi"] }
+                },
+                required: ["tanggal", "waktuMulai", "waktuSelesai", "skpId", "rincian", "outputKuantitas", "satuan", "tim"]
               }
             }
           ]
@@ -110,11 +151,17 @@ Saat memanggil 'create_task', berikan judul tugas, rincian, perkirakan 'peran' (
 
     if (functionCallPart) {
       const functionCall = functionCallPart.functionCall;
+      
+      let messageSuffix = '';
+      if (functionCall.name === 'create_task') messageSuffix = 'Saya telah membuatkan papan tugas tersebut.';
+      else if (functionCall.name === 'create_schedule') messageSuffix = 'Jadwal telah ditambahkan ke Kalender Anda.';
+      else if (functionCall.name === 'create_ckp') messageSuffix = 'Laporan kegiatan telah dicatat di CKP Harian.';
+
       return NextResponse.json({
         type: 'function_call',
         functionName: functionCall.name,
         arguments: functionCall.args,
-        message: "Saya telah membuatkan papan tugas tersebut ke dalam sistem Anda."
+        message: messageSuffix
       });
     }
 

@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { fetchGCalEvents, createGCalEvent, updateGCalEvent, deleteGCalEvent } from '@/lib/gcal';
 import AddEventModal, { URGENSI_COLORS } from './AddEventModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { useChatAction } from '@/contexts/ChatActionContext';
 
 const HARI = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 const BULAN = [
@@ -171,6 +172,26 @@ export default function SchedulePage() {
   
   const { docs: events = [], addDocument, updateDocument, deleteDocument } = useFirestore('schedule');
   const { docs: ckpEvents = [] } = useFirestore('ckp');
+
+  // Handle AI Create Schedule
+  const handleAICreateSchedule = useCallback(async (data) => {
+    try {
+      await addDocument({
+        judul: data.judul,
+        tanggal: data.tanggal,
+        waktu: data.waktu || '09:00',
+        kategori: data.kategori || 'Lainnya',
+        skpId: data.skpId || null,
+        reminder: data.reminder || 'H-1',
+        isSelesai: false,
+        createdAt: new Date(),
+      });
+    } catch (err) {
+      console.error('AI Create Schedule Error:', err);
+    }
+  }, [addDocument]);
+
+  useChatAction('CREATE_SCHEDULE', handleAICreateSchedule);
 
   // Map: scheduleEventId -> count of CKP entries
   const ckpCountByEventId = useMemo(() => {

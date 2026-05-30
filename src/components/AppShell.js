@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import LoadingScreen from './LoadingScreen';
+import AIChatbot from './AIChatbot';
 
 export default function AppShell({ children }) {
   const { user, loading } = useAuth();
@@ -43,6 +44,7 @@ export default function AppShell({ children }) {
         {children}
       </main>
       <MobileNav />
+      <AIChatbot />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import './globals.css';
 import AppShell from '@/components/AppShell';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AlertProvider } from '@/contexts/AlertContext';
+import { ChatActionProvider } from '@/contexts/ChatActionContext';
 
 export const viewport = {
   width: 'device-width',
@@ -30,7 +31,9 @@ export default function RootLayout({ children }) {
       <body>
         <AuthProvider>
           <AlertProvider>
-            <AppShell>{children}</AppShell>
+            <ChatActionProvider>
+              <AppShell>{children}</AppShell>
+            </ChatActionProvider>
           </AlertProvider>
         </AuthProvider>
       </body>

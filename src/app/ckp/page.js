@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useFirestore } from '@/hooks/useFirestore';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { uploadFileToDrive } from '@/lib/drive';
+import { useChatAction } from '@/contexts/ChatActionContext';
 import * as XLSX from 'xlsx';
 
 const SATUAN_OPTIONS = ['Kegiatan', 'Lembar', 'File', 'Dokumen', 'Orang', 'Lainnya'];
@@ -1428,6 +1429,23 @@ function CKPPageInner() {
   const [toastVisible, setToastVisible] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+  // Handle AI Create CKP
+  const handleAICreateCKP = useCallback(async (data) => {
+    try {
+      await addDocument({
+        ...data,
+        createdAt: new Date(),
+      });
+      setToastVisible(true);
+      setTimeout(() => setToastVisible(false), 3000);
+    } catch (err) {
+      console.error('AI Create CKP Error:', err);
+      showAlert('Gagal mencatat CKP dari AI.');
+    }
+  }, [addDocument, showAlert]);
+
+  useChatAction('CREATE_CKP', handleAICreateCKP);
 
   // Handle auto-sync of telegram files to Google Drive
   useEffect(() => {
