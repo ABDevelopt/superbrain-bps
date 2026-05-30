@@ -867,8 +867,9 @@
 
   .headerActions {
     width: 100%;
-    justify-content: space-between;
-    gap: 8px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
   }
 
   .viewToggle {
@@ -883,11 +884,11 @@
     font-size: 12px;
   }
 
-  .addBtn {
-    flex: 1;
+  .addBtn, .importBtn {
+    width: 100%;
     justify-content: center;
-    padding: 10px 14px;
-    font-size: 12px;
+    padding: 12px;
+    font-size: 13px;
   }
 
   .modal {
