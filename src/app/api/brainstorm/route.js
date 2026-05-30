@@ -62,7 +62,7 @@ Jika pengguna melampirkan file (gambar/PDF), bacalah isi file tersebut untuk men
       };
     });
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
     const requestBody = {
       systemInstruction: {
@@ -139,14 +139,18 @@ Jika pengguna melampirkan file (gambar/PDF), bacalah isi file tersebut untuk men
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Gemini error:', errorText);
-      return NextResponse.json({ error: 'Gagal menghubungi Gemini API' }, { status: response.status });
+      let errMsg = 'Gagal menghubungi Gemini API';
+      if (response.status === 429) {
+        errMsg = 'Batas limit (kuota) penggunaan AI telah tercapai. Silakan tunggu beberapa saat lagi.';
+      }
+      return NextResponse.json({ error: errMsg }, { status: response.status });
     }
 
     const data = await response.json();
     const candidate = data.candidates?.[0];
 
     if (!candidate) {
-      return NextResponse.json({ error: 'No response from AI' }, { status: 500 });
+      return NextResponse.json({ error: 'Tidak ada respons dari AI.' }, { status: 500 });
     }
 
     // Check if the model decided to call a function

@@ -101,7 +101,12 @@ export default function AIChatbot() {
       });
 
       if (!res.ok) {
-        throw new Error('Gagal menghubungi AI');
+        let errMsg = 'Gagal menghubungi AI';
+        try {
+          const errData = await res.json();
+          if (errData.error) errMsg = errData.error;
+        } catch(e) {}
+        throw new Error(errMsg);
       }
 
       const data = await res.json();
@@ -129,7 +134,7 @@ export default function AIChatbot() {
       }
     } catch (error) {
       console.error(error);
-      setMessages(prev => [...prev, { role: 'system', content: 'Maaf, terjadi kesalahan saat menghubungi AI.' }]);
+      setMessages(prev => [...prev, { role: 'system', content: error.message || 'Maaf, terjadi kesalahan saat menghubungi AI.' }]);
     } finally {
       setIsLoading(false);
     }
