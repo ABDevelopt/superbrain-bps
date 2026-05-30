@@ -587,53 +587,7 @@ export default function TasksPage() {
         </button>
       </div>
 
-      {tasks.length > 0 && (
-        <div className={styles.progressCard}>
-          <svg width="0" height="0" style={{ position: 'absolute' }}>
-            <defs>
-              <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#6366f1" />
-                <stop offset="100%" stopColor="#22d3ee" />
-              </linearGradient>
-            </defs>
-          </svg>
-          <div className={styles.progressCircleWrapper}>
-            <svg className={styles.progressCircle} viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="40" className={styles.progressCircleBg} />
-              <circle 
-                cx="50" cy="50" r="40" 
-                className={styles.progressCircleFill} 
-                strokeDasharray="251.2" 
-                strokeDashoffset={251.2 - (251.2 * completedRatio / 100)} 
-              />
-            </svg>
-            <div className={styles.progressTextAbsolute}>{completedRatio}%</div>
-          </div>
-          <div className={styles.progressInfo}>
-            <h3 className={styles.progressTitle}>Progres Keseluruhan</h3>
-            <p className={styles.progressDesc}>
-              {tasks.filter(t => t.status === 'done').length} dari {tasks.length} tugas telah diselesaikan
-            </p>
-            <div className={styles.progressBarContainer}>
-              <div className={styles.progressBarFill} style={{ width: `${completedRatio}%` }}></div>
-            </div>
-            <div className={styles.progressStatsRow}>
-              <div className={styles.progressStatItem}>
-                <div className={styles.progressStatDot} style={{ background: '#64748b' }}></div>
-                <span>Belum: {tasks.filter(t => t.status === 'todo').length}</span>
-              </div>
-              <div className={styles.progressStatItem}>
-                <div className={styles.progressStatDot} style={{ background: '#f59e0b' }}></div>
-                <span>Progres: {tasks.filter(t => t.status === 'in_progress').length}</span>
-              </div>
-              <div className={styles.progressStatItem}>
-                <div className={styles.progressStatDot} style={{ background: '#10b981' }}></div>
-                <span>Selesai: {tasks.filter(t => t.status === 'done').length}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+
 
 
 
@@ -642,6 +596,54 @@ export default function TasksPage() {
           ============================================ */}
       {activeTab === 0 && (
         <>
+          {tasks.length > 0 && (
+            <div className={styles.progressCard}>
+              <svg width="0" height="0" style={{ position: 'absolute' }}>
+                <defs>
+                  <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#6366f1" />
+                    <stop offset="100%" stopColor="#22d3ee" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <div className={styles.progressCircleWrapper}>
+                <svg className={styles.progressCircle} viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="40" className={styles.progressCircleBg} />
+                  <circle 
+                    cx="50" cy="50" r="40" 
+                    className={styles.progressCircleFill} 
+                    strokeDasharray="251.2" 
+                    strokeDashoffset={251.2 - (251.2 * completedRatio / 100)} 
+                  />
+                </svg>
+                <div className={styles.progressTextAbsolute}>{completedRatio}%</div>
+              </div>
+              <div className={styles.progressInfo}>
+                <h3 className={styles.progressTitle}>Progres Keseluruhan</h3>
+                <p className={styles.progressDesc}>
+                  {tasks.filter(t => t.status === 'done').length} dari {tasks.length} tugas telah diselesaikan
+                </p>
+                <div className={styles.progressBarContainer}>
+                  <div className={styles.progressBarFill} style={{ width: `${completedRatio}%` }}></div>
+                </div>
+                <div className={styles.progressStatsRow}>
+                  <div className={styles.progressStatItem}>
+                    <div className={styles.progressStatDot} style={{ background: '#64748b' }}></div>
+                    <span>Belum: {tasks.filter(t => t.status === 'todo').length}</span>
+                  </div>
+                  <div className={styles.progressStatItem}>
+                    <div className={styles.progressStatDot} style={{ background: '#f59e0b' }}></div>
+                    <span>Progres: {tasks.filter(t => t.status === 'in_progress').length}</span>
+                  </div>
+                  <div className={styles.progressStatItem}>
+                    <div className={styles.progressStatDot} style={{ background: '#10b981' }}></div>
+                    <span>Selesai: {tasks.filter(t => t.status === 'done').length}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Toolbar */}
           <div className={styles.toolbar}>
             <div className={styles.filters}>
