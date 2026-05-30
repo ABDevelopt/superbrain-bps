@@ -4,57 +4,60 @@ const skpContext = skpData
   .map((item) => `ID: ${item.id}, Nama: "${item.nama}"`)
   .join('\n');
 
-const systemPrompt = `
+export function getSystemPrompt(contextData = null) {
+  let contextString = 'Tidak ada data konteks saat ini.';
+  if (contextData) {
+    contextString = JSON.stringify(contextData, null, 2);
+  }
+
+  return `
 Anda adalah asisten kecerdasan buatan untuk Badan Pusat Statistik (BPS).
-Tugas Anda adalah membaca dan menganalisis berkas/teks yang diberikan, lalu mengekstrak informasinya.
+Tugas Anda adalah membaca dan menganalisis berkas/teks yang diberikan, mengekstrak informasinya, dan memetakannya ke aksi CRUD pada database pengguna, atau sekadar membalas percakapan.
 
-Pertama, tentukan APAKAH dokumen/teks ini adalah:
-1. "JADWAL": Kegiatan/Acara yang AKAN DATANG (misal: Surat Undangan, Pemberitahuan Rapat).
-2. "CKP": Bukti kegiatan yang SUDAH SELESAI/LAPORAN (misal: Sertifikat, Notula, Laporan Hasil, Dokumentasi, atau pesan yang menyatakan pekerjaan telah diselesaikan).
-
-Kedua, ekstrak data ke dalam format JSON berikut:
-{
-  "type": "JADWAL" atau "CKP",
-  "data": { ... } // bergantung pada type
-}
-
-Jika type "JADWAL", field dalam "data":
-- judul: Nama kegiatan (string)
-- tanggal: Tanggal pelaksanaan YYYY-MM-DD (string)
-- waktu: Waktu mulai HH:MM (string, default "09:00")
-- waktuSelesai: Waktu selesai HH:MM (string, default "")
-- lokasi: Tempat/tautan (string)
-- deskripsi: Ringkasan tujuan/pengundang (string)
-- skpId: ID SKP yang cocok (integer 1-29 atau null)
-- kategori: "Deadline", "Rapat", "Survei", "Pelatihan", "Lainnya"
-- urgensi: "Rendah", "Sedang", "Tinggi", "Kritis"
-
-Jika type "CKP", field dalam "data":
-- tanggal: Tanggal pelaksanaan/selesai YYYY-MM-DD (string)
-- waktuMulai: Waktu mulai HH:MM (string, default "08:00")
-- waktuSelesai: Waktu selesai HH:MM (string, default "16:00")
-- skpId: ID SKP yang cocok (integer 1-29 atau null)
-- rincian: Rincian kegiatan/pekerjaan yang dilakukan (string)
-- kuantitas: Jumlah output/hasil (integer, default 1)
-- satuan: "Kegiatan", "Lembar", "File", "Dokumen", "Orang", "Lainnya"
-- timKerja: "Subbagian Umum", "Tim IPJKD & DLS", "Tim Statistik Sosial", "Tim Statistik Harga & Sensus Ekonomi"
+Pertama, pahami data pengguna yang ada saat ini di sistem:
+${contextString}
 
 Berikut adalah daftar 29 SKP BPS sebagai referensi pencocokan kegiatan:
 ${skpContext}
+
+Tentukan APAKAH instruksi/dokumen ini bertujuan untuk:
+1. "CREATE_JADWAL", "UPDATE_JADWAL", "DELETE_JADWAL": Untuk menambah/mengedit/menghapus jadwal acara (misal: Surat Undangan, Rapat).
+2. "CREATE_CKP", "UPDATE_CKP", "DELETE_CKP": Untuk menambah/mengedit/menghapus laporan hasil kerja harian (CKP).
+3. "CREATE_TASK", "UPDATE_TASK", "DELETE_TASK": Untuk menambah/mengedit/menghapus tugas di Papan Kanban.
+4. "REPLY_TEXT": Jika pengguna hanya bertanya atau mengobrol biasa tanpa instruksi modifikasi data.
+
+Ekstrak data ke dalam format JSON berikut:
+{
+  "type": "<SALAHSATU DARI 10 AKSI DI ATAS>",
+  "data": { ... } // bergantung pada type
+}
+
+Jika type berawalan "UPDATE_" atau "DELETE_", field dalam "data" WAJIB mencantumkan:
+- id: ID unik record yang akan diedit/dihapus (string)
+
+Jika type "REPLY_TEXT", field dalam "data" WAJIB mencantumkan:
+- replyMessage: Teks balasan Anda untuk pengguna (string)
+
+Field opsional/wajib lainnya dalam "data" (gunakan jika relevan):
+Jadwal: judul, tanggal, waktu, waktuSelesai, lokasi, deskripsi, skpId, kategori, urgensi
+CKP: tanggal, waktuMulai, waktuSelesai, skpId, rincian, kuantitas, satuan, timKerja
+Tugas: judul, deskripsi, peran, skpId, urgensi, status
 
 PENTING:
 - Pastikan respon HANYA berupa JSON valid sesuai schema bersarang di atas.
 - Jangan tambahkan markdown \`\`\`json.
 - Jangan gunakan emoji.
 `;
+}
 
-const responseSchema = {
   type: 'OBJECT',
   properties: {
-    type: { type: 'STRING', enum: ['JADWAL', 'CKP'] },
+    type: { type: 'STRING', enum: ['CREATE_JADWAL', 'UPDATE_JADWAL', 'DELETE_JADWAL', 'CREATE_CKP', 'UPDATE_CKP', 'DELETE_CKP', 'CREATE_TASK', 'UPDATE_TASK', 'DELETE_TASK', 'REPLY_TEXT'] },
     data: {
       type: 'OBJECT',
       properties: {
+        id: { type: 'STRING' },
+        replyMessage: { type: 'STRING' },
         judul: { type: 'STRING' },
         tanggal: { type: 'STRING' },
         waktu: { type: 'STRING' },
@@ -69,6 +72,8 @@ const responseSchema = {
         skpId: { type: 'INTEGER' },
         kategori: { type: 'STRING' },
         urgensi: { type: 'STRING' },
+        peran: { type: 'STRING' },
+        status: { type: 'STRING' },
       }
     }
   },
@@ -131,23 +136,23 @@ async function callGemini(contents) {
   }
 }
 
-export async function parseInvitation(fileBuffer, mimeType) {
+export async function parseInvitation(fileBuffer, mimeType, contextData = null) {
   const base64Data = fileBuffer.toString('base64');
   return callGemini([
     {
       parts: [
-        { text: systemPrompt },
+        { text: getSystemPrompt(contextData) },
         { inlineData: { mimeType, data: base64Data } },
       ],
     },
   ]);
 }
 
-export async function parseInvitationText(textContent) {
+export async function parseInvitationText(textContent, contextData = null) {
   return callGemini([
     {
       parts: [
-        { text: systemPrompt + '\n\nBerikut teksnya:\n"' + textContent + '"' }
+        { text: getSystemPrompt(contextData) + '\n\nBerikut teksnya:\n"' + textContent + '"' }
       ],
     },
   ]);

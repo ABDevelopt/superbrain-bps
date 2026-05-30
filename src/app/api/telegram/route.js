@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { parseInvitation, parseInvitationText } from '@/lib/invitationParser';
 import { skpData } from '@/data/skpData';
 
@@ -80,9 +80,13 @@ async function handleTelegramWebhook(token, body) {
         if (!downloadRes.ok) throw new Error('Gagal mengunduh berkas dari server Telegram.');
 
         const fileBuffer = Buffer.from(await downloadRes.arrayBuffer());
-        parsedData = await parseInvitation(fileBuffer, mimeType);
+
+        // Fetch context
+        const contextData = await fetchAllContextData();
+        parsedData = await parseInvitation(fileBuffer, mimeType, contextData);
       } else {
-        parsedData = await parseInvitationText(messageText);
+        const contextData = await fetchAllContextData();
+        parsedData = await parseInvitationText(messageText, contextData);
       }
 
       let docRef;
@@ -96,7 +100,7 @@ async function handleTelegramWebhook(token, body) {
         ? `\n*Butir SKP Terkait:* SKP #${payloadData.skpId} - ${skpData.find(s => s.id === payloadData.skpId)?.nama || ''}`
         : '\n*Butir SKP Terkait:* Tidak ada SKP BPS yang cocok';
 
-      if (payloadType === 'JADWAL') {
+      if (payloadType === 'CREATE_JADWAL' || payloadType === 'JADWAL') {
         docRef = await addDoc(collection(db, 'schedule'), {
           judul: payloadData.judul || '',
           tanggal: payloadData.tanggal || '',
@@ -113,17 +117,19 @@ async function handleTelegramWebhook(token, body) {
           createdAt: serverTimestamp(),
         });
 
-        successMsg = 
-          `📅 *Agenda Berhasil Ditambahkan!*\n\n` +
-          `*Acara:* ${payloadData.judul}\n` +
-          `*Tanggal:* ${payloadData.tanggal}\n` +
-          `*Waktu:* ${payloadData.waktu}${payloadData.waktuSelesai ? ` - ${payloadData.waktuSelesai}` : ''} WIB\n` +
-          `*Tempat:* ${payloadData.lokasi || 'Tidak disebutkan'}\n` +
-          `*Kategori:* ${payloadData.kategori}\n` +
-          `*Urgensi:* ${payloadData.urgensi}${skpInfo}\n\n` +
-          `_Silakan buka aplikasi web SuperBrain untuk melakukan penyesuaian detail._`;
-
-      } else if (payloadType === 'CKP') {
+        successMsg = `📅 *Agenda Berhasil Ditambahkan!*\n*Acara:* ${payloadData.judul}\n*Tanggal:* ${payloadData.tanggal}`;
+      } 
+      else if (payloadType === 'UPDATE_JADWAL') {
+        if (!payloadData.id) throw new Error("ID Jadwal tidak ditemukan untuk diupdate.");
+        await updateDoc(doc(db, 'schedule', payloadData.id), payloadData);
+        successMsg = `✅ *Jadwal Diperbarui!*\nJadwal "${payloadData.judul || payloadData.id}" berhasil disesuaikan.`;
+      }
+      else if (payloadType === 'DELETE_JADWAL') {
+        if (!payloadData.id) throw new Error("ID Jadwal tidak ditemukan untuk dihapus.");
+        await deleteDoc(doc(db, 'schedule', payloadData.id));
+        successMsg = `🗑️ *Jadwal Dihapus!*\nJadwal dengan ID tersebut berhasil dihapus.`;
+      }
+      else if (payloadType === 'CREATE_CKP' || payloadType === 'CKP') {
         const ckpDoc = {
           tanggal: payloadData.tanggal || '',
           waktuMulai: payloadData.waktuMulai || '08:00',
@@ -132,34 +138,55 @@ async function handleTelegramWebhook(token, body) {
           kuantitas: payloadData.kuantitas || 1,
           satuan: payloadData.satuan || 'Kegiatan',
           timKerja: payloadData.timKerja || 'Subbagian Umum',
-          skpId: payloadData.skpId ? String(payloadData.skpId) : '', // CKP stores skpId as string usually
+          skpId: payloadData.skpId ? String(payloadData.skpId) : '',
           createdAt: serverTimestamp(),
         };
-
-        // Save fileId for auto-sync if present
-        if (fileId) {
-          ckpDoc.telegramFileId = fileId;
-        }
-
+        if (fileId) ckpDoc.telegramFileId = fileId;
         docRef = await addDoc(collection(db, 'ckp'), ckpDoc);
 
-        successMsg = 
-          `✅ *Laporan CKP Berhasil Ditambahkan!*\n\n` +
-          `*Tanggal:* ${payloadData.tanggal}\n` +
-          `*Waktu:* ${payloadData.waktuMulai} - ${payloadData.waktuSelesai} WIB\n` +
-          `*Output:* ${payloadData.kuantitas} ${payloadData.satuan}\n` +
-          `*Tim:* ${payloadData.timKerja}${skpInfo}\n\n` +
-          `_Laporan telah masuk ke catatan CKP Anda._`;
-        
-        if (fileId) {
-          successMsg += `\n\n📌 *Info Bukti Dukung:* Dokumen yang Anda lampirkan akan otomatis diunggah ke Google Drive sebagai Bukti Dukung saat Anda membuka web SuperBrain.`;
-        }
-      } else {
-        throw new Error('Tipe data tidak dikenali oleh AI.');
+        successMsg = `✅ *Laporan CKP Ditambahkan!*\n${payloadData.rincian}\n*Output:* ${payloadData.kuantitas} ${payloadData.satuan}`;
+      }
+      else if (payloadType === 'UPDATE_CKP') {
+        if (!payloadData.id) throw new Error("ID CKP tidak ditemukan untuk diupdate.");
+        await updateDoc(doc(db, 'ckp', payloadData.id), payloadData);
+        successMsg = `✅ *CKP Diperbarui!*\nCatatan CKP berhasil disesuaikan.`;
+      }
+      else if (payloadType === 'DELETE_CKP') {
+        if (!payloadData.id) throw new Error("ID CKP tidak ditemukan untuk dihapus.");
+        await deleteDoc(doc(db, 'ckp', payloadData.id));
+        successMsg = `🗑️ *CKP Dihapus!*\nCatatan CKP berhasil dihapus.`;
+      }
+      else if (payloadType === 'CREATE_TASK') {
+        docRef = await addDoc(collection(db, 'tasks'), {
+          judul: payloadData.judul || '',
+          deskripsi: payloadData.deskripsi || '',
+          peran: payloadData.peran || 'admin',
+          skpId: payloadData.skpId || 1,
+          urgensi: payloadData.urgensi || 'Sedang',
+          status: 'todo',
+          checklist: []
+        });
+        successMsg = `📌 *Tugas Baru Kanban*\n*Judul:* ${payloadData.judul}`;
+      }
+      else if (payloadType === 'UPDATE_TASK') {
+        if (!payloadData.id) throw new Error("ID Tugas tidak ditemukan.");
+        await updateDoc(doc(db, 'tasks', payloadData.id), payloadData);
+        successMsg = `✅ *Tugas Diperbarui!*\nPerubahan tugas berhasil disimpan.`;
+      }
+      else if (payloadType === 'DELETE_TASK') {
+        if (!payloadData.id) throw new Error("ID Tugas tidak ditemukan.");
+        await deleteDoc(doc(db, 'tasks', payloadData.id));
+        successMsg = `🗑️ *Tugas Dihapus!*\nTugas berhasil dihapus dari Papan Kanban.`;
+      }
+      else if (payloadType === 'REPLY_TEXT') {
+        successMsg = payloadData.replyMessage || "Pesan diterima.";
+      }
+      else {
+        throw new Error('Tipe instruksi tidak dikenali oleh AI.');
       }
 
       await sendTelegramMessage(token, chatId, successMsg);
-      return NextResponse.json({ success: true, docId: docRef.id });
+      return NextResponse.json({ success: true });
 
     } catch (error) {
       console.error('Error handling Telegram message:', error);
@@ -251,5 +278,30 @@ export async function POST(request) {
       { error: 'Internal Server Error' },
       { status: 500 }
     );
+  }
+}
+
+// Fetch all existing data to provide as context to AI
+async function fetchAllContextData() {
+  try {
+    const contextData = {
+      tasks: [],
+      schedules: [],
+      ckp: []
+    };
+    
+    const tasksSnap = await getDocs(collection(db, 'tasks'));
+    tasksSnap.forEach(doc => contextData.tasks.push({ id: doc.id, ...doc.data() }));
+
+    const schedSnap = await getDocs(collection(db, 'schedule'));
+    schedSnap.forEach(doc => contextData.schedules.push({ id: doc.id, ...doc.data() }));
+
+    const ckpSnap = await getDocs(collection(db, 'ckp'));
+    ckpSnap.forEach(doc => contextData.ckp.push({ id: doc.id, ...doc.data() }));
+
+    return contextData;
+  } catch(e) {
+    console.error("Failed fetching context data for Telegram:", e);
+    return null;
   }
 }
