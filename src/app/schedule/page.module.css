@@ -791,6 +791,9 @@
 }
 
 @media (max-width: 768px) {
+  .page {
+    padding: 0;
+  }
   .weeklyHeaderRow,
   .weeklyBody {
     min-width: 700px;
