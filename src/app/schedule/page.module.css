@@ -793,6 +793,7 @@
 @media (max-width: 768px) {
   .page {
     padding: 0;
+    margin: 0;
   }
   .weeklyHeaderRow,
   .weeklyBody {
@@ -802,7 +803,8 @@
 
 @media (max-width: 600px) {
   .page {
-    padding: 16px;
+    padding: 0;
+    margin: 0;
   }
 
   .pageTitle {
