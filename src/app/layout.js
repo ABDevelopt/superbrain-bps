@@ -3,6 +3,7 @@ import AppShell from '@/components/AppShell';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AlertProvider } from '@/contexts/AlertContext';
 import { ChatActionProvider } from '@/contexts/ChatActionContext';
+import { UndoRedoProvider } from '@/contexts/UndoRedoContext';
 import { AIProvider } from '@/contexts/AIContext';
 
 export const viewport = {
@@ -31,13 +32,15 @@ export default function RootLayout({ children }) {
     <html lang="id">
       <body>
         <AuthProvider>
-          <AlertProvider>
-            <ChatActionProvider>
-              <AIProvider>
-                <AppShell>{children}</AppShell>
-              </AIProvider>
-            </ChatActionProvider>
-          </AlertProvider>
+          <UndoRedoProvider>
+            <AlertProvider>
+              <ChatActionProvider>
+                <AIProvider>
+                  <AppShell>{children}</AppShell>
+                </AIProvider>
+              </ChatActionProvider>
+            </AlertProvider>
+          </UndoRedoProvider>
         </AuthProvider>
       </body>
     </html>

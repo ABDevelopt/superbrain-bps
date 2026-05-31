@@ -10,8 +10,8 @@ import { useState } from 'react';
 
 const navItems = [
   { href: '/',         icon: <Home size={20} />, label: 'Dashboard' },
-  { href: '/tasks',    icon: <CheckSquare size={20} />, label: 'Papan & Peta Kerja' },
   { href: '/schedule', icon: <Calendar size={20} />, label: 'Jadwal & Agenda' },
+  { href: '/tasks',    icon: <CheckSquare size={20} />, label: 'Papan & Peta Kerja' },
   { href: '/ckp',      icon: <Edit3 size={20} />, label: 'CKP Harian' },
   { href: '/skp',      icon: <ClipboardList size={20} />, label: 'Manajemen SKP' },
   { href: '/settings', icon: <Settings size={20} />, label: 'Pengaturan' },

@@ -38,17 +38,8 @@ export default function TasksPage() {
   // Tab Utama: 0 = Papan Kanban, 1 = Pemetaan SKP
   const [activeTab, setActiveTab] = useState(0);
 
-  // State utama daftar tugas
-  const [tasks, setTasks] = useState([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const { setPageData } = useAIContext();
-  const { docs: schedules } = useFirestore('schedule');
-
-  // Register tasks to AIContext
-  useEffect(() => {
-    setPageData(tasks);
-  }, [tasks, setPageData]);
-
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Filter & Pencarian (Kanban)
@@ -83,55 +74,43 @@ export default function TasksPage() {
   // Toast Notification
   const [toast, setToast] = useState(null);
 
-  // Pemetaan Kerja (Tab 2) State
-  const [mappingViewMode, setMappingViewMode] = useState('tree'); // 'tree' | 'grid'
-  const [mappingGroupBy, setMappingGroupBy] = useState('cluster'); // 'cluster' | 'tim' | 'kategori'
-  const [expandedGroups, setExpandedGroups] = useState({});
-  const [selectedSkp, setSelectedSkp] = useState(null);
-
   // Refs
   const timerIntervalRef = useRef(null);
 
-  // Load tasks from Firebase
-  useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'tasks'), (snapshot) => {
-      const fetchedTasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
-      // Migration: if Firestore is empty but we have local tasks, upload them
-      if (fetchedTasks.length === 0) {
-        const localTasks = localStorage.getItem('bps_superbrain_tasks');
-        if (localTasks) {
-          try {
-            const parsed = JSON.parse(localTasks);
-            if (parsed.length > 0) {
-              const batch = writeBatch(db);
-              parsed.forEach(task => {
-                const taskRef = doc(collection(db, 'tasks'));
-                const { id, ...dataToUpload } = task; // Exclude old local ID
-                batch.set(taskRef, dataToUpload);
-              });
-              batch.commit().then(() => {
-                localStorage.removeItem('bps_superbrain_tasks');
-              }).catch(console.error);
-              return; // Wait for the next snapshot
-            }
-          } catch(e) { console.error(e); }
-        } else {
-          // If totally empty everywhere, we can optionally populate initialTasks, but we'll leave it empty.
-        }
-      }
-      
-      setTasks(fetchedTasks);
-      setIsLoaded(true);
-    }, (error) => {
-      console.error("Firebase fetch error:", error);
-      setIsLoaded(true);
-    });
+  const { docs: tasks = [], loading: tasksLoading, addDocument: addTask, updateDocument: updateTask, deleteDocument: deleteTask } = useFirestore('tasks');
+  const { docs: schedules = [], addDocument: addSchedule, updateDocument: updateSchedule } = useFirestore('schedule');
 
-    return () => unsubscribe();
+  // Pemetaan Kerja (Tab 2) State
+  const [mappingViewMode, setMappingViewMode] = useState('tree'); // 'tree' | 'grid'
+  const [mappingGroupBy, setMappingGroupBy] = useState('kategori');
+  const [expandedGroups, setExpandedGroups] = useState({});
+  const [selectedSkp, setSelectedSkp] = useState(null);
+
+  useEffect(() => {
+    setPageData(tasks);
+  }, [tasks, setPageData]);
+
+  useEffect(() => {
+    const localTasks = localStorage.getItem('bps_superbrain_tasks');
+    if (localTasks) {
+      try {
+        const parsed = JSON.parse(localTasks);
+        if (parsed.length > 0) {
+          const batch = writeBatch(db);
+          parsed.forEach(task => {
+            const taskRef = doc(collection(db, 'tasks'));
+            const { id, ...dataToUpload } = task;
+            batch.set(taskRef, dataToUpload);
+          });
+          batch.commit().then(() => {
+            localStorage.removeItem('bps_superbrain_tasks');
+          }).catch(console.error);
+        }
+      } catch(e) { console.error(e); }
+    }
+    setIsLoaded(true);
   }, []);
 
-  // Handle URL parameter filters and session prefill
   useEffect(() => {
     if (!isLoaded) return;
     
@@ -159,10 +138,7 @@ export default function TasksPage() {
     }
   }, [isLoaded]);
 
-
-
-  // Toast Helper
-  const showToast = (message, type = 'info') => {
+  const showToast = (message, type = 'success') => {
     setToast({ message, type });
   };
 
@@ -175,7 +151,6 @@ export default function TasksPage() {
     }
   }, [toast]);
 
-  // Timer interval effect
   useEffect(() => {
     if (isTimerRunning) {
       timerIntervalRef.current = setInterval(() => {
@@ -185,11 +160,11 @@ export default function TasksPage() {
             setIsTimerRunning(false);
             if (timerType === 'pomodoro') {
               showToast('Sesi fokus selesai! Silakan istirahat sejenak.', 'success');
-              setTimerSeconds(300); // 5 menit istirahat
+              setTimerSeconds(300);
               setTimerType('break');
             } else {
               showToast('Waktu istirahat selesai! Mari mulai fokus kembali.', 'success');
-              setTimerSeconds(1500); // 25 menit fokus
+              setTimerSeconds(1500);
               setTimerType('pomodoro');
             }
             return 0;
@@ -202,7 +177,6 @@ export default function TasksPage() {
         clearInterval(timerIntervalRef.current);
       }
     }
-
     return () => {
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
@@ -210,7 +184,6 @@ export default function TasksPage() {
     };
   }, [isTimerRunning, timerType]);
 
-  // Clean up timer on exit focus
   const handleExitFocus = () => {
     setIsTimerRunning(false);
     if (timerIntervalRef.current) {
@@ -221,7 +194,6 @@ export default function TasksPage() {
     setTimerType('pomodoro');
   };
 
-  // Toggle subtask checkbox
   const handleToggleSubtask = async (taskId, index) => {
     const taskToUpdate = tasks.find((t) => t.id === taskId);
     if (!taskToUpdate) return;
@@ -233,18 +205,16 @@ export default function TasksPage() {
     };
     
     try {
-      await updateDoc(doc(db, 'tasks', taskId), { checklist: newChecklist });
-      // Update focused task state if currently in focus mode
+      await updateTask(taskId, { checklist: newChecklist });
       if (focusedTask && focusedTask.id === taskId) {
         setFocusedTask({ ...taskToUpdate, checklist: newChecklist });
       }
     } catch(e) { console.error(e); }
   };
 
-  // Move task to next/prev column status
   const handleMoveStatus = async (taskId, newStatus) => {
     try {
-      await updateDoc(doc(db, 'tasks', taskId), { status: newStatus });
+      await updateTask(taskId, { status: newStatus });
       showToast(`Status tugas berhasil dipindahkan.`, 'success');
       
       const taskObj = tasks.find(t => t.id === taskId);
@@ -253,22 +223,23 @@ export default function TasksPage() {
         const siblingTasks = tasks.filter(t => t.linkedScheduleId === scheduleId && t.id !== taskId);
         const allDone = siblingTasks.every(t => t.status === 'done');
         if (allDone) {
-          await updateDoc(doc(db, 'schedule', scheduleId), { isSelesai: true });
+          await updateSchedule(scheduleId, { isSelesai: true });
           showToast('Semua tugas selesai, jadwal terkait otomatis diselesaikan!', 'success');
         }
       }
     } catch(e) { console.error(e); }
   };
 
-  // Delete Task
   const handleDeleteTask = async (taskId) => {
-    try {
-      await deleteDoc(doc(db, 'tasks', taskId));
-      showToast('Tugas berhasil dihapus.', 'info');
-    } catch(e) { console.error(e); }
+    const confirm = window.confirm("Apakah Anda yakin ingin menghapus tugas ini?");
+    if (confirm) {
+      try {
+        await deleteTask(taskId);
+        showToast('Tugas berhasil dihapus.', 'success');
+      } catch(e) { console.error(e); }
+    }
   };
 
-  // Open modal in Add mode
   const handleOpenAddModal = () => {
     setModalMode('add');
     setFormJudul('');
@@ -281,7 +252,6 @@ export default function TasksPage() {
     setIsModalOpen(true);
   };
 
-  // Open modal in Edit mode
   const handleOpenEditModal = (task) => {
     setModalMode('edit');
     setSelectedTaskForEdit(task);
@@ -295,11 +265,9 @@ export default function TasksPage() {
     setIsModalOpen(true);
   };
 
-  // Import checklist template based on BPS Role
   const handleApplyRoleTemplate = () => {
     const template = ROLE_TEMPLATES[formPeran];
     if (template) {
-      // Merge with existing items, avoiding duplicates
       const existingTexts = new Set(formChecklist.map((c) => c.text));
       const filteredTemplate = template.filter((item) => !existingTexts.has(item.text));
       setFormChecklist([...formChecklist, ...filteredTemplate]);
@@ -307,20 +275,17 @@ export default function TasksPage() {
     }
   };
 
-  // Add checklist item in form modal
   const handleAddFormChecklist = () => {
     if (!newChecklistItem.trim()) return;
     setFormChecklist([...formChecklist, { text: newChecklistItem.trim(), completed: false }]);
     setNewChecklistItem('');
   };
 
-  // Remove checklist item in form modal
   const handleRemoveFormChecklist = (index) => {
     const updated = formChecklist.filter((_, i) => i !== index);
     setFormChecklist(updated);
   };
 
-  // Save / Submit Form Modal
   const handleSubmitForm = async (e) => {
     e.preventDefault();
     if (!formJudul.trim()) {
@@ -343,12 +308,12 @@ export default function TasksPage() {
           checklist: formChecklist,
           linkedScheduleId: finalScheduleId
         };
-        const ref = await addDoc(collection(db, 'tasks'), newTask);
+        const ref = await addTask(newTask);
         savedTaskId = ref.id;
         showToast('Tugas baru berhasil ditambahkan.', 'success');
       } else {
         savedTaskId = selectedTaskForEdit.id;
-        await updateDoc(doc(db, 'tasks', savedTaskId), {
+        await updateTask(savedTaskId, {
           judul: formJudul.trim(),
           deskripsi: formDesc.trim(),
           peran: formPeran,
@@ -377,7 +342,6 @@ export default function TasksPage() {
     }
   };
 
-  // Convert task to CKP (prefetch format and redirect)
   const handleJadikanCKP = (task) => {
     const today = new Date().toISOString().split('T')[0];
     const completedItems = task.checklist
@@ -395,7 +359,7 @@ export default function TasksPage() {
       rincian: ckpDescription,
       sumber: 'tugas',
       sourceTaskId: task.id,
-      fromScheduleEventId: `task-conversion-${task.id}`, // fallback
+      fromScheduleEventId: `task-conversion-${task.id}`,
     };
 
     try {
@@ -415,7 +379,6 @@ export default function TasksPage() {
     }
   };
 
-  // Toggle card checklist accordion
   const toggleCardAccordion = (taskId) => {
     setExpandedCards((prev) => ({
       ...prev,
@@ -423,7 +386,6 @@ export default function TasksPage() {
     }));
   };
 
-  // Start Focus Mode for specific task
   const handleStartFocus = (task) => {
     setFocusedTask(task);
     setTimerSeconds(1500);
@@ -431,7 +393,6 @@ export default function TasksPage() {
     setIsTimerRunning(false);
   };
 
-  // Handle AI Task Creation
   const handleAICreateTask = useCallback(async (taskData) => {
     const newTask = {
       judul: taskData.judul,
@@ -448,11 +409,11 @@ export default function TasksPage() {
     };
     
     try {
-      await addDoc(collection(db, 'tasks'), newTask);
-      setToast({ message: `Tugas "${taskData.judul}" berhasil ditambahkan oleh AI!` });
+      await addTask(newTask);
+      setToast({ message: `Tugas "${newTask.judul}" berhasil dibuat oleh AI!` });
       setTimeout(() => setToast(null), 3000);
     } catch(e) { console.error(e); }
-  }, []);
+  }, [addTask]);
 
   const handleAIUpdateTask = useCallback(async (taskData) => {
     if (!taskData.id) return;
@@ -464,7 +425,7 @@ export default function TasksPage() {
       if (taskData.status) updates.status = taskData.status;
       if (taskData.urgensi) updates.urgensi = taskData.urgensi;
       
-      await updateDoc(taskRef, updates);
+      await updateTask(taskData.id, updates);
       setToast({ message: `Tugas "${taskData.judul || taskData.id}" berhasil diperbarui oleh AI!` });
       setTimeout(() => setToast(null), 3000);
     } catch(e) { console.error(e); }
@@ -473,7 +434,7 @@ export default function TasksPage() {
   const handleAIDeleteTask = useCallback(async (taskData) => {
     if (!taskData.id) return;
     try {
-      await deleteDoc(doc(db, 'tasks', taskData.id));
+      await deleteTask(taskData.id);
       setToast({ message: `Tugas berhasil dihapus oleh AI!` });
       setTimeout(() => setToast(null), 3000);
     } catch(e) { console.error(e); }

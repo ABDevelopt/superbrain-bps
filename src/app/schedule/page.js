@@ -171,9 +171,10 @@ export default function SchedulePage() {
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [selectedDate, setSelectedDate] = useState(toDateStr(today));
-  const [viewMode, setViewMode] = useState('month'); // 'month' or 'week'
+  const [viewMode, setViewMode] = useState('month');
   
   const { docs: events = [], addDocument, updateDocument, deleteDocument } = useFirestore('schedule');
+  const { docs: tasks = [], updateDocument: updateTask, addDocument: addTask, deleteDocument: deleteTask } = useFirestore('tasks');
   const { docs: ckpEvents = [] } = useFirestore('ckp');
   const { setPageData } = useAIContext();
 
@@ -355,7 +356,7 @@ export default function SchedulePage() {
         if (window.confirm(`Jadwal ini tertaut dengan ${event.linkedTaskIds.length} tugas di Papan Kanban.\nApakah Anda juga ingin menandai semua tugas tersebut selesai?`)) {
           for (const taskId of event.linkedTaskIds) {
             try {
-              await firestoreUpdateDoc(doc(db, 'tasks', taskId), { status: 'done' });
+              await updateTask(taskId, { status: 'done' });
             } catch (err) {
               console.error('Failed to update linked task', taskId, err);
             }
@@ -588,12 +589,32 @@ export default function SchedulePage() {
     if (formData.linkedTaskIds && formData.linkedTaskIds.length > 0) {
       try {
         for (const taskId of formData.linkedTaskIds) {
-          await firestoreUpdateDoc(doc(db, 'tasks', taskId), {
+          await updateTask(taskId, {
             linkedScheduleId: docRef.id
           });
         }
       } catch (e) {
         console.error('Failed to link schedule to tasks:', e);
+      }
+    } else {
+      // PROSES OTOMATIS: Buat tugas di latar belakang jika jadwal tidak dibuat dari tugas
+      try {
+        const newTaskRef = await addTask({
+          judul: `Tindak lanjut: ${formData.judul}`,
+          deskripsi: `Dibuat dari jadwal: ${formData.judul}`,
+          status: 'todo',
+          skpId: formData.skpId || null,
+          peran: 'Ketua Tim',
+          checklist: [],
+          linkedScheduleId: docRef.id,
+          tanggalDibuat: new Date().toISOString().split('T')[0]
+        });
+        // Update schedule dengan linkedTaskId yang baru dibuat
+        await updateDocument(docRef.id, {
+          linkedTaskIds: [newTaskRef.id]
+        });
+      } catch (e) {
+        console.error('Failed to auto-create task from schedule:', e);
       }
     }
 
@@ -613,7 +634,7 @@ export default function SchedulePage() {
         console.error('Failed to send telegram notification:', e);
       }
     }
-  }, [addDocument, accessToken]);
+  }, [addDocument, accessToken, updateTask]);
 
   const handleUpdateEvent = async (id, formData) => {
     try {
@@ -631,17 +652,12 @@ export default function SchedulePage() {
       
       // Sync update to linked tasks
       try {
-        const q = query(collection(db, 'tasks'), where('linkedScheduleId', '==', id));
-        const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
-          const batch = writeBatch(db);
-          snapshot.forEach(docSnap => {
-            const updates = {};
-            if (formData.judul) updates.judul = formData.judul;
-            // Map jadwal 'tanggal' to task 'deadline' if appropriate
-            batch.update(docSnap.ref, updates);
-          });
-          await batch.commit();
+        const linkedTasks = tasks.filter(t => t.linkedScheduleId === id);
+        for (const t of linkedTasks) {
+          const updates = {};
+          if (formData.judul) updates.judul = `Tindak lanjut: ${formData.judul}`;
+          if (formData.tanggal) updates.deadline = formData.tanggal;
+          await updateTask(t.id, updates);
         }
       } catch (err) {
         console.error('Failed to sync update to linked tasks:', err);
@@ -680,14 +696,9 @@ export default function SchedulePage() {
 
       // Sync delete to linked tasks
       try {
-        const q = query(collection(db, 'tasks'), where('linkedScheduleId', '==', event.id));
-        const snapshot = await getDocs(q);
-        if (!snapshot.empty) {
-          const batch = writeBatch(db);
-          snapshot.forEach(docSnap => {
-            batch.delete(docSnap.ref);
-          });
-          await batch.commit();
+        const linkedTasks = tasks.filter(t => t.linkedScheduleId === event.id);
+        for (const t of linkedTasks) {
+          await deleteTask(t.id);
         }
       } catch (err) {
         console.error('Failed to sync delete to linked tasks:', err);
@@ -778,7 +789,7 @@ export default function SchedulePage() {
                 setCurrentMonth(d.getMonth());
                 setCurrentYear(d.getFullYear());
               }}><ChevronLeft size={20} /></button>
-              <div className={styles.monthLabel}>
+              <div className={styles.calendarHeaderMonthLabel}>
                 <span className={styles.monthName}>{BULAN[currentMonth]}</span>
                 <span className={styles.yearLabel}>{currentYear}</span>
               </div>
@@ -954,32 +965,33 @@ export default function SchedulePage() {
                   <ClipboardCheck size={15} /> Jadikan CKP
                 </button>
                 <button 
-                  onClick={async () => {
+                  className={styles.jadikanTugasBtn}
+                  onClick={async (e) => {
+                    e.stopPropagation();
                     const event = selectedEventForDetail;
                     try {
-                      // Create task in background
-                      const newTaskRef = await addDoc(collection(db, 'tasks'), {
-                        judul: event.judul,
-                        deskripsi: event.deskripsi || '',
-                        skpId: event.skpId || 1,
-                        peran: 'admin',
+                      const ref = await addTask({
+                        judul: `Tindak lanjut: ${event.judul}`,
+                        deskripsi: `Dibuat dari jadwal: ${event.judul}`,
                         status: 'todo',
+                        skpId: event.skpId || null,
+                        peran: 'Ketua Tim',
                         checklist: [],
                         linkedScheduleId: event.id,
-                        createdAt: new Date().toISOString()
+                        tanggalDibuat: new Date().toISOString().split('T')[0]
                       });
                       
-                      // Update schedule to link this task
-                      const currentLinks = event.linkedTaskIds || [];
-                      await firestoreUpdateDoc(doc(db, 'schedule', event.id), {
-                        linkedTaskIds: [...currentLinks, newTaskRef.id]
+                      const newLinkedTaskIds = [...(event.linkedTaskIds || []), ref.id];
+                      await updateDocument(event.id, {
+                        linkedTaskIds: newLinkedTaskIds
                       });
                       
-                      alert('Tugas berhasil dibuat di Papan Kanban!');
-                    } catch (e) {
-                      alert('Gagal membuat tugas: ' + e.message);
+                      alert('Berhasil membuat tugas terkait!');
+                    } catch(err) {
+                      console.error(err);
+                      alert('Gagal membuat tugas.');
                     }
-                  }} 
+                  }}
                   style={{ background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.3)', color: '#8b5cf6', cursor: 'pointer', padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px' }}
                   title="Buat Tugas terkait di Papan Kanban"
                 >
@@ -1036,9 +1048,12 @@ export default function SchedulePage() {
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                   <ListTodo size={18} color="#94a3b8" style={{ marginTop: '2px', flexShrink: 0 }} />
                   <div>
-                    <span style={{ color: '#818cf8', fontWeight: '500' }}>
+                    <a 
+                      onClick={() => router.push('/tasks')}
+                      style={{ color: '#818cf8', fontWeight: '500', textDecoration: 'underline', cursor: 'pointer' }}
+                    >
                       Tertaut dengan {selectedEventForDetail.linkedTaskIds.length} Tugas
-                    </span>
+                    </a>
                   </div>
                 </div>
               )}

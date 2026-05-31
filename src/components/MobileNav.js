@@ -7,8 +7,8 @@ import styles from './MobileNav.module.css';
 
 const navItems = [
   { href: '/',         icon: <Home size={20} />, label: 'Beranda' },
-  { href: '/tasks',    icon: <CheckSquare size={20} />, label: 'Papan' },
   { href: '/schedule', icon: <Calendar size={20} />, label: 'Jadwal' },
+  { href: '/tasks',    icon: <CheckSquare size={20} />, label: 'Papan' },
   { href: '/ckp',      icon: <Edit3 size={20} />, label: 'CKP' },
   { href: '/skp',      icon: <ClipboardList size={20} />, label: 'SKP' },
 ];

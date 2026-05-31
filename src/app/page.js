@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, BarChart2, Users, FileText, CheckCircle, File, ClipboardList, TrendingUp, Zap, Clock, History, Rocket, Send, Settings } from 'lucide-react';
+import { Calendar, BarChart2, Users, FileText, CheckCircle, File, ClipboardList, TrendingUp, Zap, Clock, History, Rocket, Send, Settings, CheckSquare } from 'lucide-react';
 import Link from 'next/link';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
@@ -82,6 +82,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const { docs: ckpDocs, loading: ckpLoading } = useFirestore('ckp');
   const { docs: scheduleDocs, loading: scheduleLoading } = useFirestore('schedule');
+  const { docs: taskDocs, loading: tasksLoading } = useFirestore('tasks');
   const [now, setNow] = useState(null);
   const [mounted, setMounted] = useState(false);
 
@@ -125,8 +126,113 @@ export default function Dashboard() {
     .sort((a, b) => a.tanggal.localeCompare(b.tanggal) || (a.waktu || '00:00').localeCompare(b.waktu || '00:00'))
     .slice(0, 3);
 
-  // Get recent 5 activities
-  const recentActivities = ckpDocs.slice(0, 5);
+  // --- LOGIKA LINIMASA TERPADU (NESTED TIMELINE) ---
+  const timelineRoots = [];
+
+  // 1. Ambil Schedules sebagai root
+  const todaySchedules = scheduleDocs.filter(s => s.tanggal === todayYMD);
+
+  todaySchedules.forEach(s => {
+    const allLinkedTasks = taskDocs.filter(t => t.linkedScheduleId === s.id || (s.linkedTaskIds && s.linkedTaskIds.includes(t.id)));
+    const linkedCkps = ckpDocs.filter(c => c.tanggal === todayYMD && (c.sourceScheduleId === s.id || c.fromScheduleEventId === s.id || allLinkedTasks.some(t => t.id === c.sourceTaskId)));
+    
+    const children = [];
+    allLinkedTasks.forEach(t => {
+      children.push({
+        id: `task-${t.id}`,
+        type: 'task',
+        time: s.waktu || '00:00', 
+        sortOrder: 1, // urutan pertama: Tugas
+        title: t.judul,
+        subtitle: `Tugas Kanban - ${t.status === 'done' ? 'Selesai' : t.status === 'in_progress' ? 'Dikerjakan' : 'Belum'}`,
+        status: t.status,
+        color: 'purple'
+      });
+    });
+    
+    linkedCkps.forEach(c => {
+      children.push({
+        id: `ckp-${c.id}`,
+        type: 'ckp',
+        time: c.waktuMulai || s.waktu || '00:00',
+        sortOrder: 2, // urutan kedua: CKP
+        title: c.rincian || 'Kegiatan CKP',
+        subtitle: `CKP SKP #${c.skpId}`,
+        color: 'green'
+      });
+    });
+    
+    children.sort((a, b) => a.sortOrder - b.sortOrder);
+
+    timelineRoots.push({
+      id: `sched-${s.id}`,
+      type: 'schedule',
+      time: s.waktu || '00:00',
+      title: s.judul,
+      subtitle: `Jadwal - ${s.kategori}`,
+      isSelesai: s.isSelesai,
+      color: 'blue',
+      children
+    });
+  });
+
+  // 2. Ambil Tasks hari ini yang TIDAK terhubung ke Schedule manapun
+  taskDocs.forEach(t => {
+    const isToday = t.tanggalDibuat === todayYMD || t.deadline === todayYMD;
+    if (isToday) {
+      const isLinkedToAnySchedule = todaySchedules.some(s => t.linkedScheduleId === s.id || (s.linkedTaskIds && s.linkedTaskIds.includes(t.id)));
+      if (!isLinkedToAnySchedule) {
+        const linkedCkps = ckpDocs.filter(c => c.tanggal === todayYMD && c.sourceTaskId === t.id);
+        
+        const children = [];
+        linkedCkps.forEach(c => {
+          children.push({
+            id: `ckp-${c.id}`,
+            type: 'ckp',
+            time: c.waktuMulai || '00:00',
+            sortOrder: 2,
+            title: c.rincian || 'Kegiatan CKP',
+            subtitle: `CKP SKP #${c.skpId}`,
+            color: 'green'
+          });
+        });
+        
+        timelineRoots.push({
+          id: `task-${t.id}`,
+          type: 'task',
+          time: '23:59',
+          title: t.judul,
+          subtitle: `Tugas Kanban - ${t.status === 'done' ? 'Selesai' : t.status === 'in_progress' ? 'Dikerjakan' : 'Belum'}`,
+          status: t.status,
+          color: 'purple',
+          children
+        });
+      }
+    }
+  });
+
+  // 3. Ambil CKP yang TIDAK terhubung ke Task atau Schedule manapun
+  ckpDocs.forEach(c => {
+    if (c.tanggal === todayYMD) {
+      const isLinkedToSchedule = todaySchedules.some(s => c.sourceScheduleId === s.id || c.fromScheduleEventId === s.id);
+      const isLinkedToTask = taskDocs.some(t => c.sourceTaskId === t.id);
+      if (!isLinkedToSchedule && !isLinkedToTask) {
+        timelineRoots.push({
+          id: `ckp-${c.id}`,
+          type: 'ckp',
+          time: c.waktuMulai || '00:00',
+          timeEnd: c.waktuSelesai,
+          title: c.rincian || 'Kegiatan CKP',
+          subtitle: `CKP SKP #${c.skpId}`,
+          color: 'green',
+          children: []
+        });
+      }
+    }
+  });
+
+  // Sort roots chronologically
+  timelineRoots.sort((a, b) => a.time.localeCompare(b.time));
 
   const statsCards = [
     {
@@ -297,56 +403,68 @@ export default function Dashboard() {
             </div>
           </section>
 
-          {/* Recent Activity */}
+          {/* Unified Timeline View */}
           <section className={styles.activitySection}>
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>
                 <span className={styles.sectionIcon}><History size={20} /></span>
-                Aktivitas Terkini
+                Linimasa Terpadu Hari Ini
               </h2>
             </div>
             <div className={styles.activityCard}>
               <ul className={styles.activityList}>
-                {ckpLoading && <div style={{padding: '20px', color: '#94a3b8'}}>Memuat aktivitas...</div>}
-                {!ckpLoading && recentActivities.length === 0 && (
-                  <div style={{padding: '20px', color: '#94a3b8'}}>Belum ada aktivitas tercatat.</div>
+                {(ckpLoading || scheduleLoading || tasksLoading) && <div style={{padding: '20px', color: '#94a3b8'}}>Memuat linimasa...</div>}
+                {!(ckpLoading || scheduleLoading || tasksLoading) && timelineRoots.length === 0 && (
+                  <div style={{padding: '20px', color: '#94a3b8'}}>Belum ada aktivitas hari ini.</div>
                 )}
-                {!ckpLoading && recentActivities.map((item, idx) => {
-                  const isNewDay =
-                    idx === 0 ||
-                    recentActivities[idx - 1].tanggal !== item.tanggal;
-                  
-                  const itemTanggal = item.tanggal === todayYMD ? 'Hari ini' : item.tanggal;
-
+                {!(ckpLoading || scheduleLoading || tasksLoading) && timelineRoots.map((item, idx) => {
                   return (
                     <li key={item.id}>
-                      {isNewDay && (
-                        <div className={styles.dayDivider}>
-                          <span>{itemTanggal}</span>
-                        </div>
-                      )}
                       <div
                         className={styles.activityItem}
                         style={{ animationDelay: `${0.3 + idx * 0.07}s` }}
                       >
-                        <div className={styles.timelineDot} />
-                        {idx < recentActivities.length - 1 && (
+                        <div className={`${styles.timelineDot} ${styles['dot_' + item.color]}`} />
+                        {idx < timelineRoots.length - 1 && (
                           <div className={styles.timelineLine} />
                         )}
                         <div className={styles.activityContent}>
                           <div className={styles.activityTop}>
-                            <span className={styles.activityEmoji}>
-                              <CheckCircle size={16} />
+                            <span className={`${styles.activityEmoji} ${styles['text_' + item.color]}`}>
+                              {item.type === 'schedule' ? <Calendar size={16} /> : item.type === 'ckp' ? <CheckCircle size={16} /> : <CheckSquare size={16} />}
                             </span>
                             <span className={styles.activityTime}>
-                              {item.waktuMulai} - {item.waktuSelesai}
+                              {item.time === '23:59' ? 'Belum dijadwalkan' : item.time === '00:00' && !item.timeEnd ? 'Sepanjang Hari' : item.time} {item.timeEnd ? `- ${item.timeEnd}` : ''}
                             </span>
                           </div>
-                          <p className={styles.activityTitle}>{item.rincian}</p>
+                          <p className={styles.activityTitle} style={{ textDecoration: item.status === 'done' || item.isSelesai ? 'line-through' : 'none', opacity: item.status === 'done' || item.isSelesai ? 0.6 : 1 }}>{item.title}</p>
                           <span className={styles.activityCategory}>
-                            SKP #{item.skpId}
+                            {item.subtitle}
                           </span>
                         </div>
+                        
+                        {/* Nested Children */}
+                        {item.children && item.children.length > 0 && (
+                          <ul className={styles.activityChildList}>
+                            {item.children.map((child) => (
+                              <li key={child.id} className={styles.activityChildItem}>
+                                <div className={styles.childLineIndicator} />
+                                <div className={`${styles.childDot} ${styles['dot_' + child.color]}`} />
+                                <div className={styles.activityContent} style={{ gap: '2px' }}>
+                                  <div className={styles.activityTop}>
+                                    <span className={`${styles.activityEmoji} ${styles['text_' + child.color]}`} style={{ fontSize: '0.85rem' }}>
+                                      {child.type === 'schedule' ? <Calendar size={13} /> : child.type === 'ckp' ? <CheckCircle size={13} /> : <CheckSquare size={13} />}
+                                    </span>
+                                    <span className={styles.activityTime} style={{ fontSize: '0.7rem' }}>
+                                      {child.time === '23:59' ? '' : child.time === '00:00' && !child.timeEnd ? 'All Day' : child.time} {child.timeEnd ? `- ${child.timeEnd}` : ''}
+                                    </span>
+                                  </div>
+                                  <p className={styles.activityTitle} style={{ fontSize: '0.82rem', textDecoration: child.status === 'done' || child.isSelesai ? 'line-through' : 'none', opacity: child.status === 'done' || child.isSelesai ? 0.6 : 1 }}>{child.title}</p>
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </div>
                     </li>
                   );

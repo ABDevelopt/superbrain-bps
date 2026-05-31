@@ -410,6 +410,22 @@
   z-index: 2;
 }
 
+.dot_blue {
+  background: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+.dot_green {
+  background: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+.dot_purple {
+  background: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+}
+.text_blue { color: #3b82f6; }
+.text_green { color: #10b981; }
+.text_purple { color: #8b5cf6; }
+
 /* Timeline connecting line */
 .timelineLine {
   position: absolute;
@@ -419,6 +435,57 @@
   bottom: 0;
   background: rgba(255, 255, 255, 0.06);
   z-index: 1;
+}
+
+/* Nested Timeline Styles */
+.activityChildList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+  padding-left: 20px;
+  position: relative;
+}
+
+.activityChildItem {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding-left: 20px;
+}
+
+.childLineIndicator {
+  position: absolute;
+  left: -14px;
+  top: -12px;
+  width: 14px;
+  height: 20px;
+  border-left: 2px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  border-bottom-left-radius: 6px;
+  z-index: 1;
+}
+
+.activityChildItem:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: -14px;
+  top: 8px;
+  bottom: -16px;
+  border-left: 2px solid rgba(255, 255, 255, 0.1);
+  z-index: 1;
+}
+
+.childDot {
+  position: absolute;
+  left: -4px;
+  top: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: 1px solid var(--bg-primary);
+  z-index: 2;
 }
 
 .activityContent {
