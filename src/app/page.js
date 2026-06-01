@@ -7,6 +7,7 @@ import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFirestore } from '@/hooks/useFirestore';
 import { skpData } from '@/data/skpData';
+import SmartSuggestions from '@/components/SmartSuggestions';
 
 const HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 const BULAN = [
@@ -326,6 +327,10 @@ export default function Dashboard() {
             ))}
           </div>
         </section>
+        {/* Smart Suggestions */}
+        {!(tasksLoading || scheduleLoading || ckpLoading) && (
+          <SmartSuggestions contextData={{ tasks: taskDocs, schedules: scheduleDocs, ckps: ckpDocs }} />
+        )}
 
         {/* Main Content Grid */}
         <div className={styles.contentGrid}>
