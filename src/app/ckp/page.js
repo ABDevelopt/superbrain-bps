@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback, useEffect, useRef, Suspense } from 'rea
 import { useSearchParams } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { useAlert } from '@/contexts/AlertContext';
-import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn, CalendarClock, ChevronDown } from 'lucide-react';
+import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import { skpData } from '@/data/skpData';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,6 +14,8 @@ import { uploadFileToDrive } from '@/lib/drive';
 import { useChatAction } from '@/contexts/ChatActionContext';
 import { useAIContext } from '@/contexts/AIContext';
 import * as XLSX from 'xlsx';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const SATUAN_OPTIONS = ['Kegiatan', 'Lembar', 'File', 'Dokumen', 'Orang', 'Lainnya'];
 
@@ -22,6 +24,11 @@ const TIM_KERJA_OPTIONS = [
   'Tim IPJKD & DLS',
   'Tim Statistik Sosial',
   'Tim Statistik Harga & Sensus Ekonomi',
+  'Tim Distribusi',
+  'Tim PST dan Medsos PPU',
+  'Tim Pelaksana & TPB EPSS',
+  'Tim ZI',
+  'Tim Desa Cantik'
 ];
 
 function getTodayStr() {
@@ -148,11 +155,24 @@ function Toast({ message, visible, onClose }) {
 }
 
 // TAB 1: Input Kegiatan
-function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
+function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit, entries, sharedDate, setSharedDate }) {
   const { accessToken } = useAuth();
   const { showAlert } = useAlert();
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const [showSchedulePicker, setShowSchedulePicker] = useState(false);
+  const [skpSearch, setSkpSearch] = useState('');
+  const [showSkpDropdown, setShowSkpDropdown] = useState(false);
+  const skpDropdownRef = useRef(null);
+  
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (skpDropdownRef.current && !skpDropdownRef.current.contains(event.target)) {
+        setShowSkpDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);useEffect(() => setMounted(true), []);
   const fileInputRef = useRef(null);
   const cameraRef = useRef(null);
   const [file, setFile] = useState(null);
@@ -171,7 +191,8 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
   const [cameraLens, setCameraLens] = useState('1x');
   const videoRef = useRef(null);
   const [form, setForm] = useState({
-    tanggal: getTodayStr(),
+    tanggal: sharedDate || getTodayStr(),
+    isFullday: false,
     waktuMulai: '',
     waktuSelesai: '',
     skpId: '',
@@ -184,7 +205,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
   useEffect(() => {
     if (initialData) {
       setForm({
-        tanggal: initialData.tanggal || getTodayStr(),
+        tanggal: initialData.tanggal || sharedDate || getTodayStr(),
         waktuMulai: initialData.waktuMulai || '',
         waktuSelesai: initialData.waktuSelesai || '',
         skpId: initialData.skpId ? String(initialData.skpId) : '',
@@ -192,21 +213,20 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         kuantitas: initialData.kuantitas || '',
         satuan: initialData.satuan || 'Kegiatan',
         timKerja: initialData.timKerja || TIM_KERJA_OPTIONS[0],
-        // Backward compatibility
         _fromScheduleEventId: initialData.fromScheduleEventId || null,
-        // New normalized source fields
         _sumber: initialData.sumber || 'manual',
         _sourceScheduleId: initialData.sourceScheduleId || null,
         _sourceTaskId: initialData.sourceTaskId || null,
       });
+      setSkpSearch(initialData.skpId ? (skpData.find(s => s.id === initialData.skpId)?.nama || '') : '');
       setPreviewImage(null);
       setFile(null);
+    } else {
+      setForm(prev => ({ ...prev, tanggal: sharedDate }));
     }
-  }, [initialData]);
+  }, [initialData, sharedDate]);
 
-  // ===== AMBIL DARI JADWAL feature =====
   const { docs: scheduleEvents = [] } = useFirestore('schedule');
-  const [showSchedulePicker, setShowSchedulePicker] = useState(false);
 
   const todayScheduleEvents = useMemo(() => {
     return scheduleEvents
@@ -223,8 +243,11 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
       rincian: event.judul + (event.deskripsi ? '\n' + event.deskripsi : ''),
       _sumber: 'jadwal',
       _sourceScheduleId: event.id,
-      _fromScheduleEventId: event.id, // For backward compatibility if needed
+      _fromScheduleEventId: event.id,
     }));
+    if (event.skpId) {
+        setSkpSearch(skpData.find(s => s.id === event.skpId)?.nama || '');
+    }
     setShowSchedulePicker(false);
   };
 
@@ -235,7 +258,14 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
 
   const handleChange = (field) => (e) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
+    if (field === 'tanggal') {
+      setSharedDate(e.target.value);
+    }
   };
+
+  const filteredSkp = useMemo(() => {
+      return skpData.filter(s => s.nama.toLowerCase().includes(skpSearch.toLowerCase()));
+  }, [skpSearch]);
 
   const processImage = (imageFile, coords) => {
     const reader = new FileReader();
@@ -257,12 +287,10 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Draw Watermark Overlay
         const barHeight = Math.max(120, height * 0.15);
         ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
         ctx.fillRect(0, height - barHeight, width, barHeight);
 
-        // Draw Text
         ctx.fillStyle = 'white';
         const fontSize = Math.max(16, Math.round(width * 0.025));
         ctx.font = `${fontSize}px sans-serif`;
@@ -270,19 +298,16 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         let textY = height - barHeight + fontSize + 10;
         const paddingX = 20;
 
-        // Tanggal & Waktu
         const now = new Date();
         const timeStr = `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
         ctx.fillText(`Waktu: ${timeStr}`, paddingX, textY);
         textY += fontSize * 1.5;
 
-        // Koordinat
         if (coords) {
           ctx.fillText(`Lokasi: Lat ${coords.lat.toFixed(6)}, Lon ${coords.lon.toFixed(6)}`, paddingX, textY);
           textY += fontSize * 1.5;
         }
 
-        // Nama Kegiatan
         if (form.rincian) {
           ctx.fillText(`Kegiatan: ${form.rincian.substring(0, 50)}${form.rincian.length > 50 ? '...' : ''}`, paddingX, textY);
         }
@@ -319,7 +344,6 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         
         if (videoDevices.length > 1) {
           if (isFront) {
-            // Find front-facing camera
             const frontCameras = videoDevices.filter(d => {
               const label = d.label.toLowerCase();
               return label.includes('front') || label.includes('depan') || label.includes('user') || label.includes('1');
@@ -338,14 +362,11 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
               };
             }
           } else {
-            // Filter for back-facing cameras
             const backCameras = videoDevices.filter(d => {
               const label = d.label.toLowerCase();
-              // Match typical back camera terms
               if (label.includes('back') || label.includes('rear') || label.includes('belakang') || label.includes('environment')) {
                 return true;
               }
-              // For generic names like "camera 0" (which is back) vs "camera 1" (which is front)
               if (label.includes('camera') || label.includes('kamera')) {
                 return !label.includes('front') && !label.includes('depan') && !label.includes('user') && !label.includes('1');
               }
@@ -356,18 +377,15 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
               let targetDevice = null;
               
               if (lens === '0.5x') {
-                // Look for Ultra-Wide (0.5x) camera
                 targetDevice = backCameras.find(d => {
                   const label = d.label.toLowerCase();
                   return label.includes('ultra') || label.includes('wide-angle') || label.includes('0.5') || label.includes('0.6') || label.includes('2') || label.includes('3') || label.includes('aux');
                 });
                 
-                // Fallback: second back camera is usually ultra-wide
                 if (!targetDevice && backCameras.length > 1) {
                   targetDevice = backCameras[1];
                 }
               } else {
-                // Look for Main (1x) camera
                 targetDevice = backCameras.find(d => {
                   const label = d.label.toLowerCase();
                   return (label.includes('main') || label.includes('utama') || label.includes('primary') || label.includes('0')) &&
@@ -416,26 +434,21 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         });
       }
 
-      // Check capabilities
       const track = stream.getVideoTracks()[0];
       if (track) {
         const caps = track.getCapabilities ? track.getCapabilities() : {};
         if (caps.zoom) setZoomCapabilities(caps.zoom);
         if (caps.torch) setFlashSupported(true);
 
-        // Reset capabilities if new camera doesn't support them
         if (!caps.zoom) setZoomCapabilities(null);
         if (!caps.torch) setFlashSupported(false);
 
-        // Try to enable continuous autofocus if supported on this browser/track
         if (track.applyConstraints) {
           try {
             await track.applyConstraints({
               advanced: [{ focusMode: 'continuous' }]
             });
-          } catch (_) {
-            // Silently ignore if focusMode continuous constraint is not supported
-          }
+          } catch (_) {}
         }
       }
 
@@ -456,7 +469,6 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
     setCapturedBlob(null);
     setCoordsCache(null);
 
-    // Speed Optimization: Pre-fetch geolocation in background as soon as camera is opened
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -551,10 +563,8 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
     vCanvas.height = videoRef.current.videoHeight;
     const vCtx = vCanvas.getContext('2d');
     
-    // Draw current frame
     vCtx.drawImage(videoRef.current, 0, 0);
     
-    // Freeze viewfinder by setting capture preview
     vCanvas.toBlob((blob) => {
       const url = URL.createObjectURL(blob);
       setCapturedBlob(blob);
@@ -575,12 +585,10 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
     
     const snapFile = new File([capturedBlob], `snap_${Date.now()}.jpg`, { type: 'image/jpeg' });
     
-    // Geolocation Speed Optimization: Check if pre-fetched coords are ready
     if (coordsCache) {
       closeCamera();
       processImage(snapFile, coordsCache);
     } else {
-      // Fallback if not pre-fetched in time
       showAlert("Mendapatkan lokasi gps...");
       if (!navigator.geolocation) {
         closeCamera();
@@ -605,23 +613,27 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.waktuMulai || !form.waktuSelesai || !form.skpId || !form.rincian) return;
+    if (!form.isFullday && (!form.waktuMulai || !form.waktuSelesai)) return;
+    if (!form.rincian) return;
     
     setIsUploading(true);
     let buktiDukungLink = null;
 
     try {
       if (file && accessToken) {
-        buktiDukungLink = await uploadFileToDrive(file, accessToken);
+        try {
+          buktiDukungLink = await uploadFileToDrive(file, accessToken);
+        } catch (err) {
+          console.error("Upload error:", err);
+          showAlert('Gagal mengunggah file ke Google Drive, namun data CKP tetap akan disimpan.');
+        }
       } else if (file && !accessToken) {
-        showAlert('Anda belum memberikan izin akses Google Drive saat login.');
-        setIsUploading(false);
-        return;
+        showAlert('Info: Foto/file tidak diunggah karena Anda belum memberi izin akses Google Drive. Data CKP tetap disimpan.');
       }
 
       const dataToSave = {
         ...form,
-        skpId: Number(form.skpId),
+        skpId: form.skpId ? Number(form.skpId) : null,
         kuantitas: Number(form.kuantitas) || 1,
         durasi: duration,
         buktiDukung: buktiDukungLink || (initialData ? initialData.buktiDukung : null) || null,
@@ -631,21 +643,77 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         sourceTaskId: form._sourceTaskId || (initialData ? initialData.sourceTaskId : null) || null,
       };
 
-      // remove internal fields
       delete dataToSave._fromScheduleEventId;
       delete dataToSave._sumber;
       delete dataToSave._sourceScheduleId;
       delete dataToSave._sourceTaskId;
 
-      if (initialData && initialData.id && onUpdate) {
-        await onUpdate(initialData.id, dataToSave);
+      if (form.isFullday) {
+        // Find all gaps
+        const dow = new Date(form.tanggal + 'T00:00:00').getDay();
+        if (dow === 0 || dow === 6) {
+          setIsUploading(false);
+          return showAlert("Fitur Fullday tidak tersedia untuk hari libur (Sabtu/Minggu).");
+        }
+
+        const START_MIN = 7 * 60 + 30;
+        const END_MIN = dow === 5 ? 16 * 60 + 30 : 16 * 60;
+        const dayEntries = entries
+          .filter(en => en.tanggal === form.tanggal)
+          .sort((a, b) => (a.waktuMulai || '').localeCompare(b.waktuMulai || ''));
+        
+        const gaps = [];
+        let currentPos = START_MIN;
+        for (const en of dayEntries) {
+          if (!en.waktuMulai || !en.waktuSelesai) continue;
+          const [h1, m1] = en.waktuMulai.split(':').map(Number);
+          const [h2, m2] = en.waktuSelesai.split(':').map(Number);
+          const start = h1 * 60 + m1;
+          const end = h2 * 60 + m2;
+          
+          if (start > currentPos) {
+            gaps.push({ start: currentPos, end: start });
+          }
+          currentPos = Math.max(currentPos, end);
+        }
+        if (currentPos < END_MIN) {
+          gaps.push({ start: currentPos, end: END_MIN });
+        }
+
+        if (gaps.length === 0) {
+          setIsUploading(false);
+          return showAlert("Hari ini sudah penuh, tidak ada waktu tersisa untuk diisi.");
+        }
+
+        const formatTimeStr = (totalMins) => {
+          const h = Math.floor(totalMins / 60);
+          const m = totalMins % 60;
+          return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+        };
+
+        for (const gap of gaps) {
+          const d = gap.end - gap.start;
+          const gapData = { 
+            ...dataToSave, 
+            waktuMulai: formatTimeStr(gap.start), 
+            waktuSelesai: formatTimeStr(gap.end), 
+            durasi: d 
+          };
+          delete gapData.isFullday;
+          await onSubmit(gapData);
+        }
       } else {
-        await onSubmit(dataToSave);
+        delete dataToSave.isFullday;
+        if (initialData && initialData.id && onUpdate) {
+          await onUpdate(initialData.id, dataToSave);
+        } else {
+          await onSubmit(dataToSave);
+        }
       }
 
-      // Reset form
       setForm({
-        tanggal: getTodayStr(),
+        tanggal: sharedDate || getTodayStr(),
+        isFullday: false,
         waktuMulai: '',
         waktuSelesai: '',
         skpId: '',
@@ -658,6 +726,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         _sourceTaskId: null,
         _fromScheduleEventId: null,
       });
+      setSkpSearch('');
       setFile(null);
       setPreviewImage(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -672,7 +741,6 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
 
   const cameraModal = (showCamera && mounted) ? createPortal(
     <div className={styles.cameraOverlay}>
-      {/* Top bar */}
       <div className={styles.cameraTopBar}>
         <div className={styles.cameraTitle}>
           <div className={styles.cameraTitleIcon}>
@@ -708,7 +776,6 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         </div>
       </div>
 
-      {/* Viewfinder/Stream or Captured Preview */}
       {capturedPhotoUrl ? (
         <img
           src={capturedPhotoUrl}
@@ -726,7 +793,6 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         />
       )}
 
-      {/* Corner guide brackets */}
       <div className={styles.cameraGuide}>
         <div className={styles.cameraGuideInner}>
           <div className={styles.cameraGuideCornerBR} />
@@ -734,7 +800,6 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         </div>
       </div>
 
-      {/* 0.5x vs 1x Lens Switcher (Back camera only, when not in preview mode) */}
       {!useFrontCamera && !capturedPhotoUrl && (
         <div className={styles.lensPill}>
           <button
@@ -754,7 +819,6 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         </div>
       )}
 
-      {/* Zoom slider (Only when live and zoom supported) */}
       {!capturedPhotoUrl && zoomCapabilities && (
         <div className={styles.cameraZoomBar}>
           <span className={styles.cameraZoomLabel}>
@@ -772,12 +836,10 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         </div>
       )}
 
-      {/* Hint text */}
       <div className={styles.cameraHint}>
         {capturedPhotoUrl ? 'Tinjau foto sebelum disimpan' : 'Tekan tombol bulat untuk mengambil foto'}
       </div>
 
-      {/* Bottom shutter/preview controls */}
       <div className={styles.cameraBottomBar}>
         {capturedPhotoUrl ? (
           <div className={styles.cameraPreviewActions}>
@@ -813,7 +875,6 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
 
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
-      {/* Ambil dari Jadwal */}
       {todayScheduleEvents.length > 0 && (
         <div style={{ marginBottom: '16px' }}>
           <button
@@ -846,63 +907,153 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         </div>
       )}
 
+      <DailyTimeVisualizer 
+        entries={entries.filter(e => e.tanggal === form.tanggal)} 
+        date={form.tanggal} 
+      />
+
       <div className={styles.formRow}>
-        <div className={styles.formGroup}>
+        <div className={styles.formGroup} style={{ flex: 'none', width: 'auto' }}>
           <label className={styles.label}>Tanggal Kegiatan</label>
-          <input
-            type="date"
-            className={styles.input}
-            value={form.tanggal}
-            onChange={handleChange('tanggal')}
-            required
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button 
+              type="button" 
+              className={styles.dateNavBtn}
+              onClick={() => {
+                const d = new Date(form.tanggal);
+                d.setDate(d.getDate() - 1);
+                handleChange('tanggal')({ target: { value: d.toISOString().split('T')[0] } });
+              }}
+              title="Hari Sebelumnya"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <input
+              type="date"
+              className={styles.input}
+              value={form.tanggal}
+              onChange={handleChange('tanggal')}
+              required
+              style={{ width: 'auto' }}
+            />
+            <button 
+              type="button" 
+              className={styles.dateNavBtn}
+              onClick={() => {
+                const d = new Date(form.tanggal);
+                d.setDate(d.getDate() + 1);
+                handleChange('tanggal')({ target: { value: d.toISOString().split('T')[0] } });
+              }}
+              title="Hari Berikutnya"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.formGroup} style={{ flex: 'none', width: 'auto' }}>
+          <label className={styles.label}>&nbsp;</label>
+          <label className={styles.checkboxLabel} style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            <input 
+              type="checkbox"
+              checked={form.isFullday}
+              onChange={(e) => setForm(prev => ({...prev, isFullday: e.target.checked}))}
+            />
+            <span>Isi sisa waktu hari ini (Fullday)</span>
+          </label>
         </div>
       </div>
 
-      <div className={styles.formRow}>
-        <div className={styles.formGroup}>
-          <label className={styles.label}>Waktu Mulai</label>
-          <input
-            type="time"
-            className={styles.input}
-            value={form.waktuMulai}
-            onChange={handleChange('waktuMulai')}
-            required
-          />
-        </div>
-        <div className={styles.formGroup}>
-          <label className={styles.label}>Waktu Selesai</label>
-          <input
-            type="time"
-            className={styles.input}
-            value={form.waktuSelesai}
-            onChange={handleChange('waktuSelesai')}
-            required
-          />
-        </div>
-        <div className={styles.formGroup}>
-          <label className={styles.label}>Durasi</label>
-          <div className={styles.durationDisplay}>
-            {duration > 0 ? formatDuration(duration) : '—'}
+      {!form.isFullday && (
+        <div className={styles.formRow}>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Waktu Mulai</label>
+            <input
+              type="time"
+              className={styles.input}
+              value={form.waktuMulai}
+              onChange={handleChange('waktuMulai')}
+              required
+            />
+          </div>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Waktu Selesai</label>
+            <input
+              type="time"
+              className={styles.input}
+              value={form.waktuSelesai}
+              onChange={handleChange('waktuSelesai')}
+              required
+            />
           </div>
         </div>
-      </div>
+      )}
+
+      {duration > 0 && !form.isFullday && (
+        <div className={styles.durationBadge}>
+          <Clock size={14} /> Durasi: {formatDuration(duration)}
+        </div>
+      )}
 
       <div className={styles.formGroup}>
         <label className={styles.label}>Butir SKP</label>
-        <select
-          className={styles.select}
-          value={form.skpId}
-          onChange={handleChange('skpId')}
-          required
-        >
-          <option value="">— Pilih Butir SKP —</option>
-          {skpData.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.id}. {item.nama}
-            </option>
-          ))}
-        </select>
+        <div className={styles.customSelectWrapper} ref={skpDropdownRef}>
+          <div 
+            className={`${styles.input} ${styles.customSelectInput}`}
+            onClick={() => {
+              setShowSkpDropdown(true);
+              setSkpSearch('');
+            }}
+          >
+            {form.skpId === 'none' 
+              ? 'Tidak terkait SKP' 
+              : form.skpId 
+                ? `${form.skpId}. ${skpData.find(s => s.id == form.skpId)?.nama}` 
+                : '— Pilih Butir SKP —'}
+            <ChevronDown size={16} />
+          </div>
+          
+          {showSkpDropdown && (
+            <div className={styles.customDropdown}>
+              <div className={styles.customDropdownSearch}>
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Ketik untuk mencari SKP..."
+                  value={skpSearch}
+                  onChange={(e) => setSkpSearch(e.target.value)}
+                  className={styles.input}
+                  style={{ padding: '8px', fontSize: '13px' }}
+                />
+              </div>
+              <div className={styles.customDropdownList}>
+                <div 
+                  className={styles.customDropdownItem}
+                  onClick={() => {
+                    setForm(prev => ({...prev, skpId: 'none'}));
+                    setShowSkpDropdown(false);
+                  }}
+                >
+                  <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>Tidak terkait SKP</span>
+                </div>
+                {skpData
+                  .filter(s => s.nama.toLowerCase().includes(skpSearch.toLowerCase()) || String(s.id).includes(skpSearch))
+                  .map((item) => (
+                    <div 
+                      key={item.id} 
+                      className={styles.customDropdownItem}
+                      onClick={() => {
+                        setForm(prev => ({...prev, skpId: item.id}));
+                        setShowSkpDropdown(false);
+                      }}
+                    >
+                      <span className={styles.customDropdownItemId}>{item.id}.</span> {item.nama}
+                    </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className={styles.formGroup}>
@@ -1024,16 +1175,172 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData, onCancelEdit }) {
         )}
       </div>
 
-      {/* Camera Modal */}
       {cameraModal}
     </form>
   );
 }
 
-// TAB 2: Rekap Harian
-function TabRekapHarian({ entries, onEdit, onDelete }) {
-  const [selectedDate, setSelectedDate] = useState(getTodayStr());
+// Komponen Visualisasi Waktu
+function DailyTimeVisualizer({ entries, date }) {
+  const START_HOUR = 6;
+  const END_HOUR = 18;
+  const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60;
 
+  const getMinutes = (timeStr) => {
+    if (!timeStr) return 0;
+    const [h, m] = timeStr.split(':').map(Number);
+    return h * 60 + m;
+  };
+
+  const targetDate = date ? new Date(date + 'T00:00:00') : new Date();
+  const dow = targetDate.getDay();
+  let coreStart = null;
+  let coreEnd = null;
+  
+  if (dow >= 1 && dow <= 4) {
+    coreStart = 7 * 60 + 30;
+    coreEnd = 16 * 60;
+  } else if (dow === 5) {
+    coreStart = 7 * 60 + 30;
+    coreEnd = 16 * 60 + 30;
+  }
+
+  const coreLeft = coreStart ? ((coreStart - START_HOUR * 60) / TOTAL_MINUTES) * 100 : null;
+  const coreWidth = coreStart && coreEnd ? ((coreEnd - coreStart) / TOTAL_MINUTES) * 100 : null;
+
+  const blocks = entries.map(e => {
+    const startMin = getMinutes(e.waktuMulai);
+    const endMin = getMinutes(e.waktuSelesai);
+    let clampedStart = Math.max(START_HOUR * 60, startMin);
+    let clampedEnd = Math.min(END_HOUR * 60, endMin);
+    
+    if (clampedStart >= clampedEnd) return null;
+
+    const leftPerc = ((clampedStart - START_HOUR * 60) / TOTAL_MINUTES) * 100;
+    const widthPerc = ((clampedEnd - clampedStart) / TOTAL_MINUTES) * 100;
+
+    return {
+      id: e.id,
+      left: `${leftPerc}%`,
+      width: `${widthPerc}%`,
+      title: `${e.waktuMulai} - ${e.waktuSelesai}: ${e.rincian}`
+    };
+  }).filter(Boolean);
+
+  return (
+    <div className={styles.timeVizContainer}>
+      <h4 className={styles.timeVizTitle}>Peta Jam Kerja (06:00 - 18:00)</h4>
+      <div className={styles.timeVizBar}>
+        {coreLeft !== null && (
+          <div 
+            style={{ position: 'absolute', left: `${coreLeft}%`, width: `${coreWidth}%`, top: '-2px', bottom: '-2px', border: '2px dashed rgba(16, 185, 129, 0.6)', borderRadius: '6px', zIndex: 0 }}
+            title="Jam Wajib Kerja"
+          />
+        )}
+        {Array.from({ length: END_HOUR - START_HOUR + 1 }).map((_, i) => (
+          <div key={i} className={styles.timeVizMarker} style={{ left: `${(i / (END_HOUR - START_HOUR)) * 100}%` }}>
+            <span className={styles.timeVizLabel}>{String(START_HOUR + i).padStart(2, '0')}:00</span>
+          </div>
+        ))}
+        {blocks.map(b => (
+          <div 
+            key={b.id} 
+            className={styles.timeVizBlock} 
+            style={{ left: b.left, width: b.width }}
+            title={b.title}
+          />
+        ))}
+      </div>
+      <div className={styles.timeVizLegend}>
+        <div className={styles.timeVizLegendItem}>
+          <div className={styles.timeVizLegendColor} style={{ background: 'rgba(255,255,255,0.08)' }} /> Kosong
+        </div>
+        <div className={styles.timeVizLegendItem}>
+          <div className={styles.timeVizLegendColor} style={{ background: 'rgba(99, 102, 241, 0.7)' }} /> Terisi
+        </div>
+        <div className={styles.timeVizLegendItem}>
+          <div className={styles.timeVizLegendColor} style={{ border: '1.5px dashed rgba(16, 185, 129, 0.6)', background: 'transparent' }} /> Jam Wajib
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Komponen Visualisasi Waktu Bulanan
+function MonthlyTimeVisualizer({ entries, year, month }) {
+  const START_HOUR = 6;
+  const END_HOUR = 18;
+  const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60;
+  
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const days = [];
+  
+  const getMinutes = (timeStr) => {
+    if (!timeStr) return 0;
+    const [h, m] = timeStr.split(':').map(Number);
+    return h * 60 + m;
+  };
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dateObj = new Date(dateStr + 'T00:00:00');
+    const dow = dateObj.getDay();
+    if (dow === 0 || dow === 6) continue;
+    
+    let coreStart = 7 * 60 + 30;
+    let coreEnd = dow === 5 ? 16 * 60 + 30 : 16 * 60;
+    
+    const dayEntries = entries.filter(e => e.tanggal === dateStr);
+    const blocks = dayEntries.map(e => {
+      const startMin = getMinutes(e.waktuMulai);
+      const endMin = getMinutes(e.waktuSelesai);
+      let clampedStart = Math.max(START_HOUR * 60, startMin);
+      let clampedEnd = Math.min(END_HOUR * 60, endMin);
+      if (clampedStart >= clampedEnd) return null;
+      return {
+        id: e.id,
+        left: `${((clampedStart - START_HOUR * 60) / TOTAL_MINUTES) * 100}%`,
+        width: `${((clampedEnd - clampedStart) / TOTAL_MINUTES) * 100}%`,
+        title: `${e.waktuMulai} - ${e.waktuSelesai}`
+      };
+    }).filter(Boolean);
+    
+    days.push({
+      dateStr,
+      dayName: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'][dow],
+      day,
+      blocks,
+      coreLeft: `${((coreStart - START_HOUR * 60) / TOTAL_MINUTES) * 100}%`,
+      coreWidth: `${((coreEnd - coreStart) / TOTAL_MINUTES) * 100}%`,
+      totalJamStr: formatDuration(dayEntries.reduce((sum, e) => sum + (getMinutes(e.waktuSelesai) - getMinutes(e.waktuMulai)), 0))
+    });
+  }
+
+  return (
+    <div className={styles.monthlyVizContainer}>
+      <h4 className={styles.timeVizTitle} style={{ marginBottom: '16px' }}>Peta Kekosongan CKP Bulan Ini</h4>
+      <div className={styles.monthlyVizList}>
+        {days.map(d => (
+          <div key={d.dateStr} className={styles.monthlyVizRow}>
+            <div className={styles.monthlyVizLabel}>{d.dayName}, {d.day}</div>
+            <div className={styles.monthlyVizBar}>
+              <div 
+                style={{ position: 'absolute', left: d.coreLeft, width: d.coreWidth, top: '0', bottom: '0', border: '1px dashed rgba(16, 185, 129, 0.4)', borderRadius: '4px', zIndex: 0 }}
+              />
+              {d.blocks.map(b => (
+                <div key={b.id} className={styles.monthlyVizBlock} style={{ left: b.left, width: b.width }} title={b.title} />
+              ))}
+            </div>
+            <div className={styles.monthlyVizDurasi}>{d.totalJamStr}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// TAB 2: Rekap Harian
+function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDate }) {
   const dayEntries = useMemo(
     () => entries
       .filter((e) => e.tanggal === selectedDate)
@@ -1055,12 +1362,38 @@ function TabRekapHarian({ entries, onEdit, onDelete }) {
     <div className={styles.rekapContainer}>
       <div className={styles.datePickerRow}>
         <label className={styles.label}>Pilih Tanggal:</label>
-        <input
-          type="date"
-          className={styles.input}
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-        />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button 
+            type="button" 
+            className={styles.dateNavBtn}
+            onClick={() => {
+              const d = new Date(selectedDate);
+              d.setDate(d.getDate() - 1);
+              setSelectedDate(d.toISOString().split('T')[0]);
+            }}
+            title="Hari Sebelumnya"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          <input
+            type="date"
+            className={styles.input}
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+          />
+          <button 
+            type="button" 
+            className={styles.dateNavBtn}
+            onClick={() => {
+              const d = new Date(selectedDate);
+              d.setDate(d.getDate() + 1);
+              setSelectedDate(d.toISOString().split('T')[0]);
+            }}
+            title="Hari Berikutnya"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
       </div>
 
       <h3 className={styles.rekapTitle}>{formatDate(selectedDate)}</h3>
@@ -1082,6 +1415,8 @@ function TabRekapHarian({ entries, onEdit, onDelete }) {
               <span className={styles.statLabel}>Total Jam Kerja</span>
             </div>
           </div>
+
+          <DailyTimeVisualizer entries={dayEntries} date={selectedDate} />
 
           <div className={styles.timeline}>
             {dayEntries.map((entry) => (
@@ -1121,10 +1456,97 @@ function TabRekapHarian({ entries, onEdit, onDelete }) {
   );
 }
 
+const formatTimeStr = (totalMins) => {
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+};
+
+const getMinutes = (timeStr) => {
+  if (!timeStr) return 0;
+  const [h, m] = timeStr.split(':').map(Number);
+  return h * 60 + m;
+};
+
+function stretchMonthEntries(originalEntries) {
+  let hasGaps = false;
+  let hasApelOnly = false;
+  const newEntries = [...originalEntries];
+  
+  const dateMap = {};
+  for (const e of originalEntries) {
+    if (!dateMap[e.tanggal]) dateMap[e.tanggal] = [];
+    dateMap[e.tanggal].push(e);
+  }
+  
+  for (const [dateStr, dayEvents] of Object.entries(dateMap)) {
+    const dow = new Date(dateStr + 'T00:00:00').getDay();
+    if (dow === 0 || dow === 6) continue;
+    
+    const START_MIN = 7 * 60 + 30;
+    const END_MIN = dow === 5 ? 16 * 60 + 30 : 16 * 60;
+    
+    const sorted = dayEvents.sort((a,b) => a.waktuMulai.localeCompare(b.waktuMulai));
+    
+    const isApelOnly = sorted.every(e => e.rincian && (e.rincian.toLowerCase().includes('apel') || e.rincian.toLowerCase().includes('upacara')));
+    
+    let currentPos = START_MIN;
+    let totalGaps = 0;
+    for (const e of sorted) {
+       const s = getMinutes(e.waktuMulai);
+       const en = getMinutes(e.waktuSelesai);
+       if (s > currentPos) totalGaps += (s - currentPos);
+       currentPos = Math.max(currentPos, en);
+    }
+    if (currentPos < END_MIN) totalGaps += (END_MIN - currentPos);
+    
+    if (totalGaps > 0) {
+       hasGaps = true;
+       if (isApelOnly) {
+         hasApelOnly = true;
+       } else {
+         let prevEnd = START_MIN;
+         for (let i = 0; i < sorted.length; i++) {
+            const e = sorted[i];
+            let s = getMinutes(e.waktuMulai);
+            let en = getMinutes(e.waktuSelesai);
+            
+            if (i === 0 && s > START_MIN) {
+               s = START_MIN;
+            } else if (s > prevEnd) {
+               const prevE = sorted[i-1];
+               const prevIndex = newEntries.findIndex(ne => ne.id === prevE.id);
+               if (prevIndex !== -1) {
+                  newEntries[prevIndex] = { ...newEntries[prevIndex], waktuSelesai: formatTimeStr(s), durasi: s - getMinutes(prevE.waktuMulai) };
+               }
+            }
+            
+            if (i === sorted.length - 1 && en < END_MIN) {
+               en = END_MIN;
+            }
+            
+            const newIndex = newEntries.findIndex(ne => ne.id === e.id);
+            if (newIndex !== -1) {
+               newEntries[newIndex] = { ...newEntries[newIndex], waktuMulai: formatTimeStr(s), waktuSelesai: formatTimeStr(en), durasi: en - s };
+            }
+            prevEnd = Math.max(prevEnd, en);
+         }
+       }
+    }
+  }
+  
+  return { hasGaps, hasApelOnly, newEntries };
+}
+
 // TAB 3: Rekap Bulanan
 function TabRekapBulanan({ entries }) {
   const { showAlert } = useAlert();
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthStr());
+
+  const [showStretchDialog, setShowStretchDialog] = useState(false);
+  const [pendingExportType, setPendingExportType] = useState(null);
+  const [stretchedEntriesData, setStretchedEntriesData] = useState(null);
+  const [hasApelWarning, setHasApelWarning] = useState(false);
 
   const monthData = useMemo(() => {
     const [year, month] = selectedMonth.split('-').map(Number);
@@ -1159,47 +1581,138 @@ function TabRekapBulanan({ entries }) {
 
   const [yearVal, monthVal] = selectedMonth.split('-').map(Number);
 
-  const handleExport = () => {
-    const [year, month] = selectedMonth.split('-');
-    const prefix = `${year}-${month}-`;
-    
-    const monthEntries = entries.filter(e => e.tanggal && e.tanggal.startsWith(prefix));
-    
-    if (monthEntries.length === 0) {
-      showAlert('Tidak ada data untuk diekspor pada bulan ini.');
-      return;
+  const triggerExport = async (templateName, startRow, rows, cellUpdates = {}, exportFileName = 'Export.xlsx') => {
+    try {
+      showAlert('Sedang memproses dokumen Excel...');
+      const response = await fetch('/api/export/ckp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          templateName,
+          startRow,
+          rows,
+          cellUpdates
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = exportFileName;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+      showAlert('Gagal mengekspor: ' + e.message);
     }
+  };
 
-    const dataRows = monthEntries.map(e => ({
-      'Tanggal': e.tanggal,
-      'Waktu Mulai': e.waktuMulai,
-      'Waktu Selesai': e.waktuSelesai,
-      'Durasi (Menit)': e.durasi,
-      'ID SKP': e.skpId || '',
-      'Tim Kerja': e.timKerja || '',
-      'Rincian Kegiatan': e.rincian || '',
-      'Kuantitas': e.kuantitas || 0,
-      'Satuan': e.satuan || '',
-      'Bukti Dukung': e.buktiDukung || ''
-    }));
+  const getMonthEntries = () => {
+    return entries.filter(e => e.tanggal && e.tanggal.startsWith(`${yearVal}-${String(monthVal).padStart(2,'0')}-`));
+  };
 
-    const worksheet = XLSX.utils.json_to_sheet(dataRows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap CKP");
+  const execExport = (type, dataToExport) => {
+    if (type === 'daily') {
+      const rows = dataToExport.map((e, idx) => {
+        const skpItem = skpData.find(s => s.id === e.skpId);
+        return [
+          '',
+          idx + 1,
+          e.tanggal,
+          `${e.waktuMulai} - ${e.waktuSelesai}`,
+          e.rincian || '',
+          e.kuantitas || 1,
+          e.satuan || 'kegiatan',
+          skpItem ? (skpItem.kategori === 'utama' ? 'Utama' : 'Tambahan') : '',
+          e.buktiDukung || '',
+          ''
+        ];
+      });
+      const fileName = `CKP-Daily_${getMonthName(monthVal - 1)}_${yearVal}_Yahya_Abdurrohman.xlsx`;
+      triggerExport('template_ckp_daily.xlsx', 9, rows, { 'D6': `: ${getMonthName(monthVal - 1)} ${yearVal}` }, fileName);
+    } else if (type === 'ckpt' || type === 'ckpr') {
+      const aggregated = {};
+      dataToExport.forEach(e => {
+        if (!aggregated[e.skpId]) aggregated[e.skpId] = { kuantitas: 0, satuan: e.satuan };
+        aggregated[e.skpId].kuantitas += (e.kuantitas || 1);
+      });
+      const rows = Object.keys(aggregated).map((skpIdStr, idx) => {
+        const skpId = Number(skpIdStr);
+        const skpItem = skpData.find(s => s.id === skpId);
+        if (type === 'ckpt') {
+          return [
+            idx + 1, skpItem ? skpItem.nama : `SKP #${skpId}`, aggregated[skpIdStr].satuan || 'kegiatan',
+            aggregated[skpIdStr].kuantitas, '', '', ''
+          ];
+        } else {
+          return [
+            idx + 1, skpItem ? skpItem.nama : `SKP #${skpId}`, aggregated[skpIdStr].satuan || 'kegiatan',
+            aggregated[skpIdStr].kuantitas, aggregated[skpIdStr].kuantitas, 100, 100, '', '', ''
+          ];
+        }
+      });
+      const fileName = type === 'ckpt' 
+        ? `CKP-T_${getMonthName(monthVal - 1)}_${yearVal}_Yahya_Abdurrohman.xlsx`
+        : `CKP-R_${getMonthName(monthVal - 1)}_${yearVal}_Yahya_Abdurrohman.xlsx`;
+      triggerExport(type === 'ckpt' ? 'template_ckp_t.xlsx' : 'template_ckp_r.xlsx', 12, rows, { 'C7': `: ${getMonthName(monthVal - 1)} ${yearVal}` }, fileName);
+    }
+  };
 
-    XLSX.writeFile(workbook, `Rekap_CKP_${getMonthName(monthVal - 1)}_${yearVal}.xlsx`);
+  const handleExportDaily = () => initiateExport('daily');
+  const handleExportCKPT = () => initiateExport('ckpt');
+  const handleExportCKPR = () => initiateExport('ckpr');
+  const handleExportAll = () => initiateExport('all');
+
+  const initiateExport = (type) => {
+    const monthEntries = getMonthEntries();
+    if (monthEntries.length === 0) return showAlert('Tidak ada data bulan ini.');
+    
+    const stretchResult = stretchMonthEntries(monthEntries);
+    if (stretchResult.hasGaps) {
+      setStretchedEntriesData(stretchResult.newEntries);
+      setHasApelWarning(stretchResult.hasApelOnly);
+      setPendingExportType(type);
+      setShowStretchDialog(true);
+    } else {
+      doExport(type, monthEntries);
+    }
+  };
+
+  const doExport = (type, dataToExport) => {
+    if (type === 'all') {
+      execExport('daily', dataToExport);
+      setTimeout(() => execExport('ckpt', dataToExport), 1500);
+      setTimeout(() => execExport('ckpr', dataToExport), 3000);
+    } else {
+      execExport(type, dataToExport);
+    }
   };
 
   return (
     <div className={styles.rekapContainer}>
-      <div className={styles.datePickerRow}>
-        <label className={styles.label}>Pilih Bulan:</label>
-        <input
-          type="month"
-          className={styles.input}
-          value={selectedMonth}
-          onChange={(e) => setSelectedMonth(e.target.value)}
-        />
+      <div className={styles.headerRow}>
+        <div className={styles.datePickerGroup}>
+          <label className={styles.label}>Pilih Bulan:</label>
+          <input
+            type="month"
+            className={styles.input}
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+          />
+        </div>
+        <div className={styles.exportGroup}>
+          <button className={styles.exportBtnMini} onClick={handleExportDaily} title="Export CKP Daily">Daily</button>
+          <button className={styles.exportBtnMini} onClick={handleExportCKPT} title="Export CKP-T (Target)">CKP-T</button>
+          <button className={styles.exportBtnMini} onClick={handleExportCKPR} title="Export CKP-R (Realisasi)">CKP-R</button>
+          <button className={styles.exportBtnMiniPrimary} onClick={handleExportAll} title="Download 3 Laporan Sekaligus">
+            <Download size={14} style={{ marginRight: '6px' }} /> 1 Paket
+          </button>
+        </div>
       </div>
 
       <h3 className={styles.rekapTitle}>
@@ -1225,10 +1738,12 @@ function TabRekapBulanan({ entries }) {
         </div>
       </div>
 
+      <MonthlyTimeVisualizer entries={entries} year={yearVal} month={monthVal} />
+
       {monthData.length === 0 ? (
         <div className={styles.emptyState}>
           <span className={styles.emptyIcon}><BarChart2 size={48} /></span>
-          <p>Belum ada data kegiatan bulan ini.</p>
+          <p>Belum ada rekapan untuk bulan ini.</p>
         </div>
       ) : (
         <div className={styles.tableWrapper}>
@@ -1237,22 +1752,22 @@ function TabRekapBulanan({ entries }) {
               <tr>
                 <th>Tanggal</th>
                 <th>Hari</th>
-                <th>Kegiatan</th>
+                <th>Jumlah Kegiatan</th>
                 <th>Total Jam</th>
-                <th>Butir SKP yang Dikerjakan</th>
+                <th>SKP Dikerjakan</th>
               </tr>
             </thead>
             <tbody>
-              {monthData.map((row) => (
-                <tr key={row.tanggal} className={row.isWeekend ? styles.weekendRow : ''}>
-                  <td>{row.tanggal.split('-')[2]}</td>
+              {monthData.map((row, idx) => (
+                <tr key={idx}>
+                  <td>{row.tanggal}</td>
                   <td>{row.hari}</td>
                   <td>{row.jumlahKegiatan}</td>
-                  <td>{formatDuration(row.totalJam)}</td>
+                  <td>{row.totalJamStr}</td>
                   <td>
-                    <div className={styles.skpBadges}>
-                      {row.skpIds.map((sid) => (
-                        <span key={sid} className={styles.skpBadge}>#{sid}</span>
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      {row.skpIds.map(id => (
+                        <span key={id} className={styles.skpBadge}>#{id}</span>
                       ))}
                     </div>
                   </td>
@@ -1263,12 +1778,46 @@ function TabRekapBulanan({ entries }) {
         </div>
       )}
 
-      <button className={styles.exportBtn} onClick={handleExport}>
-        <span><Download size={18} style={{marginRight: '8px'}} /></span> Export Rekap Bulanan
-      </button>
+      {showStretchDialog && (
+        <div className={styles.confirmOverlay}>
+          <div className={styles.confirmDialog}>
+            <h3 className={styles.confirmTitle}>Kekosongan Jam Kerja Ditemukan</h3>
+            <p className={styles.confirmMessage}>
+              Terdapat jam kerja yang masih kosong di bulan ini. Apakah Anda ingin SuperBrain secara cerdas meregangkan (Stretching) durasi kegiatan Anda agar jam kerja penuh secara otomatis pada file Excel?
+            </p>
+            {hasApelWarning && (
+              <div style={{ padding: '12px', background: 'rgba(234, 179, 8, 0.1)', border: '1px solid #eab308', borderRadius: '6px', color: '#fef08a', fontSize: '13px', marginBottom: '16px' }}>
+                <strong style={{ color: '#eab308' }}>⚠️ Peringatan:</strong> Ada hari yang hanya berisi kegiatan "Apel" atau "Upacara". Sistem tidak akan meregangkan hari tersebut menjadi seharian penuh.
+              </div>
+            )}
+            <div className={styles.confirmActions}>
+              <button 
+                className={styles.cancelBtn} 
+                onClick={() => {
+                  setShowStretchDialog(false);
+                  doExport(pendingExportType, getMonthEntries());
+                }}
+              >
+                Tidak, Ekspor Apa Adanya
+              </button>
+              <button 
+                className={styles.confirmBtn}
+                style={{ background: '#10b981' }}
+                onClick={() => {
+                  setShowStretchDialog(false);
+                  doExport(pendingExportType, stretchedEntriesData);
+                }}
+              >
+                <Check size={16} /> Ya, Sesuaikan Otomatis
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
 // TAB 4: Rekap Triwulanan
 function TabRekapTriwulanan({ entries }) {
   const { showAlert } = useAlert();
@@ -1276,8 +1825,8 @@ function TabRekapTriwulanan({ entries }) {
   const [selectedQuarter, setSelectedQuarter] = useState(Math.floor(new Date().getMonth() / 3) + 1);
 
   const quarterData = useMemo(() => {
-    const startMonth = (selectedQuarter - 1) * 3 + 1; // 1, 4, 7, 10
-    const endMonth = startMonth + 2; // 3, 6, 9, 12
+    const startMonth = (selectedQuarter - 1) * 3 + 1;
+    const endMonth = startMonth + 2;
     const data = [];
 
     for (let m = startMonth; m <= endMonth; m++) {
@@ -1436,6 +1985,7 @@ function TabRekapTriwulanan({ entries }) {
     </div>
   );
 }
+
 // Main Page (inner component - needs Suspense for useSearchParams)
 function CKPPageInner() {
   const searchParams = useSearchParams();
@@ -1444,6 +1994,7 @@ function CKPPageInner() {
   const [activeTab, setActiveTab] = useState(0);
   const { docs: entries, loading, addDocument, updateDocument, deleteDocument } = useFirestore('ckp');
   const { setPageData } = useAIContext();
+  const [sharedSelectedDate, setSharedSelectedDate] = useState(getTodayStr());
 
   useEffect(() => {
     setPageData(entries);
@@ -1453,7 +2004,6 @@ function CKPPageInner() {
   const [editingEntry, setEditingEntry] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
-  // Handle AI Create CKP
   const handleAICreateCKP = useCallback(async (data) => {
     try {
       await addDocument({
@@ -1563,11 +2113,8 @@ function CKPPageInner() {
 
   const handleEdit = (entry) => {
     setEditingEntry(entry);
+    setSharedSelectedDate(entry.tanggal);
     setActiveTab(0);
-  };
-
-  const handleCancelEdit = () => {
-    setEditingEntry(null);
   };
 
   const handleDelete = (id) => {
@@ -1597,6 +2144,16 @@ function CKPPageInner() {
 
   const handleSubmit = useCallback(async (formData) => {
     await addDocument(formData);
+
+    const scheduleId = formData.sourceScheduleId || formData.fromScheduleEventId;
+    if (scheduleId) {
+      try {
+        await updateDoc(doc(db, 'schedule', scheduleId), { isSelesai: true });
+      } catch (err) {
+        console.error("Gagal update status jadwal:", err);
+      }
+    }
+
     setToastVisible(true);
 
     // Telegram Notification
@@ -1659,10 +2216,24 @@ function CKPPageInner() {
                 onSubmit={handleSubmit} 
                 onUpdate={handleUpdate} 
                 initialData={editingEntry}
-                onCancelEdit={handleCancelEdit} 
+                onCancelEdit={() => {
+                  setEditingEntry(null);
+                  setActiveTab(1);
+                }}
+                entries={entries}
+                sharedDate={sharedSelectedDate}
+                setSharedDate={setSharedSelectedDate}
               />
             )}
-            {activeTab === 1 && <TabRekapHarian entries={entries} onEdit={handleEdit} onDelete={handleDelete} />}
+            {activeTab === 1 && (
+              <TabRekapHarian 
+                entries={entries} 
+                onEdit={handleEdit} 
+                onDelete={handleDelete} 
+                selectedDate={sharedSelectedDate}
+                setSelectedDate={setSharedSelectedDate}
+              />
+            )}
             {activeTab === 2 && <TabRekapBulanan entries={entries} />}
             {activeTab === 3 && <TabRekapTriwulanan entries={entries} />}
           </>

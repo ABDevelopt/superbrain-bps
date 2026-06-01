@@ -21,13 +21,15 @@ const BULAN = [
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
 ];
 
-const KATEGORI = ['Deadline', 'Rapat', 'Survei', 'Pelatihan', 'Lainnya'];
+const KATEGORI = ['Deadline', 'Rapat', 'Survei', 'Pelatihan', 'Upacara/Apel', 'Teknis', 'Lainnya'];
 const KATEGORI_COLORS = {
   Deadline: '#ef4444',
-  Rapat: '#6366f1',
+  Rapat: '#3b82f6',
   Survei: '#10b981',
-  Pelatihan: '#f59e0b',
-  Lainnya: '#22d3ee',
+  Pelatihan: '#8b5cf6',
+  'Upacara/Apel': '#f59e0b',
+  Teknis: '#06b6d4',
+  Lainnya: '#64748b',
   'Google Calendar': '#4285F4',
 };
 const REMINDER_OPTIONS = ['H-3', 'H-1', '1 Jam Sebelum', '5 Menit Sebelum'];
@@ -600,7 +602,7 @@ export default function SchedulePage() {
       // PROSES OTOMATIS: Buat tugas di latar belakang jika jadwal tidak dibuat dari tugas
       try {
         const newTaskRef = await addTask({
-          judul: `Tindak lanjut: ${formData.judul}`,
+          judul: formData.judul,
           deskripsi: `Dibuat dari jadwal: ${formData.judul}`,
           status: 'todo',
           skpId: formData.skpId || null,
@@ -655,7 +657,7 @@ export default function SchedulePage() {
         const linkedTasks = tasks.filter(t => t.linkedScheduleId === id);
         for (const t of linkedTasks) {
           const updates = {};
-          if (formData.judul) updates.judul = `Tindak lanjut: ${formData.judul}`;
+          if (formData.judul) updates.judul = formData.judul;
           if (formData.tanggal) updates.deadline = formData.tanggal;
           await updateTask(t.id, updates);
         }
@@ -971,7 +973,7 @@ export default function SchedulePage() {
                     const event = selectedEventForDetail;
                     try {
                       const ref = await addTask({
-                        judul: `Tindak lanjut: ${event.judul}`,
+                        judul: event.judul,
                         deskripsi: `Dibuat dari jadwal: ${event.judul}`,
                         status: 'todo',
                         skpId: event.skpId || null,

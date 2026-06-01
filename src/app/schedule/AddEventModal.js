@@ -5,7 +5,7 @@ import { X, Calendar, MapPin, AlertTriangle } from 'lucide-react';
 import { skpData } from '@/data/skpData';
 import styles from './page.module.css';
 
-const KATEGORI = ['Deadline', 'Rapat', 'Survei', 'Pelatihan', 'Lainnya'];
+const KATEGORI = ['Deadline', 'Rapat', 'Survei', 'Pelatihan', 'Upacara/Apel', 'Teknis', 'Lainnya'];
 const REMINDER_OPTIONS = ['H-3', 'H-1', '1 Jam Sebelum', '5 Menit Sebelum'];
 export const URGENSI_OPTIONS = ['Rendah', 'Sedang', 'Tinggi', 'Kritis'];
 export const URGENSI_COLORS = {

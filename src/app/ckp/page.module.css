@@ -1248,3 +1248,284 @@
   display: inline-block;
   font-family: 'Inter', sans-serif;
 }
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.datePickerGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.exportGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.exportBtnMini {
+  background: transparent;
+  color: #94a3b8;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.exportBtnMini:hover {
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.exportBtnMiniPrimary {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: white;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.exportBtnMiniPrimary:hover {
+  background: linear-gradient(135deg, #818cf8, #6366f1);
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3);
+}
+/* ===== Time Visualizer ===== */
+.timeVizContainer {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px 20px 24px 20px;
+  margin-top: 20px;
+  margin-bottom: 24px;
+}
+
+.timeVizTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 24px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.timeVizBar {
+  position: relative;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  margin-bottom: 28px;
+}
+
+.timeVizMarker {
+  position: absolute;
+  top: 0;
+  bottom: -4px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  z-index: 1;
+}
+
+.timeVizLabel {
+  position: absolute;
+  bottom: -20px;
+  left: -14px;
+  font-size: 10px;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.timeVizBlock {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(99, 102, 241, 0.7);
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  z-index: 2;
+  cursor: help;
+  transition: background 0.2s;
+}
+
+.timeVizBlock:hover {
+  background: rgba(129, 140, 248, 0.9);
+}
+
+.timeVizLegend {
+  display: flex;
+  gap: 16px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.timeVizLegendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timeVizLegendColor {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+/* ===== Monthly Time Visualizer ===== */
+.monthlyVizContainer {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+}
+
+.monthlyVizList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.monthlyVizRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.monthlyVizLabel {
+  width: 60px;
+  font-size: 11px;
+  color: #94a3b8;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.monthlyVizBar {
+  position: relative;
+  flex: 1;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.monthlyVizBlock {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(99, 102, 241, 0.7);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  z-index: 2;
+  cursor: help;
+  transition: background 0.2s;
+}
+
+.monthlyVizBlock:hover {
+  background: rgba(129, 140, 248, 0.9);
+}
+
+.monthlyVizDurasi {
+  width: 50px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #22d3ee;
+  text-align: left;
+  flex-shrink: 0;
+}
+.dateNavBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dateNavBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+.dateNavBtn:active {
+  transform: scale(0.95);
+}
+/* ===== Custom Searchable Dropdown ===== */
+.customSelectWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.customSelectInput {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.customDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  z-index: 50;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.customDropdownSearch {
+  padding: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.customDropdownList {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.customDropdownItem {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #f1f5f9;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.customDropdownItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.customDropdownItemId {
+  font-weight: 600;
+  color: #818cf8;
+  margin-right: 4px;
+}
