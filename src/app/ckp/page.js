@@ -19,6 +19,12 @@ import { db } from '@/lib/firebase';
 
 const SATUAN_OPTIONS = ['Kegiatan', 'Lembar', 'File', 'Dokumen', 'Orang', 'Lainnya'];
 
+const getColorForSkp = (skpId) => {
+  if (!skpId || isNaN(Number(skpId)) || Number(skpId) === 0) return 'rgba(148, 163, 184, 0.8)'; // slate-400
+  const hue = (Number(skpId) * 137.5) % 360;
+  return `hsla(${hue}, 75%, 55%, 0.85)`;
+};
+
 const TIM_KERJA_OPTIONS = [
   'Subbagian Umum',
   'Tim IPJKD & DLS',
@@ -178,6 +184,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
   const [file, setFile] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [cameraStream, setCameraStream] = useState(null);
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -956,7 +963,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
           <label className={styles.checkboxLabel} style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
             <input 
               type="checkbox"
-              checked={form.isFullday}
+              checked={form.isFullday || false}
               onChange={(e) => setForm(prev => ({...prev, isFullday: e.target.checked}))}
             />
             <span>Isi sisa waktu hari ini (Fullday)</span>
@@ -1208,6 +1215,12 @@ function DailyTimeVisualizer({ entries, date }) {
   const coreLeft = coreStart ? ((coreStart - START_HOUR * 60) / TOTAL_MINUTES) * 100 : null;
   const coreWidth = coreStart && coreEnd ? ((coreEnd - coreStart) / TOTAL_MINUTES) * 100 : null;
 
+  const getColorForSkp = (skpId) => {
+    if (!skpId || isNaN(Number(skpId)) || Number(skpId) === 0) return 'rgba(148, 163, 184, 0.8)'; // slate-400
+    const hue = (Number(skpId) * 137.5) % 360;
+    return `hsla(${hue}, 75%, 55%, 0.85)`;
+  };
+
   const blocks = entries.map(e => {
     const startMin = getMinutes(e.waktuMulai);
     const endMin = getMinutes(e.waktuSelesai);
@@ -1223,7 +1236,8 @@ function DailyTimeVisualizer({ entries, date }) {
       id: e.id,
       left: `${leftPerc}%`,
       width: `${widthPerc}%`,
-      title: `${e.waktuMulai} - ${e.waktuSelesai}: ${e.rincian}`
+      title: `${e.waktuMulai} - ${e.waktuSelesai}: ${e.rincian}`,
+      color: getColorForSkp(e.skpId)
     };
   }).filter(Boolean);
 
@@ -1246,7 +1260,7 @@ function DailyTimeVisualizer({ entries, date }) {
           <div 
             key={b.id} 
             className={styles.timeVizBlock} 
-            style={{ left: b.left, width: b.width }}
+            style={{ left: b.left, width: b.width, backgroundColor: b.color }}
             title={b.title}
           />
         ))}
@@ -1301,7 +1315,8 @@ function MonthlyTimeVisualizer({ entries, year, month }) {
         id: e.id,
         left: `${((clampedStart - START_HOUR * 60) / TOTAL_MINUTES) * 100}%`,
         width: `${((clampedEnd - clampedStart) / TOTAL_MINUTES) * 100}%`,
-        title: `${e.waktuMulai} - ${e.waktuSelesai}`
+        title: `${e.waktuMulai} - ${e.waktuSelesai}`,
+        color: getColorForSkp(e.skpId)
       };
     }).filter(Boolean);
     
@@ -1316,9 +1331,27 @@ function MonthlyTimeVisualizer({ entries, year, month }) {
     });
   }
 
+  const monthEntries = entries.filter(e => {
+    if (!e.tanggal) return false;
+    const [y, m] = e.tanggal.split('-').map(Number);
+    return y === year && m === month;
+  });
+  const uniqueSkps = Array.from(new Set(monthEntries.map(e => e.skpId)));
+
   return (
     <div className={styles.monthlyVizContainer}>
-      <h4 className={styles.timeVizTitle} style={{ marginBottom: '16px' }}>Peta Kekosongan CKP Bulan Ini</h4>
+      <h4 className={styles.timeVizTitle} style={{ marginBottom: '8px' }}>Peta Kekosongan CKP Bulan Ini</h4>
+      
+      {uniqueSkps.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
+          {uniqueSkps.map(skpId => (
+            <span key={skpId || 'non-skp'} className={styles.skpBadge} style={{ backgroundColor: getColorForSkp(skpId), color: '#fff', border: 'none', fontSize: '11px', padding: '2px 8px' }}>
+              {skpId ? `SKP #${skpId}` : 'Non-SKP'}
+            </span>
+          ))}
+        </div>
+      )}
+
       <div className={styles.monthlyVizList}>
         {days.map(d => (
           <div key={d.dateStr} className={styles.monthlyVizRow}>
@@ -1328,7 +1361,7 @@ function MonthlyTimeVisualizer({ entries, year, month }) {
                 style={{ position: 'absolute', left: d.coreLeft, width: d.coreWidth, top: '0', bottom: '0', border: '1px dashed rgba(16, 185, 129, 0.4)', borderRadius: '4px', zIndex: 0 }}
               />
               {d.blocks.map(b => (
-                <div key={b.id} className={styles.monthlyVizBlock} style={{ left: b.left, width: b.width }} title={b.title} />
+                <div key={b.id} className={styles.monthlyVizBlock} style={{ left: b.left, width: b.width, backgroundColor: b.color }} title={b.title} />
               ))}
             </div>
             <div className={styles.monthlyVizDurasi}>{d.totalJamStr}</div>
@@ -1539,9 +1572,18 @@ function stretchMonthEntries(originalEntries) {
 }
 
 // TAB 3: Rekap Bulanan
-function TabRekapBulanan({ entries }) {
+function TabRekapBulanan({ entries, sharedDate, setSharedDate }) {
   const { showAlert } = useAlert();
-  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonthStr());
+  const [selectedMonth, setSelectedMonth] = useState(sharedDate ? sharedDate.substring(0, 7) : getCurrentMonthStr());
+
+  useEffect(() => {
+    if (sharedDate) {
+      const monthFromShared = sharedDate.substring(0, 7);
+      if (selectedMonth !== monthFromShared) {
+        setSelectedMonth(monthFromShared);
+      }
+    }
+  }, [sharedDate]);
 
   const [showStretchDialog, setShowStretchDialog] = useState(false);
   const [pendingExportType, setPendingExportType] = useState(null);
@@ -1617,8 +1659,12 @@ function TabRekapBulanan({ entries }) {
   };
 
   const execExport = (type, dataToExport) => {
+    const sortedData = [...dataToExport].sort((a, b) => {
+      if (a.tanggal !== b.tanggal) return a.tanggal.localeCompare(b.tanggal);
+      return (a.waktuMulai || '').localeCompare(b.waktuMulai || '');
+    });
     if (type === 'daily') {
-      const rows = dataToExport.map((e, idx) => {
+      const rows = sortedData.map((e, idx) => {
         const skpItem = skpData.find(s => s.id === e.skpId);
         return [
           '',
@@ -1637,7 +1683,7 @@ function TabRekapBulanan({ entries }) {
       triggerExport('template_ckp_daily.xlsx', 9, rows, { 'D6': `: ${getMonthName(monthVal - 1)} ${yearVal}` }, fileName);
     } else if (type === 'ckpt' || type === 'ckpr') {
       const aggregated = {};
-      dataToExport.forEach(e => {
+      sortedData.forEach(e => {
         if (!aggregated[e.skpId]) aggregated[e.skpId] = { kuantitas: 0, satuan: e.satuan };
         aggregated[e.skpId].kuantitas += (e.kuantitas || 1);
       });
@@ -1702,7 +1748,10 @@ function TabRekapBulanan({ entries }) {
             type="month"
             className={styles.input}
             value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
+            onChange={(e) => {
+              setSelectedMonth(e.target.value);
+              if (setSharedDate) setSharedDate(e.target.value + '-01');
+            }}
           />
         </div>
         <div className={styles.exportGroup}>
@@ -1968,7 +2017,7 @@ function TabRekapTriwulanan({ entries }) {
                   <td>
                     <div className={styles.skpBadges}>
                       {row.skpIds.map((sid) => (
-                        <span key={sid} className={styles.skpBadge}>#{sid}</span>
+                        <span key={sid} className={styles.skpBadge} style={{ backgroundColor: getColorForSkp(sid), color: '#fff', border: 'none' }}>#{sid || 'Non-SKP'}</span>
                       ))}
                     </div>
                   </td>
@@ -2234,7 +2283,7 @@ function CKPPageInner() {
                 setSelectedDate={setSharedSelectedDate}
               />
             )}
-            {activeTab === 2 && <TabRekapBulanan entries={entries} />}
+            {activeTab === 2 && <TabRekapBulanan entries={entries} sharedDate={sharedSelectedDate} setSharedDate={setSharedSelectedDate} />}
             {activeTab === 3 && <TabRekapTriwulanan entries={entries} />}
           </>
         )}
