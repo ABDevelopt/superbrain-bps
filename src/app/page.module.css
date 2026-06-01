@@ -722,6 +722,18 @@
   box-shadow: 0 4px 20px rgba(16, 185, 129, 0.15);
 }
 
+.btn_purple {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(192, 132, 252, 0.05));
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  color: #d8b4fe;
+}
+
+.btn_purple:hover {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(192, 132, 252, 0.15));
+  border-color: rgba(168, 85, 247, 0.45);
+  box-shadow: 0 4px 20px rgba(168, 85, 247, 0.15);
+}
+
 /* ---- Quote Box ---- */
 
 .quoteBox {

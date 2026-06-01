@@ -15,6 +15,9 @@ export async function getSmartSuggestionsAction(prompt) {
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error('Batas penggunaan AI tercapai (Terlalu banyak permintaan). Silakan tunggu beberapa menit dan coba lagi.');
+      }
       throw new Error(`Gagal menghubungi Gemini API: ${response.status}`);
     }
 

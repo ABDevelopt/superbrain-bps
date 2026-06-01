@@ -1,21 +1,53 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './SmartSuggestions.module.css';
 import { Sparkles, CheckCircle2, Clock, Check, X } from 'lucide-react';
 import { useFirestore } from '@/hooks/useFirestore';
 import { skpData } from '@/data/skpData';
 import { getSmartSuggestionsAction } from '@/actions/suggestions';
 
-export default function SmartSuggestions({ contextData }) {
+export default function SmartSuggestions({ contextData, buttonClassName, labelClassName, arrowClassName }) {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [analyzed, setAnalyzed] = useState(false);
   const [error, setError] = useState(null);
+  const [usagePercent, setUsagePercent] = useState(0);
   
   const { addDocument: addCkp } = useFirestore('ckp');
   const { addDocument: addTask, updateDocument: updateTask } = useFirestore('tasks');
 
+  const updateUsage = () => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('ai_api_usage') || '[]');
+      const now = Date.now();
+      const valid = stored.filter(t => now - t < 60000); // 1 minute window
+      if (valid.length !== stored.length) {
+        localStorage.setItem('ai_api_usage', JSON.stringify(valid));
+      }
+      const percent = Math.min(100, Math.round((valid.length / 15) * 100));
+      setUsagePercent(percent);
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    updateUsage();
+    const interval = setInterval(updateUsage, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const trackUsage = () => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('ai_api_usage') || '[]');
+      const now = Date.now();
+      const valid = stored.filter(t => now - t < 60000);
+      valid.push(now);
+      localStorage.setItem('ai_api_usage', JSON.stringify(valid));
+      updateUsage();
+    } catch (e) {}
+  };
+
   const handleAnalyze = async () => {
+    trackUsage();
     setLoading(true);
     setError(null);
     try {
@@ -104,18 +136,25 @@ KEMBALIKAN HANYA SEBUAH OBJEK JSON DENGAN FORMAT BERIKUT (TANPA MARKDOWN BLOCKS)
     return null; // hide if all clear
   }
 
+  if (!analyzed && !loading) {
+    return (
+      <button onClick={handleAnalyze} className={buttonClassName || styles.analyzeBtn} title={`Penggunaan API per menit: ${usagePercent}%`}>
+        <span className={labelClassName || ''}>
+          <Sparkles size={16} style={{display: 'inline-block', marginRight: '8px', verticalAlign: 'text-bottom'}} /> 
+          Saran Cerdas AI <span style={{fontSize: '0.75rem', opacity: 0.7, fontWeight: 'normal', marginLeft: '4px'}}>({usagePercent}%)</span>
+        </span>
+        <span className={arrowClassName || ''}>→</span>
+      </button>
+    );
+  }
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.titleArea}>
           <Sparkles size={18} className={styles.icon} />
-          <h3 className={styles.title}>Rekomendasi Cerdas AI</h3>
+          <h3 className={styles.title}>Saran Cerdas AI <span style={{fontSize: '0.75rem', opacity: 0.7, fontWeight: 'normal'}}>({usagePercent}%)</span></h3>
         </div>
-        {!analyzed && !loading && (
-          <button onClick={handleAnalyze} className={styles.analyzeBtn}>
-            Dapatkan Saran
-          </button>
-        )}
       </div>
 
       {error && <div className={styles.error}>{error}</div>}

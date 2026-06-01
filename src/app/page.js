@@ -327,11 +327,6 @@ export default function Dashboard() {
             ))}
           </div>
         </section>
-        {/* Smart Suggestions */}
-        {!(tasksLoading || scheduleLoading || ckpLoading) && (
-          <SmartSuggestions contextData={{ tasks: taskDocs, schedules: scheduleDocs, ckps: ckpDocs }} />
-        )}
-
         {/* Main Content Grid */}
         <div className={styles.contentGrid}>
           {/* Quick Actions (Aksi Cepat) */}
@@ -354,6 +349,16 @@ export default function Dashboard() {
                     <span className={styles.quickBtnArrow}>→</span>
                   </Link>
                 ))}
+                
+                {/* Rekomendasi Cerdas AI (Smart Suggestions) */}
+                {!(tasksLoading || scheduleLoading || ckpLoading) && (
+                  <SmartSuggestions 
+                    contextData={{ tasks: taskDocs, schedules: scheduleDocs, ckps: ckpDocs }} 
+                    buttonClassName={`${styles.quickBtn} ${styles.btn_purple}`}
+                    labelClassName={styles.quickBtnLabel}
+                    arrowClassName={styles.quickBtnArrow}
+                  />
+                )}
               </div>
             </div>
           </section>

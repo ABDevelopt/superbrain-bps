@@ -253,6 +253,30 @@
   background: #059669;
 }
 
+.btnWarning {
+  background: #f59e0b;
+  color: #0f172a;
+}
+.btnWarning:hover {
+  background: #d97706;
+}
+
+.btnOutline {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #e2e8f0;
+}
+.btnOutline:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.backupControls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
 .successMsg {
   margin-left: 64px;
   font-size: 13px;

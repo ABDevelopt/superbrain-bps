@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useAlert } from '@/contexts/AlertContext';
-import { Settings as SettingsIcon, Send, User, Bell, Shield, LogOut } from 'lucide-react';
+import { Settings as SettingsIcon, Send, User, Bell, Shield, LogOut, Database, Cloud, UploadCloud, DownloadCloud } from 'lucide-react';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
+import { exportToJSON, createCloudSnapshot, restoreFromCloudSnapshot, restoreFromBackupData } from '@/lib/backupService';
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
@@ -12,6 +13,8 @@ export default function SettingsPage() {
   const [chatId, setChatId] = useState('');
   const [savedChatId, setSavedChatId] = useState('');
   const [mounted, setMounted] = useState(false);
+  const [isBackingUp, setIsBackingUp] = useState(false);
+  const [lastCloudBackup, setLastCloudBackup] = useState('Belum pernah');
 
   useEffect(() => {
     setMounted(true);
@@ -19,6 +22,11 @@ export default function SettingsPage() {
     if (saved) {
       setSavedChatId(saved);
       setChatId(saved);
+    }
+    
+    const lastBackup = localStorage.getItem('last_cloud_backup');
+    if (lastBackup) {
+      setLastCloudBackup(new Date(lastBackup).toLocaleString('id-ID'));
     }
   }, []);
 
@@ -56,6 +64,70 @@ export default function SettingsPage() {
       }
     } catch (e) {
       showAlert('Gagal mengirim pesan: ' + e.message);
+    }
+  };
+
+  const handleBackupLokal = async () => {
+    try {
+      setIsBackingUp(true);
+      await exportToJSON();
+      showAlert('Data (Jadwal, CKP, SKP, Tugas) berhasil di-export ke JSON!');
+    } catch (err) {
+      showAlert('Gagal backup lokal: ' + err.message);
+    } finally {
+      setIsBackingUp(false);
+    }
+  };
+
+  const handleRestoreLokal = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!confirm('Peringatan: Proses ini akan menyisipkan/menggantikan data yang ada. Lanjutkan?')) {
+      e.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        setIsBackingUp(true);
+        const data = JSON.parse(event.target.result);
+        await restoreFromBackupData(data);
+        showAlert('Data berhasil dipulihkan dari file JSON!');
+      } catch (err) {
+        showAlert('Gagal memulihkan: ' + err.message);
+      } finally {
+        setIsBackingUp(false);
+        e.target.value = '';
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleBackupCloud = async () => {
+    try {
+      setIsBackingUp(true);
+      await createCloudSnapshot();
+      setLastCloudBackup(new Date().toLocaleString('id-ID'));
+      showAlert('Snapshot berhasil disimpan ke Firestore (Cloud)!');
+    } catch (err) {
+      showAlert('Gagal backup cloud: ' + err.message);
+    } finally {
+      setIsBackingUp(false);
+    }
+  };
+
+  const handleRestoreCloud = async () => {
+    if (!confirm('Peringatan: Ini akan mengembalikan seluruh data Anda ke snapshot terakhir di cloud. Lanjutkan?')) return;
+    try {
+      setIsBackingUp(true);
+      await restoreFromCloudSnapshot();
+      showAlert('Data berhasil dipulihkan dari Cloud Snapshot!');
+    } catch (err) {
+      showAlert('Gagal memulihkan dari Cloud: ' + err.message);
+    } finally {
+      setIsBackingUp(false);
     }
   };
 
@@ -148,6 +220,69 @@ export default function SettingsPage() {
                   ✓ Telegram bot sudah terhubung ke ID: {savedChatId}
                 </div>
               )}
+            </div>
+
+          </div>
+        </section>
+
+        {/* Manajemen & Backup Data Card */}
+        <section className={styles.settingsSection}>
+          <div className={styles.sectionHeader}>
+            <Database size={20} className={styles.sectionIcon} />
+            <h2 className={styles.sectionTitle}>Manajemen & Backup Data</h2>
+          </div>
+          <div className={styles.card}>
+            
+            {/* Backup Lokal */}
+            <div className={styles.integrationItem} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '24px' }}>
+              <div className={styles.integrationHeader}>
+                <div className={styles.integrationIconWrap} style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+                  <Database size={24} />
+                </div>
+                <div className={styles.integrationTexts}>
+                  <h3 className={styles.integrationTitle}>Backup Offline (JSON)</h3>
+                  <p className={styles.integrationDesc}>
+                    Unduh salinan data (CKP, Tugas, Jadwal, SKP) ke perangkat Anda sebagai file JSON, atau pulihkan data dari file.
+                  </p>
+                </div>
+              </div>
+              <div className={styles.backupControls} style={{ marginLeft: '64px' }}>
+                <button onClick={handleBackupLokal} disabled={isBackingUp} className={`${styles.btn} ${styles.btnOutline}`}>
+                  <DownloadCloud size={16} style={{display:'inline', marginRight:'6px', verticalAlign:'text-bottom'}}/> 
+                  Unduh File
+                </button>
+                <label className={`${styles.btn} ${styles.btnPrimary}`} style={{ cursor: 'pointer' }}>
+                  <UploadCloud size={16} style={{display:'inline', marginRight:'6px', verticalAlign:'text-bottom'}}/>
+                  Pulihkan
+                  <input type="file" accept=".json" onChange={handleRestoreLokal} style={{ display: 'none' }} disabled={isBackingUp} />
+                </label>
+              </div>
+            </div>
+
+            {/* Backup Cloud */}
+            <div className={styles.integrationItem} style={{ marginTop: '24px' }}>
+              <div className={styles.integrationHeader}>
+                <div className={styles.integrationIconWrap} style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }}>
+                  <Cloud size={24} />
+                </div>
+                <div className={styles.integrationTexts}>
+                  <h3 className={styles.integrationTitle}>Cloud Snapshot</h3>
+                  <p className={styles.integrationDesc}>
+                    Simpan snapshot seluruh data secara instan ke Cloud Firestore. Data lama akan tertimpa (hanya menyimpan 1 snapshot terbaru).
+                  </p>
+                  <p className={styles.successMsg} style={{ marginLeft: 0, marginTop: '4px', fontSize: '12px' }}>
+                    Backup terakhir: {lastCloudBackup}
+                  </p>
+                </div>
+              </div>
+              <div className={styles.backupControls} style={{ marginLeft: '64px' }}>
+                <button onClick={handleBackupCloud} disabled={isBackingUp} className={`${styles.btn} ${styles.btnSuccess}`}>
+                  Buat Snapshot
+                </button>
+                <button onClick={handleRestoreCloud} disabled={isBackingUp} className={`${styles.btn} ${styles.btnWarning}`}>
+                  Pulihkan dari Cloud
+                </button>
+              </div>
             </div>
 
           </div>

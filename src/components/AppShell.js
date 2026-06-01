@@ -8,6 +8,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import LoadingScreen from './LoadingScreen';
 import AIChatbot from './AIChatbot';
+import { createCloudSnapshot } from '@/lib/backupService';
 
 export default function AppShell({ children }) {
   const { user, loading } = useAuth();
@@ -22,6 +23,28 @@ export default function AppShell({ children }) {
       router.push('/login');
     }
   }, [user, loading, isPublicPage, router]);
+
+  // Auto-backup daily
+  useEffect(() => {
+    if (user && !isPublicPage) {
+      const lastBackupStr = localStorage.getItem('last_cloud_backup');
+      const now = new Date();
+      let shouldBackup = false;
+
+      if (!lastBackupStr) {
+        shouldBackup = true;
+      } else {
+        const lastBackupDate = new Date(lastBackupStr);
+        if ((now - lastBackupDate) > 24 * 60 * 60 * 1000) {
+          shouldBackup = true;
+        }
+      }
+
+      if (shouldBackup) {
+        createCloudSnapshot().catch(err => console.error('Auto-backup failed:', err));
+      }
+    }
+  }, [user, isPublicPage]);
 
   if (loading) {
     return <LoadingScreen />;
