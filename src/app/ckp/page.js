@@ -627,18 +627,38 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
     if (!form.rincian) return;
     
     setIsUploading(true);
-    let buktiDukungLink = null;
+    let finalBuktiDukung = null;
+    let needsOfflineSave = false;
+    let offlineFile = null;
+    let offlineFileName = null;
+    let offlineErrorMsg = null;
 
     try {
-      if (file && accessToken) {
-        try {
-          buktiDukungLink = await uploadFileToDrive(file, accessToken);
-        } catch (err) {
-          console.error("Upload error:", err);
-          showAlert('Gagal mengunggah file ke Google Drive, namun data CKP tetap akan disimpan.');
+      if (buktiType === 'link' && buktiLink) {
+        finalBuktiDukung = buktiLink;
+      } else if (buktiType === 'file' && file) {
+        const cleanKegiatan = form.rincian.substring(0, 30).replace(/[^a-zA-Z0-9 -]/g, '').trim();
+        const fileName = `${form.tanggal} - ${cleanKegiatan} - ${file.name}`;
+        
+        if (accessToken) {
+          try {
+            const folderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS - Bukti Dukung');
+            finalBuktiDukung = await uploadFileToDrive(file, accessToken, folderId, fileName);
+          } catch (err) {
+            console.error("Upload error:", err);
+            needsOfflineSave = true;
+            offlineFile = file;
+            offlineFileName = fileName;
+            offlineErrorMsg = err.message && err.message.includes('401') 
+              ? 'Sesi Google Drive kedaluwarsa. File disimpan sementara secara lokal.'
+              : 'Gagal mengunggah ke Google Drive. File disimpan secara lokal.';
+          }
+        } else {
+          needsOfflineSave = true;
+          offlineFile = file;
+          offlineFileName = fileName;
+          offlineErrorMsg = 'Anda belum terhubung ke Google Drive. File disimpan sementara secara lokal.';
         }
-      } else if (file && !accessToken) {
-        showAlert('Info: Foto/file tidak diunggah karena Anda belum memberi izin akses Google Drive. Data CKP tetap disimpan.');
       }
 
       const dataToSave = {
@@ -646,7 +666,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         skpId: form.skpId ? Number(form.skpId) : null,
         kuantitas: Number(form.kuantitas) || 1,
         durasi: duration,
-        buktiDukung: buktiDukungLink || (initialData ? initialData.buktiDukung : null) || null,
+        buktiDukung: finalBuktiDukung || (initialData ? initialData.buktiDukung : null) || null,
         fromScheduleEventId: form._fromScheduleEventId || (initialData ? initialData.fromScheduleEventId : null) || null,
         sumber: form._sumber || (initialData ? initialData.sumber : 'manual') || 'manual',
         sourceScheduleId: form._sourceScheduleId || (initialData ? initialData.sourceScheduleId : null) || null,
@@ -658,8 +678,9 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
       delete dataToSave._sourceScheduleId;
       delete dataToSave._sourceTaskId;
 
+      let savedEntryIds = [];
+
       if (form.isFullday) {
-        // Find all gaps
         const dow = new Date(form.tanggal + 'T00:00:00').getDay();
         const START_MIN = 7 * 60 + 30; // 07:30
         const END_MIN = dow === 5 ? 16 * 60 + 30 : 16 * 60;
@@ -705,15 +726,25 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
             durasi: d 
           };
           delete gapData.isFullday;
-          await onSubmit(gapData);
+          const eid = await onSubmit(gapData);
+          if (eid) savedEntryIds.push(eid);
         }
       } else {
         delete dataToSave.isFullday;
         if (initialData && initialData.id && onUpdate) {
-          await onUpdate(initialData.id, dataToSave);
+          const eid = await onUpdate(initialData.id, dataToSave);
+          if (eid) savedEntryIds.push(eid);
         } else {
-          await onSubmit(dataToSave);
+          const eid = await onSubmit(dataToSave);
+          if (eid) savedEntryIds.push(eid);
         }
+      }
+
+      if (needsOfflineSave && savedEntryIds.length > 0) {
+        for (const eid of savedEntryIds) {
+          await savePendingUpload(eid, offlineFile, offlineFileName);
+        }
+        showAlert(offlineErrorMsg);
       }
 
       setForm({
@@ -726,14 +757,11 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         kuantitas: '',
         satuan: 'Kegiatan',
         timKerja: TIM_KERJA_OPTIONS[0],
-        _sumber: 'manual',
-        _sourceScheduleId: null,
-        _sourceTaskId: null,
-        _fromScheduleEventId: null,
       });
       setSkpSearch('');
       setFile(null);
       setPreviewImage(null);
+      setBuktiLink('');
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (cameraRef.current) cameraRef.current.value = '';
       if (initialData && onCancelEdit) onCancelEdit();
@@ -2378,7 +2406,7 @@ function CKPPageInner() {
       }
       
       if (successCount > 0) {
-        showAlert(\Berhasil menyinkronkan \ file ke Google Drive.\);
+        showAlert(`Berhasil menyinkronkan ${successCount} file ke Google Drive.`);
         fetchPendingUploads();
       }
     } catch (err) {

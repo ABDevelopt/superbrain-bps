@@ -30,7 +30,7 @@ export async function uploadFileToDrive(file, accessToken, folderId = null, cust
     const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink', {
       method: 'POST',
       headers: {
-        Authorization: \Bearer \\,
+        Authorization: `Bearer ${accessToken}`,
       },
       body: form,
     });
@@ -45,10 +45,10 @@ export async function uploadFileToDrive(file, accessToken, folderId = null, cust
     let webViewLink = data.webViewLink;
 
     // 2. Make the file readable by anyone with the link
-    await fetch(\https://www.googleapis.com/drive/v3/files/\/permissions\, {
+    await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
       method: 'POST',
       headers: {
-        Authorization: \Bearer \\,
+        Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -70,9 +70,9 @@ export async function uploadFileToDrive(file, accessToken, folderId = null, cust
 export async function getOrCreateFolder(accessToken, folderName) {
   try {
     // 1. Search for the folder
-    const query = encodeURIComponent(\mimeType='application/vnd.google-apps.folder' and name='\' and trashed=false\);
-    const searchRes = await fetch(\https://www.googleapis.com/drive/v3/files?q=\&fields=files(id)\, {
-      headers: { Authorization: \Bearer \\ }
+    const query = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`);
+    const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id)`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
     });
     
     if (!searchRes.ok) {
@@ -93,7 +93,7 @@ export async function getOrCreateFolder(accessToken, folderName) {
     const createRes = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
       method: 'POST',
       headers: {
-        Authorization: \Bearer \\,
+        Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(metadata)
