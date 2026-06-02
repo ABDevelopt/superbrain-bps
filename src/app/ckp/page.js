@@ -4,13 +4,14 @@ import { useState, useMemo, useCallback, useEffect, useRef, Suspense } from 'rea
 import { useSearchParams } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { useAlert } from '@/contexts/AlertContext';
-import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Clock, Link as LinkIcon, CloudOff } from 'lucide-react';
 import { skpData } from '@/data/skpData';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFirestore } from '@/hooks/useFirestore';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { uploadFileToDrive } from '@/lib/drive';
+import { uploadFileToDrive, getOrCreateFolder } from '@/lib/drive';
+import { savePendingUpload, getPendingUploads, removePendingUpload, getPendingUploadCount } from '@/lib/localdb';
 import { useChatAction } from '@/contexts/ChatActionContext';
 import { useAIContext } from '@/contexts/AIContext';
 import * as XLSX from 'xlsx';
@@ -161,7 +162,7 @@ function Toast({ message, visible, onClose }) {
 }
 
 // TAB 1: Input Kegiatan
-function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit, entries, sharedDate, setSharedDate }) {
+function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit, entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday }) {
   const { accessToken } = useAuth();
   const { showAlert } = useAlert();
   const [mounted, setMounted] = useState(false);
@@ -182,6 +183,8 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
   const fileInputRef = useRef(null);
   const cameraRef = useRef(null);
   const [file, setFile] = useState(null);
+  const [buktiType, setBuktiType] = useState('file');
+  const [buktiLink, setBuktiLink] = useState('');
   const [previewImage, setPreviewImage] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -658,12 +661,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
       if (form.isFullday) {
         // Find all gaps
         const dow = new Date(form.tanggal + 'T00:00:00').getDay();
-        if (dow === 0 || dow === 6) {
-          setIsUploading(false);
-          return showAlert("Fitur Fullday tidak tersedia untuk hari libur (Sabtu/Minggu).");
-        }
-
-        const START_MIN = 7 * 60 + 30;
+        const START_MIN = 7 * 60 + 30; // 07:30
         const END_MIN = dow === 5 ? 16 * 60 + 30 : 16 * 60;
         const dayEntries = entries
           .filter(en => en.tanggal === form.tanggal)
@@ -955,6 +953,29 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
             >
               <ChevronRight size={16} />
             </button>
+            {onToggleHoliday && checkHoliday && (
+              <div 
+                style={{ display: 'flex', alignItems: 'center', marginLeft: '16px', cursor: 'pointer' }}
+                onClick={() => {
+                  const dow = new Date(form.tanggal + 'T00:00:00').getDay();
+                  if (dow !== 0 && dow !== 6) onToggleHoliday(form.tanggal);
+                }}
+              >
+                <input 
+                  type="checkbox" 
+                  checked={checkHoliday(form.tanggal)} 
+                  readOnly 
+                  style={{ marginRight: '8px', cursor: 'pointer' }} 
+                />
+                <label className={styles.label} style={{ cursor: 'pointer', margin: 0 }}>
+                  {(() => {
+                    const dow = new Date(form.tanggal + 'T00:00:00').getDay();
+                    if (dow === 0 || dow === 6) return 'Akhir Pekan (Libur)';
+                    return 'Tandai Libur Nasional / Cuti';
+                  })()}
+                </label>
+              </div>
+            )}
           </div>
         </div>
 
@@ -1281,7 +1302,7 @@ function DailyTimeVisualizer({ entries, date }) {
 }
 
 // Komponen Visualisasi Waktu Bulanan
-function MonthlyTimeVisualizer({ entries, year, month }) {
+function MonthlyTimeVisualizer({ entries, year, month, checkHoliday }) {
   const START_HOUR = 6;
   const END_HOUR = 18;
   const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60;
@@ -1320,6 +1341,8 @@ function MonthlyTimeVisualizer({ entries, year, month }) {
       };
     }).filter(Boolean);
     
+    const isHolidayDate = checkHoliday ? checkHoliday(dateStr) : (dow === 0 || dow === 6);
+
     days.push({
       dateStr,
       dayName: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'][dow],
@@ -1327,7 +1350,8 @@ function MonthlyTimeVisualizer({ entries, year, month }) {
       blocks,
       coreLeft: `${((coreStart - START_HOUR * 60) / TOTAL_MINUTES) * 100}%`,
       coreWidth: `${((coreEnd - coreStart) / TOTAL_MINUTES) * 100}%`,
-      totalJamStr: formatDuration(dayEntries.reduce((sum, e) => sum + (getMinutes(e.waktuSelesai) - getMinutes(e.waktuMulai)), 0))
+      totalJamStr: formatDuration(dayEntries.reduce((sum, e) => sum + (getMinutes(e.waktuSelesai) - getMinutes(e.waktuMulai)), 0)),
+      isHoliday: isHolidayDate
     });
   }
 
@@ -1336,7 +1360,7 @@ function MonthlyTimeVisualizer({ entries, year, month }) {
     const [y, m] = e.tanggal.split('-').map(Number);
     return y === year && m === month;
   });
-  const uniqueSkps = Array.from(new Set(monthEntries.map(e => e.skpId)));
+  const uniqueSkps = Array.from(new Set(monthEntries.map(e => Number(e.skpId) || 'non-skp')));
 
   return (
     <div className={styles.monthlyVizContainer}>
@@ -1345,8 +1369,8 @@ function MonthlyTimeVisualizer({ entries, year, month }) {
       {uniqueSkps.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
           {uniqueSkps.map(skpId => (
-            <span key={skpId || 'non-skp'} className={styles.skpBadge} style={{ backgroundColor: getColorForSkp(skpId), color: '#fff', border: 'none', fontSize: '11px', padding: '2px 8px' }}>
-              {skpId ? `SKP #${skpId}` : 'Non-SKP'}
+            <span key={skpId} className={styles.skpBadge} style={{ backgroundColor: getColorForSkp(skpId === 'non-skp' ? null : skpId), color: '#fff', border: 'none', fontSize: '11px', padding: '2px 8px' }}>
+              {skpId === 'non-skp' ? 'Non-SKP' : `SKP #${skpId}`}
             </span>
           ))}
         </div>
@@ -1354,8 +1378,11 @@ function MonthlyTimeVisualizer({ entries, year, month }) {
 
       <div className={styles.monthlyVizList}>
         {days.map(d => (
-          <div key={d.dateStr} className={styles.monthlyVizRow}>
-            <div className={styles.monthlyVizLabel}>{d.dayName}, {d.day}</div>
+          <div key={d.dateStr} className={styles.monthlyVizRow} style={d.isHoliday ? { backgroundColor: 'rgba(239, 68, 68, 0.05)' } : {}}>
+            <div className={styles.monthlyVizLabel}>
+              {d.dayName}, {d.day}
+              {d.isHoliday && <span style={{ color: '#ef4444', fontSize: '10px', marginLeft: '4px' }}>●</span>}
+            </div>
             <div className={styles.monthlyVizBar}>
               <div 
                 style={{ position: 'absolute', left: d.coreLeft, width: d.coreWidth, top: '0', bottom: '0', border: '1px dashed rgba(16, 185, 129, 0.4)', borderRadius: '4px', zIndex: 0 }}
@@ -1373,7 +1400,7 @@ function MonthlyTimeVisualizer({ entries, year, month }) {
 }
 
 // TAB 2: Rekap Harian
-function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDate }) {
+function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDate, checkHoliday, onToggleHoliday }) {
   const dayEntries = useMemo(
     () => entries
       .filter((e) => e.tanggal === selectedDate)
@@ -1426,6 +1453,29 @@ function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDa
           >
             <ChevronRight size={16} />
           </button>
+          {onToggleHoliday && checkHoliday && (
+            <div 
+              style={{ display: 'flex', alignItems: 'center', marginLeft: '16px', cursor: 'pointer' }}
+              onClick={() => {
+                const dow = new Date(selectedDate + 'T00:00:00').getDay();
+                if (dow !== 0 && dow !== 6) onToggleHoliday(selectedDate);
+              }}
+            >
+              <input 
+                type="checkbox" 
+                checked={checkHoliday(selectedDate)} 
+                readOnly 
+                style={{ marginRight: '8px', cursor: 'pointer' }} 
+              />
+              <label className={styles.label} style={{ cursor: 'pointer', margin: 0 }}>
+                {(() => {
+                  const dow = new Date(selectedDate + 'T00:00:00').getDay();
+                  if (dow === 0 || dow === 6) return 'Akhir Pekan (Libur)';
+                  return 'Tandai Libur Nasional / Cuti';
+                })()}
+              </label>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1501,7 +1551,7 @@ const getMinutes = (timeStr) => {
   return h * 60 + m;
 };
 
-function stretchMonthEntries(originalEntries) {
+function stretchMonthEntries(originalEntries, checkHoliday) {
   let hasGaps = false;
   let hasApelOnly = false;
   const newEntries = [...originalEntries];
@@ -1514,7 +1564,7 @@ function stretchMonthEntries(originalEntries) {
   
   for (const [dateStr, dayEvents] of Object.entries(dateMap)) {
     const dow = new Date(dateStr + 'T00:00:00').getDay();
-    if (dow === 0 || dow === 6) continue;
+    if (checkHoliday ? checkHoliday(dateStr) : (dow === 0 || dow === 6)) continue;
     
     const START_MIN = 7 * 60 + 30;
     const END_MIN = dow === 5 ? 16 * 60 + 30 : 16 * 60;
@@ -1572,7 +1622,7 @@ function stretchMonthEntries(originalEntries) {
 }
 
 // TAB 3: Rekap Bulanan
-function TabRekapBulanan({ entries, sharedDate, setSharedDate }) {
+function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday }) {
   const { showAlert } = useAlert();
   const [selectedMonth, setSelectedMonth] = useState(sharedDate ? sharedDate.substring(0, 7) : getCurrentMonthStr());
 
@@ -1599,8 +1649,9 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate }) {
       const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const dayEntries = entries.filter((e) => e.tanggal === dateStr);
       const dow = new Date(dateStr + 'T00:00:00').getDay();
+      const isHolidayDate = checkHoliday ? checkHoliday(dateStr) : (dow === 0 || dow === 6);
 
-      if (dayEntries.length > 0) {
+      if (dayEntries.length > 0 || isHolidayDate) {
         const totalDurasi = dayEntries.reduce((sum, e) => sum + e.durasi, 0);
         const skpIds = [...new Set(dayEntries.map((e) => e.skpId))];
         data.push({
@@ -1609,7 +1660,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate }) {
           jumlahKegiatan: dayEntries.length,
           totalJam: totalDurasi,
           skpIds,
-          isWeekend: dow === 0 || dow === 6,
+          isWeekend: checkHoliday ? checkHoliday(dateStr) : (dow === 0 || dow === 6),
         });
       }
     }
@@ -1718,7 +1769,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate }) {
     const monthEntries = getMonthEntries();
     if (monthEntries.length === 0) return showAlert('Tidak ada data bulan ini.');
     
-    const stretchResult = stretchMonthEntries(monthEntries);
+    const stretchResult = stretchMonthEntries(monthEntries, checkHoliday);
     if (stretchResult.hasGaps) {
       setStretchedEntriesData(stretchResult.newEntries);
       setHasApelWarning(stretchResult.hasApelOnly);
@@ -1787,7 +1838,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate }) {
         </div>
       </div>
 
-      <MonthlyTimeVisualizer entries={entries} year={yearVal} month={monthVal} />
+      <MonthlyTimeVisualizer entries={entries} year={yearVal} month={monthVal} checkHoliday={checkHoliday} />
 
       {monthData.length === 0 ? (
         <div className={styles.emptyState}>
@@ -1822,12 +1873,51 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate }) {
                   </td>
                 </tr>
               ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-      {showStretchDialog && (
+        <h4 className={styles.timeVizTitle} style={{ marginTop: '32px', marginBottom: '16px' }}>Tabel Rincian Data Harian (Preview Ekspor)</h4>
+        {getMonthEntries().length === 0 ? (
+          <div className={styles.emptyState}>
+            <p>Belum ada rincian data untuk bulan ini.</p>
+          </div>
+        ) : (
+          <div className={styles.tableWrapper} style={{ maxHeight: '400px', overflowY: 'auto', marginBottom: '32px' }}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Tanggal</th>
+                  <th>Waktu</th>
+                  <th>Kegiatan</th>
+                  <th>Kuantitas</th>
+                  <th>SKP</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...getMonthEntries()].sort((a, b) => {
+                  if (a.tanggal !== b.tanggal) return a.tanggal.localeCompare(b.tanggal);
+                  return (a.waktuMulai || '').localeCompare(b.waktuMulai || '');
+                }).map((row) => (
+                  <tr key={row.id}>
+                    <td>{row.tanggal}</td>
+                    <td>{row.waktuMulai} - {row.waktuSelesai}</td>
+                    <td style={{ maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={row.rincian}>{row.rincian}</td>
+                    <td>{row.kuantitas} {row.satuan}</td>
+                    <td>
+                      <span className={styles.skpBadge} style={{ backgroundColor: getColorForSkp(row.skpId), color: '#fff', border: 'none' }}>
+                        #{row.skpId || 'Non-SKP'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+  
+        {showStretchDialog && (
         <div className={styles.confirmOverlay}>
           <div className={styles.confirmDialog}>
             <h3 className={styles.confirmTitle}>Kekosongan Jam Kerja Ditemukan</h3>
@@ -2042,6 +2132,22 @@ function CKPPageInner() {
   const { accessToken } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const { docs: entries, loading, addDocument, updateDocument, deleteDocument } = useFirestore('ckp');
+  const { docs: holidaysData, addDocument: addHoliday, deleteDocument: deleteHoliday } = useFirestore('holidays');
+
+  const checkHoliday = useCallback((dateStr) => {
+    const dow = new Date(dateStr + 'T00:00:00').getDay();
+    if (dow === 0 || dow === 6) return true;
+    return holidaysData.some(h => h.tanggal === dateStr);
+  }, [holidaysData]);
+
+  const toggleHoliday = async (dateStr) => {
+    const existing = holidaysData.find(h => h.tanggal === dateStr);
+    if (existing) {
+      await deleteHoliday(existing.id);
+    } else {
+      await addHoliday({ tanggal: dateStr });
+    }
+  };
   const { setPageData } = useAIContext();
   const [sharedSelectedDate, setSharedSelectedDate] = useState(getTodayStr());
 
@@ -2227,6 +2333,67 @@ function CKPPageInner() {
 
   const tabs = ['Input Kegiatan', 'Rekap Harian', 'Rekap Bulanan', 'Rekap Triwulanan'];
 
+  const [pendingUploads, setPendingUploads] = useState([]);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const fetchPendingUploads = useCallback(async () => {
+    const list = await getPendingUploads();
+    setPendingUploads(list || []);
+  }, []);
+
+  useEffect(() => {
+    fetchPendingUploads();
+  }, [fetchPendingUploads, activeTab]);
+
+  const handleSyncOfflineFiles = async () => {
+    if (!accessToken) {
+      showAlert('Sesi Drive kedaluwarsa. Aplikasi akan meminta relogin saat dimuat ulang.');
+      // Trick to force re-login by redirecting or just telling them to refresh
+      window.location.reload();
+      return;
+    }
+    setIsSyncing(true);
+    let successCount = 0;
+    
+    try {
+      const list = await getPendingUploads();
+      if (!list || list.length === 0) return;
+      
+      const folderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS - Bukti Dukung');
+      
+      for (const item of list) {
+        try {
+          const driveUrl = await uploadFileToDrive(item.file, accessToken, folderId, item.customFileName);
+          await updateDocument(item.id, { buktiDukung: driveUrl });
+          await removePendingUpload(item.id);
+          successCount++;
+        } catch (err) {
+          console.error("Sync error for item", item.id, err);
+          if (err.message && err.message.includes('401')) {
+            showAlert('Sesi Google Drive kedaluwarsa. Halaman akan dimuat ulang untuk relogin.');
+            setTimeout(() => window.location.reload(), 1500);
+            break;
+          }
+        }
+      }
+      
+      if (successCount > 0) {
+        showAlert(\Berhasil menyinkronkan \ file ke Google Drive.\);
+        fetchPendingUploads();
+      }
+    } catch (err) {
+      console.error(err);
+      if (err.message && err.message.includes('401')) {
+        showAlert('Sesi Google Drive kedaluwarsa. Halaman akan dimuat ulang untuk relogin.');
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        showAlert('Gagal mengakses penyimpanan lokal.');
+      }
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -2272,6 +2439,8 @@ function CKPPageInner() {
                 entries={entries}
                 sharedDate={sharedSelectedDate}
                 setSharedDate={setSharedSelectedDate}
+                checkHoliday={checkHoliday}
+                onToggleHoliday={toggleHoliday}
               />
             )}
             {activeTab === 1 && (
@@ -2281,9 +2450,11 @@ function CKPPageInner() {
                 onDelete={handleDelete} 
                 selectedDate={sharedSelectedDate}
                 setSelectedDate={setSharedSelectedDate}
+                checkHoliday={checkHoliday}
+                onToggleHoliday={toggleHoliday}
               />
             )}
-            {activeTab === 2 && <TabRekapBulanan entries={entries} sharedDate={sharedSelectedDate} setSharedDate={setSharedSelectedDate} />}
+            {activeTab === 2 && <TabRekapBulanan entries={entries} sharedDate={sharedSelectedDate} setSharedDate={setSharedSelectedDate} checkHoliday={checkHoliday} onToggleHoliday={toggleHoliday} />}
             {activeTab === 3 && <TabRekapTriwulanan entries={entries} />}
           </>
         )}
