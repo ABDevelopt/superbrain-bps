@@ -337,6 +337,45 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
     }
   };
 
+  const [isSuggestingSkp, setIsSuggestingSkp] = useState(false);
+
+  const handleGetAISuggestion = async () => {
+    if (!form.rincian || form.rincian.trim().length < 5) {
+      showAlert('Silakan isi Rincian Kegiatan terlebih dahulu agar AI dapat memberikan rekomendasi yang sesuai.');
+      return;
+    }
+
+    try {
+      setIsSuggestingSkp(true);
+      const res = await fetch('/api/suggestions/skp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rincian: form.rincian })
+      });
+
+      if (!res.ok) {
+        throw new Error('Gagal mendapatkan respon dari server.');
+      }
+
+      const responseData = await res.json();
+      if (responseData.success && responseData.data?.skpId) {
+        const recommendedId = responseData.data.skpId;
+        const confidence = responseData.data.confidence;
+        const reason = responseData.data.reason;
+
+        setForm(prev => ({ ...prev, skpId: recommendedId }));
+        showAlert(`✨ Rekomendasi SKP #${recommendedId} terpilih dengan tingkat kepercayaan ${Math.round(confidence * 100)}%!\n\nAlasan: ${reason}`);
+      } else {
+        showAlert('AI tidak menemukan butir SKP yang cocok untuk rincian kegiatan ini.');
+      }
+    } catch (err) {
+      console.error(err);
+      showAlert('Gagal mendapatkan rekomendasi AI: ' + err.message);
+    } finally {
+      setIsSuggestingSkp(false);
+    }
+  };
+
   const filteredSkp = useMemo(() => {
       return skpData.filter(s => s.nama.toLowerCase().includes(skpSearch.toLowerCase()));
   }, [skpSearch]);
@@ -1127,7 +1166,42 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
       )}
 
       <div className={styles.formGroup}>
-        <label className={styles.label}>Butir SKP</label>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+          <label className={styles.label} style={{ marginBottom: 0 }}>Butir SKP</label>
+          <button
+            type="button"
+            onClick={handleGetAISuggestion}
+            disabled={isSuggestingSkp}
+            style={{
+              background: 'rgba(99, 102, 241, 0.15)',
+              border: '1px solid rgba(99, 102, 241, 0.3)',
+              color: '#818cf8',
+              borderRadius: '6px',
+              padding: '4px 8px',
+              fontSize: '11px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              transition: 'all 0.2s',
+              fontFamily: 'Inter, sans-serif'
+            }}
+            title="Dapatkan rekomendasi butir SKP otomatis berdasarkan rincian kegiatan menggunakan AI"
+          >
+            {isSuggestingSkp ? (
+              <>
+                <RefreshCw size={12} className="animate-spin" />
+                <span>Menganalisis...</span>
+              </>
+            ) : (
+              <>
+                <Zap size={12} />
+                <span>Saran AI</span>
+              </>
+            )}
+          </button>
+        </div>
         <div className={styles.customSelectWrapper} ref={skpDropdownRef}>
           <div 
             className={`${styles.input} ${styles.customSelectInput}`}
