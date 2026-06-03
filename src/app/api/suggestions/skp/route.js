@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 import { skpData } from '@/data/skpData';
 
-const apiKey = process.env.GEMINI_API_KEY;
-
 export async function POST(request) {
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({ error: 'Kunci API Gemini tidak dikonfigurasi di server.' }, { status: 500 });
+    return NextResponse.json({ error: 'Kunci API Gemini tidak dikonfigurasi di server. Silakan periksa Environment Variables di Vercel Dashboard.' }, { status: 500 });
   }
 
   try {

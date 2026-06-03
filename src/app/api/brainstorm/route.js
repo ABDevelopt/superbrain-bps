@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import { skpData } from '@/data/skpData';
 
-const apiKey = process.env.GEMINI_API_KEY;
-
 export async function POST(request) {
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: 'GEMINI_API_KEY is not configured.' }, { status: 500 });
   }

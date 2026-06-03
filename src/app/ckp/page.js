@@ -354,7 +354,12 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
       });
 
       if (!res.ok) {
-        throw new Error('Gagal mendapatkan respon dari server.');
+        let errMsg = 'Gagal mendapatkan respon dari server.';
+        try {
+          const errJSON = await res.json();
+          if (errJSON.error) errMsg = errJSON.error;
+        } catch (_) {}
+        throw new Error(errMsg);
       }
 
       const responseData = await res.json();
