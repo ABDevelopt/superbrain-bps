@@ -1562,6 +1562,41 @@ export default function SchedulePage() {
                 </div>
               )}
 
+              {/* Telegram pending sync attachment rendering */}
+              {selectedEventForDetail.telegramFileId && (
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', marginTop: '12px' }}>
+                  <FileText size={18} color="#eab308" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                    <div style={{ fontWeight: '600', color: '#eab308', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Lampiran Telegram (Menunggu Sinkronisasi)</div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                      <a
+                        href={`/api/telegram-file?id=${selectedEventForDetail.telegramFileId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontSize: '13px',
+                          color: '#eab308',
+                          background: 'rgba(234, 179, 8, 0.08)',
+                          border: '1px dashed rgba(234, 179, 8, 0.3)',
+                          padding: '6px 12px',
+                          borderRadius: '6px',
+                          textDecoration: 'none',
+                          fontFamily: 'Inter, sans-serif'
+                        }}
+                        title="Klik untuk membuka/mengunduh berkas langsung dari Telegram"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <FileText size={14} />
+                        <span>Undangan_Telegram (Buka File)</span>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Offline pending attachments rendering */}
               {(() => {
                 const pendingAttachments = pendingUploads.filter(item => item.id.startsWith(selectedEventForDetail.id));

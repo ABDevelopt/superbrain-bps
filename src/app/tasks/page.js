@@ -1900,6 +1900,42 @@ function TaskCard({
         </div>
       )}
 
+      {task.telegramFileId && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+          <span style={{ fontSize: '11px', color: '#eab308', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Paperclip size={12} /> Lampiran Telegram (Menunggu Sinkronisasi)
+          </span>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            <a 
+              href={`/api/telegram-file?id=${task.telegramFileId}`}
+              target="_blank" 
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                fontSize: '11px',
+                color: '#eab308',
+                background: 'rgba(234, 179, 8, 0.08)',
+                border: '1px dashed rgba(234, 179, 8, 0.3)',
+                padding: '3px 8px',
+                borderRadius: '6px',
+                textDecoration: 'none',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: '180px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+              title="Klik untuk membuka/mengunduh berkas langsung dari Telegram"
+            >
+              <Paperclip size={10} />
+              Undangan_Telegram (Buka File)
+            </a>
+          </div>
+        </div>
+      )}
+
       <div className={styles.cardActions}>
         <div className={styles.cardActionGroup}>
           {task.status !== 'todo' && (
