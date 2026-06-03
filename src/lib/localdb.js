@@ -11,13 +11,14 @@ const dbPromise = (typeof window !== 'undefined') ? openDB(DB_NAME, 1, {
   },
 }) : null;
 
-export async function savePendingUpload(id, file, customFileName) {
+export async function savePendingUpload(id, file, customFileName, type = 'ckp') {
   if (!dbPromise) return;
   const db = await dbPromise;
   await db.put(STORE_NAME, {
-    id, // this will be the CKP entry id
+    id, // this will be the entry id
     file, // the Blob/File object
     customFileName,
+    type,
     timestamp: Date.now()
   });
 }

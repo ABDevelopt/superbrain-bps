@@ -37,7 +37,7 @@ export async function uploadFileToDrive(file, accessToken, folderId = null, cust
 
     if (!res.ok) {
       const errorData = await res.json();
-      throw new Error(errorData.error?.message || 'Failed to upload to Google Drive');
+      throw new Error(`Google Drive API Error (${res.status}): ${errorData.error?.message || 'Failed to upload to Google Drive'}`);
     }
 
     const data = await res.json();
@@ -63,20 +63,39 @@ export async function uploadFileToDrive(file, accessToken, folderId = null, cust
     throw error;
   }
 }
-
 /**
  * Searches for a folder by name or creates it if it doesn't exist.
+ * If parentId is provided, searches or creates inside the parent folder.
+ * 
+ * @param {string} accessToken - Google OAuth access token
+ * @param {string} folderName - Name of the folder to get or create
+ * @param {string} [parentId] - Optional parent folder ID
+ * @returns {Promise<string>} - The ID of the found or created folder
  */
-export async function getOrCreateFolder(accessToken, folderName) {
+export async function getOrCreateFolder(accessToken, folderName, parentId = null) {
   try {
     // 1. Search for the folder
-    const query = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`);
+    let queryStr = `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`;
+    if (parentId) {
+      queryStr += ` and '${parentId}' in parents`;
+    } else {
+      queryStr += ` and 'root' in parents`;
+    }
+    const query = encodeURIComponent(queryStr);
+    
     const searchRes = await fetch(`https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id)`, {
       headers: { Authorization: `Bearer ${accessToken}` }
     });
     
     if (!searchRes.ok) {
-      throw new Error('Failed to search for folder');
+      let errMsg = `Failed to search for folder (Status ${searchRes.status})`;
+      try {
+        const errData = await searchRes.json();
+        if (errData.error?.message) {
+          errMsg += `: ${errData.error.message}`;
+        }
+      } catch (e) {}
+      throw new Error(errMsg);
     }
     
     const searchData = await searchRes.json();
@@ -89,6 +108,9 @@ export async function getOrCreateFolder(accessToken, folderName) {
       name: folderName,
       mimeType: 'application/vnd.google-apps.folder'
     };
+    if (parentId) {
+      metadata.parents = [parentId];
+    }
 
     const createRes = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
       method: 'POST',
@@ -100,7 +122,14 @@ export async function getOrCreateFolder(accessToken, folderName) {
     });
 
     if (!createRes.ok) {
-      throw new Error('Failed to create folder');
+      let errMsg = `Failed to create folder (Status ${createRes.status})`;
+      try {
+        const errData = await createRes.json();
+        if (errData.error?.message) {
+          errMsg += `: ${errData.error.message}`;
+        }
+      } catch (e) {}
+      throw new Error(errMsg);
     }
 
     const createData = await createRes.json();

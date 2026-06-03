@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback, useEffect, useRef, Suspense } from 'rea
 import { useSearchParams } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { useAlert } from '@/contexts/AlertContext';
-import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Clock, Link as LinkIcon, CloudOff } from 'lucide-react';
+import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Clock, Link as LinkIcon, CloudOff, FolderOpen, AlertTriangle } from 'lucide-react';
 import { skpData } from '@/data/skpData';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
@@ -162,7 +162,7 @@ function Toast({ message, visible, onClose }) {
 }
 
 // TAB 1: Input Kegiatan
-function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit, entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday }) {
+function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit, entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday, onPendingChange }) {
   const { accessToken } = useAuth();
   const { showAlert } = useAlert();
   const [mounted, setMounted] = useState(false);
@@ -231,6 +231,18 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
       setSkpSearch(initialData.skpId ? (skpData.find(s => s.id === initialData.skpId)?.nama || '') : '');
       setPreviewImage(null);
       setFile(null);
+      if (initialData.buktiDukung) {
+        if (initialData.buktiDukung.startsWith('http') && !initialData.buktiDukung.includes('drive.google.com')) {
+          setBuktiType('link');
+          setBuktiLink(initialData.buktiDukung);
+        } else {
+          setBuktiType('file');
+          setBuktiLink('');
+        }
+      } else {
+        setBuktiType('file');
+        setBuktiLink('');
+      }
     } else {
       setForm(prev => ({ ...prev, tanggal: sharedDate }));
     }
@@ -265,6 +277,58 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
     () => calcDurationMinutes(form.waktuMulai, form.waktuSelesai),
     [form.waktuMulai, form.waktuSelesai]
   );
+
+  const previewTimes = useMemo(() => {
+    if (form.isFullday) {
+      const dow = new Date(form.tanggal + 'T00:00:00').getDay();
+      const START_MIN = 7 * 60 + 30;
+      const END_MIN = dow === 5 ? 16 * 60 + 30 : 16 * 60;
+      
+      const dayEntries = entries
+        .filter(en => en.tanggal === form.tanggal && (!initialData || en.id !== initialData.id))
+        .sort((a, b) => (a.waktuMulai || '').localeCompare(b.waktuMulai || ''));
+      
+      const gaps = [];
+      let currentPos = START_MIN;
+      for (const en of dayEntries) {
+        if (!en.waktuMulai || !en.waktuSelesai) continue;
+        const [h1, m1] = en.waktuMulai.split(':').map(Number);
+        const [h2, m2] = en.waktuSelesai.split(':').map(Number);
+        const start = h1 * 60 + m1;
+        const end = h2 * 60 + m2;
+        
+        if (start > currentPos) {
+          gaps.push({ start: currentPos, end: start });
+        }
+        currentPos = Math.max(currentPos, end);
+      }
+      if (currentPos < END_MIN) {
+        gaps.push({ start: currentPos, end: END_MIN });
+      }
+      
+      if (gaps.length > 0) {
+        const firstGap = gaps[0];
+        const lastGap = gaps[gaps.length - 1];
+        
+        const formatTimeStr = (totalMins) => {
+          const h = Math.floor(totalMins / 60);
+          const m = totalMins % 60;
+          return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+        };
+        
+        return {
+          start: formatTimeStr(firstGap.start),
+          end: formatTimeStr(lastGap.end)
+        };
+      }
+      return { start: '', end: '' };
+    }
+    
+    return {
+      start: form.waktuMulai,
+      end: form.waktuSelesai
+    };
+  }, [form.isFullday, form.tanggal, form.waktuMulai, form.waktuSelesai, entries, initialData]);
 
   const handleChange = (field) => (e) => {
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -642,7 +706,8 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         
         if (accessToken) {
           try {
-            const folderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS - Bukti Dukung');
+            const parentFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
+            const folderId = await getOrCreateFolder(accessToken, 'Bukti Dukung CKP', parentFolderId);
             finalBuktiDukung = await uploadFileToDrive(file, accessToken, folderId, fileName);
           } catch (err) {
             console.error("Upload error:", err);
@@ -685,7 +750,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         const START_MIN = 7 * 60 + 30; // 07:30
         const END_MIN = dow === 5 ? 16 * 60 + 30 : 16 * 60;
         const dayEntries = entries
-          .filter(en => en.tanggal === form.tanggal)
+          .filter(en => en.tanggal === form.tanggal && (!initialData || en.id !== initialData.id))
           .sort((a, b) => (a.waktuMulai || '').localeCompare(b.waktuMulai || ''));
         
         const gaps = [];
@@ -717,15 +782,22 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
           return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
         };
 
-        for (const gap of gaps) {
-          const d = gap.end - gap.start;
-          const gapData = { 
-            ...dataToSave, 
-            waktuMulai: formatTimeStr(gap.start), 
-            waktuSelesai: formatTimeStr(gap.end), 
-            durasi: d 
-          };
-          delete gapData.isFullday;
+        const firstGap = gaps[0];
+        const lastGap = gaps[gaps.length - 1];
+        const stretchedDuration = lastGap.end - firstGap.start;
+
+        const gapData = { 
+          ...dataToSave, 
+          waktuMulai: formatTimeStr(firstGap.start), 
+          waktuSelesai: formatTimeStr(lastGap.end), 
+          durasi: stretchedDuration 
+        };
+        delete gapData.isFullday;
+
+        if (initialData && initialData.id && onUpdate) {
+          const eid = await onUpdate(initialData.id, gapData);
+          if (eid) savedEntryIds.push(eid);
+        } else {
           const eid = await onSubmit(gapData);
           if (eid) savedEntryIds.push(eid);
         }
@@ -745,6 +817,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
           await savePendingUpload(eid, offlineFile, offlineFileName);
         }
         showAlert(offlineErrorMsg);
+        if (onPendingChange) onPendingChange();
       }
 
       setForm({
@@ -943,6 +1016,8 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
       <DailyTimeVisualizer 
         entries={entries.filter(e => e.tanggal === form.tanggal)} 
         date={form.tanggal} 
+        highlightStart={previewTimes.start}
+        highlightEnd={previewTimes.end}
       />
 
       <div className={styles.formRow}>
@@ -1126,46 +1201,121 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
 
       <div className={styles.formGroup}>
         <label className={styles.label}>Bukti Dukung (Opsional)</label>
-        <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
-          <div className={styles.fileInputWrapper} style={{flex: 1}}>
-            <input
-              type="file"
-              className={styles.fileInput}
-              ref={fileInputRef}
-              onChange={(e) => {
-                setFile(e.target.files[0]);
-                setPreviewImage(null);
-              }}
-              id="buktiDukung"
-            />
-            <label htmlFor="buktiDukung" className={styles.fileLabel} style={{height: '100%'}}>
-              <Paperclip size={18} /> 
-              {file && !previewImage ? file.name : 'Pilih File PDF/Doc...'}
-            </label>
-          </div>
-          
-          <div className={styles.fileInputWrapper} style={{flex: 1}}>
-            <button type="button" onClick={openCamera} className={styles.fileLabel} style={{background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', border: '1px dashed rgba(56, 189, 248, 0.4)', height: '100%', width: '100%'}}>
-              <Camera size={18} /> 
-              Ambil Foto Geotag
-            </button>
-          </div>
-        </div>
         
-        {previewImage && (
-          <div className={styles.cameraPreviewContainer}>
-            <img src={previewImage} alt="Preview Geotag" className={styles.cameraPreviewImg} />
-            <button
-              type="button"
-              className={styles.cameraPreviewRetake}
-              onClick={() => { setPreviewImage(null); setFile(null); }}
-            >
-              <Camera size={12} /> Ambil Ulang
-            </button>
-            <div className={styles.cameraPreviewLabel}>
-              <Check size={14} /> Foto Geotag siap diunggah
+        {/* Toggle Tipe Bukti Dukung */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+          <button
+            type="button"
+            onClick={() => setBuktiType('file')}
+            style={{
+              flex: 1,
+              padding: '10px 16px',
+              borderRadius: '8px',
+              background: buktiType === 'file' ? 'rgba(99, 102, 241, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+              border: buktiType === 'file' ? '1px solid #6366f1' : '1px solid rgba(255, 255, 255, 0.08)',
+              color: buktiType === 'file' ? '#f1f5f9' : '#94a3b8',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease',
+              fontFamily: 'Inter, sans-serif'
+            }}
+          >
+            <Paperclip size={14} />
+            Unggah File / Foto
+          </button>
+          <button
+            type="button"
+            onClick={() => setBuktiType('link')}
+            style={{
+              flex: 1,
+              padding: '10px 16px',
+              borderRadius: '8px',
+              background: buktiType === 'link' ? 'rgba(99, 102, 241, 0.15)' : 'rgba(255, 255, 255, 0.03)',
+              border: buktiType === 'link' ? '1px solid #6366f1' : '1px solid rgba(255, 255, 255, 0.08)',
+              color: buktiType === 'link' ? '#f1f5f9' : '#94a3b8',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              transition: 'all 0.2s ease',
+              fontFamily: 'Inter, sans-serif'
+            }}
+          >
+            <LinkIcon size={14} />
+            Teks Link URL
+          </button>
+        </div>
+
+        {/* Input Berdasarkan Tipe Bukti Dukung */}
+        {buktiType === 'file' ? (
+          <>
+            <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
+              <div className={styles.fileInputWrapper} style={{flex: 1}}>
+                <input
+                  type="file"
+                  className={styles.fileInput}
+                  ref={fileInputRef}
+                  onChange={(e) => {
+                    setFile(e.target.files[0]);
+                    setPreviewImage(null);
+                  }}
+                  id="buktiDukung"
+                />
+                <label htmlFor="buktiDukung" className={styles.fileLabel} style={{height: '100%'}}>
+                  <Paperclip size={18} /> 
+                  {file && !previewImage ? file.name : 'Pilih File PDF/Doc...'}
+                </label>
+              </div>
+              
+              <div className={styles.fileInputWrapper} style={{flex: 1}}>
+                <button type="button" onClick={openCamera} className={styles.fileLabel} style={{background: 'rgba(56, 189, 248, 0.08)', color: '#38bdf8', border: '1px dashed rgba(56, 189, 248, 0.3)', height: '100%', width: '100%', cursor: 'pointer'}}>
+                  <Camera size={18} /> 
+                  Ambil Foto Geotag
+                </button>
+              </div>
             </div>
-          </div>
+            
+            {previewImage && (
+              <div className={styles.cameraPreviewContainer}>
+                <img src={previewImage} alt="Preview Geotag" className={styles.cameraPreviewImg} />
+                <button
+                  type="button"
+                  className={styles.cameraPreviewRetake}
+                  onClick={() => { setPreviewImage(null); setFile(null); }}
+                >
+                  <Camera size={12} /> Ambil Ulang
+                </button>
+                <div className={styles.cameraPreviewLabel}>
+                  <Check size={14} /> Foto Geotag siap diunggah
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <input
+            type="url"
+            className={styles.input}
+            value={buktiLink}
+            onChange={(e) => setBuktiLink(e.target.value)}
+            placeholder="Masukkan URL bukti dukung (misal: https://docs.google.com/...)"
+            style={{ 
+              background: 'rgba(255, 255, 255, 0.05)', 
+              border: '1px solid rgba(255, 255, 255, 0.1)', 
+              borderRadius: '8px', 
+              padding: '12px 14px', 
+              color: '#fff',
+              fontSize: '14px',
+              fontFamily: 'Inter, sans-serif'
+            }}
+          />
         )}
       </div>
 
@@ -1237,7 +1387,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
 }
 
 // Komponen Visualisasi Waktu
-function DailyTimeVisualizer({ entries, date }) {
+function DailyTimeVisualizer({ entries, date, highlightStart, highlightEnd }) {
   const START_HOUR = 6;
   const END_HOUR = 18;
   const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60;
@@ -1290,6 +1440,25 @@ function DailyTimeVisualizer({ entries, date }) {
     };
   }).filter(Boolean);
 
+  let highlightBlock = null;
+  if (highlightStart && highlightEnd) {
+    const sMin = getMinutes(highlightStart);
+    const eMin = getMinutes(highlightEnd);
+    if (sMin < eMin) {
+      let clampedS = Math.max(START_HOUR * 60, sMin);
+      let clampedE = Math.min(END_HOUR * 60, eMin);
+      if (clampedS < clampedE) {
+        const leftPerc = ((clampedS - START_HOUR * 60) / TOTAL_MINUTES) * 100;
+        const widthPerc = ((clampedE - clampedS) / TOTAL_MINUTES) * 100;
+        highlightBlock = {
+          left: `${leftPerc}%`,
+          width: `${widthPerc}%`,
+          title: `Input Waktu Form: ${highlightStart} - ${highlightEnd}`
+        };
+      }
+    }
+  }
+
   return (
     <div className={styles.timeVizContainer}>
       <h4 className={styles.timeVizTitle}>Peta Jam Kerja (06:00 - 18:00)</h4>
@@ -1313,6 +1482,15 @@ function DailyTimeVisualizer({ entries, date }) {
             title={b.title}
           />
         ))}
+        {highlightBlock && (
+          <div 
+            className={styles.timeVizHighlightBlock} 
+            style={{ left: highlightBlock.left, width: highlightBlock.width }}
+            title={highlightBlock.title}
+          >
+            <div className={styles.timeVizHighlightLabel}>Baru</div>
+          </div>
+        )}
       </div>
       <div className={styles.timeVizLegend}>
         <div className={styles.timeVizLegendItem}>
@@ -1324,13 +1502,18 @@ function DailyTimeVisualizer({ entries, date }) {
         <div className={styles.timeVizLegendItem}>
           <div className={styles.timeVizLegendColor} style={{ border: '1.5px dashed rgba(16, 185, 129, 0.6)', background: 'transparent' }} /> Jam Wajib
         </div>
+        {highlightStart && highlightEnd && (
+          <div className={styles.timeVizLegendItem}>
+            <div className={styles.timeVizLegendColor} style={{ border: '1.5px dashed #6366f1', background: 'rgba(99, 102, 241, 0.25)', borderRadius: '3px' }} /> Pratinjau Input
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 // Komponen Visualisasi Waktu Bulanan
-function MonthlyTimeVisualizer({ entries, year, month, checkHoliday }) {
+function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, onStretchClick, onEdit }) {
   const START_HOUR = 6;
   const END_HOUR = 18;
   const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60;
@@ -1365,11 +1548,25 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday }) {
         left: `${((clampedStart - START_HOUR * 60) / TOTAL_MINUTES) * 100}%`,
         width: `${((clampedEnd - clampedStart) / TOTAL_MINUTES) * 100}%`,
         title: `${e.waktuMulai} - ${e.waktuSelesai}`,
-        color: getColorForSkp(e.skpId)
+        color: getColorForSkp(e.skpId),
+        entry: e
       };
     }).filter(Boolean);
     
     const isHolidayDate = checkHoliday ? checkHoliday(dateStr) : (dow === 0 || dow === 6);
+
+    let hasGaps = false;
+    if (!isHolidayDate && dayEntries.length > 0) {
+      const stretchRes = stretchDayEntries(dayEntries, dateStr, checkHoliday);
+      hasGaps = stretchRes.hasGaps;
+      
+      console.log(`[DEBUG] MonthlyTimeVisualizer row ${dateStr}:`, {
+        dayEntriesLength: dayEntries.length,
+        isHolidayDate,
+        hasGaps,
+        onStretchClick: !!onStretchClick
+      });
+    }
 
     days.push({
       dateStr,
@@ -1379,7 +1576,8 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday }) {
       coreLeft: `${((coreStart - START_HOUR * 60) / TOTAL_MINUTES) * 100}%`,
       coreWidth: `${((coreEnd - coreStart) / TOTAL_MINUTES) * 100}%`,
       totalJamStr: formatDuration(dayEntries.reduce((sum, e) => sum + (getMinutes(e.waktuSelesai) - getMinutes(e.waktuMulai)), 0)),
-      isHoliday: isHolidayDate
+      isHoliday: isHolidayDate,
+      hasGaps
     });
   }
 
@@ -1416,10 +1614,32 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday }) {
                 style={{ position: 'absolute', left: d.coreLeft, width: d.coreWidth, top: '0', bottom: '0', border: '1px dashed rgba(16, 185, 129, 0.4)', borderRadius: '4px', zIndex: 0 }}
               />
               {d.blocks.map(b => (
-                <div key={b.id} className={styles.monthlyVizBlock} style={{ left: b.left, width: b.width, backgroundColor: b.color }} title={b.title} />
+                <div 
+                  key={b.id} 
+                  className={styles.monthlyVizBlock} 
+                  style={{ left: b.left, width: b.width, backgroundColor: b.color }}
+                  onClick={() => onEdit && onEdit(b.entry)}
+                >
+                  <div className={styles.monthlyVizTooltip}>
+                    <strong>{b.entry.waktuMulai} — {b.entry.waktuSelesai}</strong>
+                    <p>{b.entry.rincian}</p>
+                    <span>Klik untuk mengedit</span>
+                  </div>
+                </div>
               ))}
             </div>
-            <div className={styles.monthlyVizDurasi}>{d.totalJamStr}</div>
+            <div className={styles.monthlyVizDurasi} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>{d.totalJamStr}</span>
+              {!d.isHoliday && d.hasGaps && onStretchClick && (
+                <button 
+                  onClick={() => onStretchClick(d.dateStr)}
+                  className={styles.stretchRowBtn}
+                  title="Regangkan jam kerja hari ini agar penuh"
+                >
+                  <Zap size={12} />
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -1428,13 +1648,28 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday }) {
 }
 
 // TAB 2: Rekap Harian
-function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDate, checkHoliday, onToggleHoliday }) {
+function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDate, checkHoliday, onToggleHoliday, pendingUploads = [], onStretchClick }) {
   const dayEntries = useMemo(
     () => entries
       .filter((e) => e.tanggal === selectedDate)
       .sort((a, b) => a.waktuMulai.localeCompare(b.waktuMulai)),
     [entries, selectedDate]
   );
+
+  const stretchResult = useMemo(
+    () => stretchDayEntries(dayEntries, selectedDate, checkHoliday),
+    [dayEntries, selectedDate, checkHoliday]
+  );
+  const hasGaps = stretchResult.hasGaps;
+
+  console.log('[DEBUG] TabRekapHarian info:', {
+    selectedDate,
+    dayEntriesLength: dayEntries.length,
+    isHoliday: checkHoliday ? checkHoliday(selectedDate) : null,
+    stretchResult,
+    hasGaps,
+    onStretchClick: !!onStretchClick
+  });
 
   const totalDurasi = useMemo(
     () => dayEntries.reduce((sum, e) => sum + e.durasi, 0),
@@ -1525,6 +1760,18 @@ function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDa
               <span className={styles.statValue}>{formatDuration(totalDurasi)}</span>
               <span className={styles.statLabel}>Total Jam Kerja</span>
             </div>
+            {hasGaps && onStretchClick && (
+              <div className={styles.statCard} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: 'rgba(99, 102, 241, 0.1)', borderColor: 'rgba(99, 102, 241, 0.25)' }}>
+                <button 
+                  onClick={() => onStretchClick(selectedDate)}
+                  className={styles.stretchBtn}
+                  title="Regangkan jam kerja hari ini agar penuh"
+                >
+                  <Zap size={14} style={{ marginRight: '6px' }} /> Regangkan Waktu Harian
+                </button>
+                <span className={styles.statLabel} style={{ marginTop: '6px', fontSize: '11px', color: '#818cf8', textTransform: 'none' }}>Terdapat celah kosong</span>
+              </div>
+            )}
           </div>
 
           <DailyTimeVisualizer entries={dayEntries} date={selectedDate} />
@@ -1548,11 +1795,15 @@ function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDa
                     SKP #{entry.skpId}: {getSkpName(entry.skpId)}
                   </div>
                   <div className={styles.timelineRincian}>{entry.rincian}</div>
-                  {entry.buktiDukung && (
+                  {entry.buktiDukung ? (
                     <a href={entry.buktiDukung} target="_blank" rel="noopener noreferrer" className={styles.buktiLink}>
                       <Paperclip size={14} /> Lihat Bukti Dukung
                     </a>
-                  )}
+                  ) : pendingUploads.some(item => item.id === entry.id) ? (
+                    <span className={styles.buktiLink} style={{ color: '#ef4444', border: '1px dashed rgba(239,68,68,0.3)', cursor: 'default', background: 'rgba(239,68,68,0.05)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <CloudOff size={14} /> Bukti Dukung (Offline)
+                    </span>
+                  ) : null}
                   <div className={styles.timelineOutput}>
                     Output: {entry.kuantitas} {entry.satuan}
                     <span className={styles.timelineTim}>{entry.timKerja}</span>
@@ -1578,6 +1829,94 @@ const getMinutes = (timeStr) => {
   const [h, m] = timeStr.split(':').map(Number);
   return h * 60 + m;
 };
+
+function stretchDayEntries(dayEntries, dateStr, checkHoliday) {
+  if (!dayEntries || dayEntries.length === 0) {
+    return { hasGaps: false, isApelOnly: false, updates: [] };
+  }
+
+  const dow = new Date(dateStr + 'T00:00:00').getDay();
+  const isHoliday = (dow === 0 || dow === 6) || (checkHoliday ? checkHoliday(dateStr) : false);
+  if (isHoliday) {
+    return { hasGaps: false, isApelOnly: false, updates: [] };
+  }
+
+  const START_MIN = 7 * 60 + 30; // 07:30
+  const END_MIN = dow === 5 ? 16 * 60 + 30 : 16 * 60; // Jumat 16:30, Senin-Kamis 16:00
+
+  const sorted = [...dayEntries].sort((a, b) => a.waktuMulai.localeCompare(b.waktuMulai));
+  const isApelOnly = sorted.every(e => e.rincian && (e.rincian.toLowerCase().includes('apel') || e.rincian.toLowerCase().includes('upacara')));
+
+  if (isApelOnly) {
+    return { hasGaps: false, isApelOnly: true, updates: [] };
+  }
+
+  let currentPos = START_MIN;
+  let totalGaps = 0;
+  for (const e of sorted) {
+    const s = getMinutes(e.waktuMulai);
+    const en = getMinutes(e.waktuSelesai);
+    if (s > currentPos) totalGaps += (s - currentPos);
+    currentPos = Math.max(currentPos, en);
+  }
+  if (currentPos < END_MIN) totalGaps += (END_MIN - currentPos);
+
+  if (totalGaps === 0) {
+    return { hasGaps: false, isApelOnly: false, updates: [] };
+  }
+
+  // Perform actual stretching
+  const updates = [];
+  const tempSorted = sorted.map(e => ({ ...e }));
+  let prevEnd = START_MIN;
+
+  for (let i = 0; i < tempSorted.length; i++) {
+    const e = tempSorted[i];
+    let s = getMinutes(e.waktuMulai);
+    let en = getMinutes(e.waktuSelesai);
+
+    if (i === 0 && s > START_MIN) {
+      s = START_MIN;
+    } else if (s > prevEnd) {
+      // Stretch previous event's end time
+      const prevE = tempSorted[i - 1];
+      prevE.waktuSelesai = formatTimeStr(s);
+      prevE.durasi = s - getMinutes(prevE.waktuMulai);
+
+      const uIdx = updates.findIndex(u => u.id === prevE.id);
+      if (uIdx !== -1) {
+        updates[uIdx] = { id: prevE.id, waktuMulai: prevE.waktuMulai, waktuSelesai: prevE.waktuSelesai, durasi: prevE.durasi };
+      } else {
+        updates.push({ id: prevE.id, waktuMulai: prevE.waktuMulai, waktuSelesai: prevE.waktuSelesai, durasi: prevE.durasi });
+      }
+    }
+
+    if (i === tempSorted.length - 1 && en < END_MIN) {
+      en = END_MIN;
+    }
+
+    e.waktuMulai = formatTimeStr(s);
+    e.waktuSelesai = formatTimeStr(en);
+    e.durasi = en - s;
+
+    const uIdx = updates.findIndex(u => u.id === e.id);
+    if (uIdx !== -1) {
+      updates[uIdx] = { id: e.id, waktuMulai: e.waktuMulai, waktuSelesai: e.waktuSelesai, durasi: e.durasi };
+    } else {
+      updates.push({ id: e.id, waktuMulai: e.waktuMulai, waktuSelesai: e.waktuSelesai, durasi: e.durasi });
+    }
+
+    prevEnd = Math.max(prevEnd, en);
+  }
+
+  // Filter only those that actually changed
+  const realUpdates = updates.filter(u => {
+    const orig = dayEntries.find(o => o.id === u.id);
+    return orig && (orig.waktuMulai !== u.waktuMulai || orig.waktuSelesai !== u.waktuSelesai || orig.durasi !== u.durasi);
+  });
+
+  return { hasGaps: true, isApelOnly: false, updates: realUpdates };
+}
 
 function stretchMonthEntries(originalEntries, checkHoliday) {
   let hasGaps = false;
@@ -1650,7 +1989,7 @@ function stretchMonthEntries(originalEntries, checkHoliday) {
 }
 
 // TAB 3: Rekap Bulanan
-function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday }) {
+function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday, onStretchClick, onEdit }) {
   const { showAlert } = useAlert();
   const [selectedMonth, setSelectedMonth] = useState(sharedDate ? sharedDate.substring(0, 7) : getCurrentMonthStr());
 
@@ -1866,7 +2205,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday }) {
         </div>
       </div>
 
-      <MonthlyTimeVisualizer entries={entries} year={yearVal} month={monthVal} checkHoliday={checkHoliday} />
+      <MonthlyTimeVisualizer entries={entries} year={yearVal} month={monthVal} checkHoliday={checkHoliday} onStretchClick={onStretchClick} onEdit={onEdit} />
 
       {monthData.length === 0 ? (
         <div className={styles.emptyState}>
@@ -2157,8 +2496,9 @@ function TabRekapTriwulanan({ entries }) {
 function CKPPageInner() {
   const searchParams = useSearchParams();
   const { showAlert } = useAlert();
-  const { accessToken } = useAuth();
+  const { accessToken, loginWithGoogle } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
+  const [openingFolder, setOpeningFolder] = useState(false);
   const { docs: entries, loading, addDocument, updateDocument, deleteDocument } = useFirestore('ckp');
   const { docs: holidaysData, addDocument: addHoliday, deleteDocument: deleteHoliday } = useFirestore('holidays');
 
@@ -2176,6 +2516,37 @@ function CKPPageInner() {
       await addHoliday({ tanggal: dateStr });
     }
   };
+
+  const handleOpenDriveFolder = async () => {
+    if (!accessToken) {
+      showAlert('Silakan hubungkan Google Drive Anda terlebih dahulu.');
+      return;
+    }
+    setOpeningFolder(true);
+    try {
+      const parentFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
+      const folderId = await getOrCreateFolder(accessToken, 'Bukti Dukung CKP', parentFolderId);
+      if (folderId) {
+        window.open(`https://drive.google.com/drive/folders/${folderId}`, '_blank');
+      } else {
+        throw new Error('Folder ID tidak ditemukan.');
+      }
+    } catch (err) {
+      console.error(err);
+      if (err.message && err.message.includes('401')) {
+        showAlert('Sesi Google Drive kedaluwarsa. Menghubungkan ulang...');
+        try {
+          await loginWithGoogle();
+        } catch (loginErr) {
+          console.error("Login failed:", loginErr);
+        }
+      } else {
+        showAlert('Gagal mengakses Google Drive: ' + err.message);
+      }
+    } finally {
+      setOpeningFolder(false);
+    }
+  };
   const { setPageData } = useAIContext();
   const [sharedSelectedDate, setSharedSelectedDate] = useState(getTodayStr());
 
@@ -2186,6 +2557,7 @@ function CKPPageInner() {
   const [toastVisible, setToastVisible] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [stretchConfirmDate, setStretchConfirmDate] = useState(null);
 
   const handleAICreateCKP = useCallback(async (data) => {
     try {
@@ -2325,6 +2697,29 @@ function CKPPageInner() {
     }
   };
 
+  const handleStretchDaily = useCallback(async (dateStr) => {
+    const dayEntries = entries.filter(e => e.tanggal === dateStr);
+    const { hasGaps, updates } = stretchDayEntries(dayEntries, dateStr, checkHoliday);
+    if (!hasGaps || updates.length === 0) {
+      showAlert('Tidak ada celah waktu kosong yang perlu diregangkan pada tanggal ini.', 'info');
+      return;
+    }
+    
+    try {
+      await Promise.all(updates.map(u => 
+        updateDocument(u.id, {
+          waktuMulai: u.waktuMulai,
+          waktuSelesai: u.waktuSelesai,
+          durasi: u.durasi
+        })
+      ));
+      showAlert(`Berhasil merenggangkan ${updates.length} kegiatan pada tanggal ${formatDate(dateStr)}!`, 'success');
+    } catch (err) {
+      console.error('Failed to stretch daily entries:', err);
+      showAlert('Gagal merenggangkan waktu kegiatan: ' + err.message);
+    }
+  }, [entries, checkHoliday, updateDocument, showAlert]);
+
   const handleSubmit = useCallback(async (formData) => {
     await addDocument(formData);
 
@@ -2366,7 +2761,8 @@ function CKPPageInner() {
 
   const fetchPendingUploads = useCallback(async () => {
     const list = await getPendingUploads();
-    setPendingUploads(list || []);
+    const ckpList = list.filter(item => !item.type || item.type === 'ckp');
+    setPendingUploads(ckpList || []);
   }, []);
 
   useEffect(() => {
@@ -2375,21 +2771,25 @@ function CKPPageInner() {
 
   const handleSyncOfflineFiles = async () => {
     if (!accessToken) {
-      showAlert('Sesi Drive kedaluwarsa. Aplikasi akan meminta relogin saat dimuat ulang.');
-      // Trick to force re-login by redirecting or just telling them to refresh
-      window.location.reload();
-      return;
+      try {
+        await loginWithGoogle();
+      } catch (err) {
+        showAlert('Gagal menghubungkan ke Google Drive.');
+        return;
+      }
     }
     setIsSyncing(true);
     let successCount = 0;
     
     try {
       const list = await getPendingUploads();
-      if (!list || list.length === 0) return;
+      const ckpList = list.filter(item => !item.type || item.type === 'ckp');
+      if (!ckpList || ckpList.length === 0) return;
       
-      const folderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS - Bukti Dukung');
+      const parentFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
+      const folderId = await getOrCreateFolder(accessToken, 'Bukti Dukung CKP', parentFolderId);
       
-      for (const item of list) {
+      for (const item of ckpList) {
         try {
           const driveUrl = await uploadFileToDrive(item.file, accessToken, folderId, item.customFileName);
           await updateDocument(item.id, { buktiDukung: driveUrl });
@@ -2424,11 +2824,71 @@ function CKPPageInner() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <h1 className={styles.pageTitle}>Capaian Kinerja Harian</h1>
-        <p className={styles.pageSubtitle}>
-          Pencatatan dan monitoring CKP harian pegawai BPS
-        </p>
+      <header className={styles.header} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+        <div>
+          <h1 className={styles.pageTitle}>Capaian Kinerja Harian</h1>
+          <p className={styles.pageSubtitle}>
+            Pencatatan dan monitoring CKP harian pegawai BPS
+          </p>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          {accessToken ? (
+            <button
+              onClick={handleOpenDriveFolder}
+              disabled={openingFolder}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: 'rgba(99, 102, 241, 0.15)',
+                color: '#818cf8',
+                border: '1px solid rgba(99, 102, 241, 0.3)',
+                padding: '10px 16px',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '13px',
+                transition: 'all 0.2s ease',
+                fontFamily: 'Inter, sans-serif'
+              }}
+            >
+              {openingFolder ? (
+                <>
+                  <div className={styles.spinnerSmall} style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                  Membuka...
+                </>
+              ) : (
+                <>
+                  <FolderOpen size={16} />
+                  Buka Folder Drive
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={loginWithGoogle}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                color: '#94a3b8',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                padding: '10px 16px',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '13px',
+                transition: 'all 0.2s ease',
+                fontFamily: 'Inter, sans-serif'
+              }}
+            >
+              <RefreshCw size={16} />
+              Hubungkan Google Drive
+            </button>
+          )}
+        </div>
       </header>
 
       <div className={styles.tabBar}>
@@ -2450,6 +2910,55 @@ function CKPPageInner() {
         />
       </div>
 
+      {pendingUploads.length > 0 && (
+        <div style={{
+          background: 'rgba(239, 68, 68, 0.12)',
+          border: '1px dashed rgba(239, 68, 68, 0.3)',
+          borderRadius: '12px',
+          padding: '16px',
+          marginBottom: '24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          color: '#fca5a5'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <AlertTriangle size={18} style={{ color: '#f87171' }} />
+            <span style={{ fontSize: '14px' }}>
+              Terdapat <strong>{pendingUploads.length}</strong> file bukti dukung yang belum terunggah ke Google Drive (tersimpan di lokal).
+            </span>
+          </div>
+          <button
+            onClick={handleSyncOfflineFiles}
+            disabled={isSyncing}
+            style={{
+              background: '#ef4444',
+              color: '#fff',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'background 0.2s',
+              fontFamily: 'Inter, sans-serif'
+            }}
+          >
+            {isSyncing ? (
+              <>
+                <div className={styles.spinnerSmall} style={{ width: '12px', height: '12px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                Menyinkronkan...
+              </>
+            ) : (
+              accessToken ? 'Unggah Sekarang' : 'Hubungkan Ulang Drive'
+            )}
+          </button>
+        </div>
+      )}
+
       <main className={styles.tabContent}>
         {loading && activeTab !== 0 ? (
           <div className={styles.loadingState}>Memuat data...</div>
@@ -2469,6 +2978,7 @@ function CKPPageInner() {
                 setSharedDate={setSharedSelectedDate}
                 checkHoliday={checkHoliday}
                 onToggleHoliday={toggleHoliday}
+                onPendingChange={fetchPendingUploads}
               />
             )}
             {activeTab === 1 && (
@@ -2480,9 +2990,21 @@ function CKPPageInner() {
                 setSelectedDate={setSharedSelectedDate}
                 checkHoliday={checkHoliday}
                 onToggleHoliday={toggleHoliday}
+                pendingUploads={pendingUploads}
+                onStretchClick={setStretchConfirmDate}
               />
             )}
-            {activeTab === 2 && <TabRekapBulanan entries={entries} sharedDate={sharedSelectedDate} setSharedDate={setSharedSelectedDate} checkHoliday={checkHoliday} onToggleHoliday={toggleHoliday} />}
+            {activeTab === 2 && (
+              <TabRekapBulanan 
+                entries={entries} 
+                sharedDate={sharedSelectedDate} 
+                setSharedDate={setSharedSelectedDate} 
+                checkHoliday={checkHoliday} 
+                onToggleHoliday={toggleHoliday} 
+                onStretchClick={setStretchConfirmDate}
+                onEdit={handleEdit}
+              />
+            )}
             {activeTab === 3 && <TabRekapTriwulanan entries={entries} />}
           </>
         )}
@@ -2496,6 +3018,20 @@ function CKPPageInner() {
         message="Apakah Anda yakin ingin menghapus kegiatan CKP ini?" 
         confirmText="Hapus" 
         variant="danger" 
+      />
+
+      <ConfirmDialog 
+        isOpen={!!stretchConfirmDate} 
+        onConfirm={async () => {
+          const dateToStretch = stretchConfirmDate;
+          setStretchConfirmDate(null);
+          await handleStretchDaily(dateToStretch);
+        }} 
+        onCancel={() => setStretchConfirmDate(null)} 
+        title="Regangkan Jam Kegiatan" 
+        message={`Apakah Anda yakin ingin merenggangkan jam kegiatan pada tanggal ${stretchConfirmDate ? formatDate(stretchConfirmDate) : ''}? Tindakan ini akan menyesuaikan jam mulai dan selesai setiap kegiatan agar menutupi seluruh jam kerja (07:30 s.d. selesai) tanpa ada waktu kosong dan menyimpannya langsung ke database.`}
+        confirmText="Regangkan" 
+        variant="primary" 
       />
 
       <Toast message="Kegiatan berhasil disimpan!" visible={toastVisible} onClose={hideToast} />

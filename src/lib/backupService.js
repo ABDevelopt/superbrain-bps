@@ -1,5 +1,5 @@
-import { db } from './firebase';
-import { collection, getDocs, doc, setDoc, getDoc, writeBatch } from 'firebase/firestore';
+import { db, auth } from './firebase';
+import { collection, getDocs, doc, setDoc, getDoc, writeBatch, query, where } from 'firebase/firestore';
 import { skpData } from '@/data/skpData';
 
 const COLLECTIONS = ['tasks', 'schedule', 'ckp'];
@@ -8,6 +8,9 @@ const COLLECTIONS = ['tasks', 'schedule', 'ckp'];
  * Fetches all dynamic data from Firestore and includes static SKP data.
  */
 export async function getBackupData() {
+  const user = auth.currentUser;
+  if (!user) throw new Error('User tidak terautentikasi.');
+
   const backup = {
     timestamp: new Date().toISOString(),
     version: '1.0',
@@ -17,7 +20,8 @@ export async function getBackupData() {
   };
 
   for (const col of COLLECTIONS) {
-    const snapshot = await getDocs(collection(db, col));
+    const q = query(collection(db, col), where('userId', '==', user.uid));
+    const snapshot = await getDocs(q);
     const docs = [];
     snapshot.forEach(doc => {
       docs.push({ id: doc.id, ...doc.data() });
@@ -33,6 +37,8 @@ export async function getBackupData() {
  */
 export async function restoreFromBackupData(backup) {
   if (!backup || !backup.data) throw new Error('Data backup tidak valid.');
+  const user = auth.currentUser;
+  if (!user) throw new Error('User tidak terautentikasi.');
 
   const batch = writeBatch(db);
   let operationCount = 0;
@@ -41,7 +47,10 @@ export async function restoreFromBackupData(backup) {
     if (backup.data[col] && Array.isArray(backup.data[col])) {
       for (const item of backup.data[col]) {
         const docRef = doc(db, col, item.id);
-        const dataToSave = { ...item };
+        const dataToSave = { 
+          ...item,
+          userId: user.uid // Ensure restored documents are owned by the current user
+        };
         delete dataToSave.id; // Don't save id inside the document
         
         batch.set(docRef, dataToSave);
@@ -83,11 +92,11 @@ export async function exportToJSON() {
  * Creates a cloud snapshot in the "backups" collection.
  */
 export async function createCloudSnapshot() {
+  const user = auth.currentUser;
+  if (!user) throw new Error('User tidak terautentikasi.');
+  
   const data = await getBackupData();
-  // We compress it to a string to store it easily in one document.
-  // Note: Firestore has a 1MB limit per document. If data is larger, 
-  // it should be chunked or stored in Storage, but for typical use 1MB is enough.
-  const backupDocRef = doc(db, 'backups', 'latest');
+  const backupDocRef = doc(db, 'backups', user.uid);
   
   // We can just store it as a JSON string to easily bypass nested array limits
   await setDoc(backupDocRef, {
@@ -102,7 +111,10 @@ export async function createCloudSnapshot() {
  * Restores from the cloud snapshot in the "backups" collection.
  */
 export async function restoreFromCloudSnapshot() {
-  const backupDocRef = doc(db, 'backups', 'latest');
+  const user = auth.currentUser;
+  if (!user) throw new Error('User tidak terautentikasi.');
+  
+  const backupDocRef = doc(db, 'backups', user.uid);
   const docSnap = await getDoc(backupDocRef);
   
   if (docSnap.exists()) {

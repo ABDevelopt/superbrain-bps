@@ -16,10 +16,20 @@ export async function GET(request) {
     // e.g., /api/cron/telegram?chatId=123456789
     
     const url = new URL(request.url);
-    const chatId = url.searchParams.get('chatId');
-    if (!chatId) {
-      return NextResponse.json({ error: 'chatId query param is required for cron' }, { status: 400 });
-    }
+    const queryChatId = url.searchParams.get('chatId');
+
+    // Retrieve all telegram mappings and map userId -> array of chatIds
+    const mappingsSnap = await getDocs(collection(db, 'telegram_mappings'));
+    const userIdToChatIds = {};
+    mappingsSnap.forEach(d => {
+      const data = d.data();
+      if (data.userId) {
+        if (!userIdToChatIds[data.userId]) {
+          userIdToChatIds[data.userId] = [];
+        }
+        userIdToChatIds[data.userId].push(d.id);
+      }
+    });
 
     const now = new Date();
     
@@ -33,6 +43,23 @@ export async function GET(request) {
       const data = d.data();
       if (!data.tanggal || !data.waktu) continue;
       if (!Array.isArray(data.reminders) || data.reminders.length === 0) continue;
+      
+      // Determine destination chatIds for this event
+      let destChatIds = [];
+      if (data.userId && userIdToChatIds[data.userId]) {
+        destChatIds = [...userIdToChatIds[data.userId]];
+      }
+      
+      // Fallback for query param (backward compatibility or testing)
+      if (queryChatId) {
+        if (!data.userId || destChatIds.includes(queryChatId)) {
+          if (!destChatIds.includes(queryChatId)) {
+            destChatIds.push(queryChatId);
+          }
+        }
+      }
+
+      if (destChatIds.length === 0) continue; // No chat IDs mapped for this event
       
       const sentReminders = Array.isArray(data.sentReminders) ? data.sentReminders : [];
       const eventTime = new Date(`${data.tanggal}T${data.waktu}:00`);
@@ -67,6 +94,7 @@ export async function GET(request) {
         messagesToSend.push({
           docId: d.id,
           reminderLabel: triggeredReminder,
+          chatIds: destChatIds,
           msg: `⏰ *Pengingat Jadwal: ${triggeredReminder}*\n\n*Judul:* ${data.judul}\n*Kategori:* ${data.kategori}\n*Waktu:* ${data.tanggal} ${data.waktu}`
         });
       }
@@ -75,22 +103,29 @@ export async function GET(request) {
     // Send messages and update Firestore
     const results = [];
     for (const m of messagesToSend) {
-      const tgUrl = `https://api.telegram.org/bot${token}/sendMessage`;
-      const res = await fetch(tgUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, text: m.msg, parse_mode: 'Markdown' }),
-      });
-      
-      if (res.ok) {
+      let sentAny = false;
+      for (const targetChatId of m.chatIds) {
+        const tgUrl = `https://api.telegram.org/bot${token}/sendMessage`;
+        const res = await fetch(tgUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: targetChatId, text: m.msg, parse_mode: 'Markdown' }),
+        });
+        
+        if (res.ok) {
+          sentAny = true;
+          results.push(`Sent ${m.reminderLabel} to ${targetChatId} for doc ${m.docId}`);
+        } else {
+          results.push(`Failed to send to ${targetChatId} for doc ${m.docId}`);
+        }
+      }
+
+      if (sentAny) {
         // Mark as sent in Firestore
         const docRef = doc(db, 'schedule', m.docId);
         await updateDoc(docRef, {
           sentReminders: arrayUnion(m.reminderLabel)
         });
-        results.push(`Sent ${m.reminderLabel} for doc ${m.docId}`);
-      } else {
-        results.push(`Failed for doc ${m.docId}`);
       }
     }
 

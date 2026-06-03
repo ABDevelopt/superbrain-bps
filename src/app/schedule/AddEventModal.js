@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Calendar, MapPin, AlertTriangle } from 'lucide-react';
+import { X, Calendar, MapPin, AlertTriangle, Plus, FileText } from 'lucide-react';
 import { skpData } from '@/data/skpData';
 import styles from './page.module.css';
 
@@ -31,26 +31,32 @@ export default function AddEventModal({ isOpen, onClose, onSubmit, initialData, 
     skpId: '',
     reminders: ['1 Jam Sebelum', '5 Menit Sebelum'],
     deskripsi: '',
+    attachments: [],
   };
 
   const [form, setForm] = useState(emptyForm);
+  const [files, setFiles] = useState([]);
 
   useEffect(() => {
-    if (initialData) {
-      setForm({
-        judul: initialData.judul || '',
-        tanggal: initialData.tanggal || toDateStr(new Date()),
-        waktu: initialData.waktu || '09:00',
-        waktuSelesai: initialData.waktuSelesai || '',
-        kategori: initialData.kategori || 'Lainnya',
-        urgensi: initialData.urgensi || 'Sedang',
-        lokasi: initialData.lokasi || '',
-        skpId: initialData.skpId ? String(initialData.skpId) : '',
-        reminders: initialData.reminders || [],
-        deskripsi: initialData.deskripsi || '',
-      });
-    } else {
-      setForm(emptyForm);
+    if (isOpen) {
+      setFiles([]);
+      if (initialData) {
+        setForm({
+          judul: initialData.judul || '',
+          tanggal: initialData.tanggal || toDateStr(new Date()),
+          waktu: initialData.waktu || '09:00',
+          waktuSelesai: initialData.waktuSelesai || '',
+          kategori: initialData.kategori || 'Lainnya',
+          urgensi: initialData.urgensi || 'Sedang',
+          lokasi: initialData.lokasi || '',
+          skpId: initialData.skpId ? String(initialData.skpId) : '',
+          reminders: initialData.reminders || [],
+          deskripsi: initialData.deskripsi || '',
+          attachments: initialData.attachments || [],
+        });
+      } else {
+        setForm(emptyForm);
+      }
     }
   }, [initialData, isOpen]);
 
@@ -81,15 +87,17 @@ export default function AddEventModal({ isOpen, onClose, onSubmit, initialData, 
       gcalEventId: (initialData && initialData.gcalEventId) ? initialData.gcalEventId : null,
       isGCal: (initialData && initialData.isGCal) ? initialData.isGCal : false,
       linkedTaskIds: (initialData && initialData.linkedTaskIds) ? initialData.linkedTaskIds : [],
+      attachments: form.attachments || [],
     };
 
     if (initialData && initialData.id && onUpdate) {
-      onUpdate(initialData.id, dataToSave);
+      onUpdate(initialData.id, dataToSave, files);
     } else {
-      onSubmit(dataToSave);
+      onSubmit(dataToSave, files);
     }
 
     setForm(emptyForm);
+    setFiles([]);
   };
 
   const urgensiColor = URGENSI_COLORS[form.urgensi] || URGENSI_COLORS.Sedang;
@@ -242,6 +250,105 @@ export default function AddEventModal({ isOpen, onClose, onSubmit, initialData, 
               placeholder="Detail kegiatan, agenda, link meet, dll..."
               rows={3}
             />
+          </div>
+
+          {/* Lampiran (Optional) */}
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Lampiran (Opsional)</label>
+            <input
+              type="file"
+              multiple
+              className={styles.fileInput}
+              onChange={(e) => {
+                const selected = Array.from(e.target.files || []);
+                setFiles(prev => [...prev, ...selected]);
+              }}
+              id="scheduleAttachments"
+              style={{ display: 'none' }}
+            />
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <label
+                htmlFor="scheduleAttachments"
+                className={styles.fileLabel}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  color: '#cbd5e1',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  fontFamily: 'Inter, sans-serif'
+                }}
+              >
+                <Plus size={16} /> Pilih File (PDF, Gambar, Doc...)
+              </label>
+              
+              {/* List of existing attachments */}
+              {form.attachments && form.attachments.length > 0 && form.attachments.map((att, idx) => (
+                <div
+                  key={`exist-${idx}`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'rgba(56, 189, 248, 0.08)',
+                    border: '1px solid rgba(56, 189, 248, 0.2)',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    color: '#38bdf8'
+                  }}
+                >
+                  <FileText size={12} />
+                  <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForm(prev => ({
+                        ...prev,
+                        attachments: prev.attachments.filter((_, i) => i !== idx)
+                      }));
+                    }}
+                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+              
+              {/* List of new selected files */}
+              {files.map((f, idx) => (
+                <div
+                  key={`new-${idx}`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    color: '#cbd5e1'
+                  }}
+                >
+                  <FileText size={12} />
+                  <span style={{ maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => setFiles(prev => prev.filter((_, i) => i !== idx))}
+                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className={styles.modalActions}>

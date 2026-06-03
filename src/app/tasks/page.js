@@ -9,7 +9,7 @@ import {
   Calendar, Edit3, ClipboardCheck, LayoutGrid,
   GraduationCap, Award, Search, MapPin, Target, Coffee, Zap,
   Monitor, Map as MapIcon, Book, Users, Folder, Network, BarChart2, ClipboardList,
-  SlidersHorizontal
+  SlidersHorizontal, FolderOpen, Paperclip, Loader2
 } from 'lucide-react';
 
 import { skpData } from '@/data/skpData';
@@ -20,6 +20,9 @@ import { useAIContext } from '@/contexts/AIContext';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, writeBatch } from 'firebase/firestore';
 import { useFirestore } from '@/hooks/useFirestore';
+import { useAuth } from '@/contexts/AuthContext';
+import { uploadFileToDrive, getOrCreateFolder } from '@/lib/drive';
+import { savePendingUpload, getPendingUploads, removePendingUpload } from '@/lib/localdb';
 
 function getRoleIcon(iconName, size = 14) {
   switch (iconName) {
@@ -33,6 +36,7 @@ function getRoleIcon(iconName, size = 14) {
 }
 
 export default function TasksPage() {
+  const { accessToken, loginWithGoogle } = useAuth();
   const router = useRouter();
 
   // Tab Utama: 0 = Papan Kanban, 1 = Pemetaan SKP
@@ -48,6 +52,117 @@ export default function TasksPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilter, setShowFilter] = useState(false);
 
+  // GDrive & Sync states
+  const [openingFolder, setOpeningFolder] = useState(false);
+  const [taskFiles, setTaskFiles] = useState([]);
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false);
+  const [pendingUploads, setPendingUploads] = useState([]);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const fetchPendingUploads = useCallback(async () => {
+    const list = await getPendingUploads();
+    const tasksList = list.filter(item => item.type === 'tasks');
+    setPendingUploads(tasksList || []);
+  }, []);
+
+  useEffect(() => {
+    fetchPendingUploads();
+  }, [fetchPendingUploads]);
+
+  const handleOpenDriveFolder = async () => {
+    if (!accessToken) {
+      alert('Silakan hubungkan Google Drive Anda terlebih dahulu.');
+      return;
+    }
+    setOpeningFolder(true);
+    try {
+      const parentFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
+      const folderId = await getOrCreateFolder(accessToken, 'Lampiran Tugas', parentFolderId);
+      if (folderId) {
+        window.open(`https://drive.google.com/drive/folders/${folderId}`, '_blank');
+      } else {
+        throw new Error('Folder ID tidak ditemukan.');
+      }
+    } catch (err) {
+      console.error(err);
+      if (err.message && err.message.includes('401')) {
+        alert('Sesi Google Drive kedaluwarsa. Menghubungkan ulang...');
+        try {
+          await loginWithGoogle();
+        } catch (loginErr) {
+          console.error("Login failed:", loginErr);
+        }
+      } else {
+        alert('Gagal mengakses Google Drive: ' + err.message);
+      }
+    } finally {
+      setOpeningFolder(false);
+    }
+  };
+
+  const handleSyncOfflineFiles = async () => {
+    if (!accessToken) {
+      try {
+        await loginWithGoogle();
+      } catch (err) {
+        alert('Gagal menghubungkan ke Google Drive.');
+        return;
+      }
+    }
+    setIsSyncing(true);
+    let successCount = 0;
+    
+    try {
+      const list = await getPendingUploads();
+      const tasksList = list.filter(item => item.type === 'tasks');
+      if (tasksList.length === 0) return;
+      
+      const parentFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
+      const folderId = await getOrCreateFolder(accessToken, 'Lampiran Tugas', parentFolderId);
+      const updatesByTaskId = {};
+
+      for (const item of tasksList) {
+        try {
+          const driveUrl = await uploadFileToDrive(item.file, accessToken, folderId, item.customFileName);
+          const [taskId] = item.id.split('_');
+          
+          if (!updatesByTaskId[taskId]) {
+            updatesByTaskId[taskId] = [];
+          }
+          updatesByTaskId[taskId].push({ name: item.file.name, url: driveUrl });
+          
+          await removePendingUpload(item.id);
+          successCount++;
+        } catch (err) {
+          console.error("Sync error for task item", item.id, err);
+          if (err.message && err.message.includes('401')) {
+            alert('Sesi Google Drive kedaluwarsa. Hubungkan ulang.');
+            break;
+          }
+        }
+      }
+
+      // Update Firestore documents with the new attachments
+      for (const taskId of Object.keys(updatesByTaskId)) {
+        const existingTask = tasks.find(t => t.id === taskId);
+        const currentAttachments = existingTask?.attachments || [];
+        await updateTask(taskId, {
+          attachments: [...currentAttachments, ...updatesByTaskId[taskId]]
+        });
+      }
+
+      if (successCount > 0) {
+        alert(`Berhasil menyinkronkan ${successCount} file lampiran tugas ke Google Drive.`);
+        fetchPendingUploads();
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Gagal menyinkronkan file lampiran: ' + err.message);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   // Modals & Forms (Tugas)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('add'); // 'add' | 'edit'
@@ -61,6 +176,7 @@ export default function TasksPage() {
   const [formChecklist, setFormChecklist] = useState([]);
   const [newChecklistItem, setNewChecklistItem] = useState('');
   const [formLinkedScheduleId, setFormLinkedScheduleId] = useState('');
+  const [formAttachments, setFormAttachments] = useState([]);
 
   // Mode Fokus Tenang
   const [focusedTask, setFocusedTask] = useState(null);
@@ -89,6 +205,53 @@ export default function TasksPage() {
   useEffect(() => {
     setPageData(tasks);
   }, [tasks, setPageData]);
+
+  // Handle auto-sync of telegram file attachments for tasks
+  useEffect(() => {
+    if (!tasks || tasks.length === 0 || !accessToken) return;
+
+    const syncPendingFiles = async () => {
+      const pendingTasks = tasks.filter(t => t.telegramFileId);
+      
+      for (const task of pendingTasks) {
+        try {
+          console.log('[Telegram Sync] Syncing attachment for Kanban task:', task.id);
+          // 1. Download file content from Telegram via proxy
+          const res = await fetch(`/api/telegram-file?id=${task.telegramFileId}`);
+          if (!res.ok) throw new Error('Gagal mengunduh file Telegram via proxy.');
+          
+          const blob = await res.blob();
+          const disp = res.headers.get('content-disposition');
+          const filenameMatch = disp ? disp.match(/filename="([^"]+)"/) : null;
+          const filename = filenameMatch ? filenameMatch[1] : `Lampiran_Tugas_${task.id.substring(0, 5)}.pdf`;
+          
+          const file = new File([blob], filename, { type: blob.type });
+
+          // 2. Get folder ID ("SuperBrain BPS/Lampiran Tugas")
+          const parentFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
+          const folderId = await getOrCreateFolder(accessToken, 'Lampiran Tugas', parentFolderId);
+
+          // 3. Upload to Google Drive
+          const driveUrl = await uploadFileToDrive(file, accessToken, folderId);
+
+          // 4. Update Firestore
+          const currentAttachments = task.attachments || [];
+          const updatedAttachments = [...currentAttachments, { name: file.name, url: driveUrl }];
+
+          await updateTask(task.id, {
+            attachments: updatedAttachments,
+            telegramFileId: null // Clear the temporary ID
+          });
+          
+          console.log('[Telegram Sync] Successfully synced task attachment:', filename);
+        } catch (err) {
+          console.error('Failed to sync telegram file for task', task.id, err);
+        }
+      }
+    };
+
+    syncPendingFiles();
+  }, [tasks, accessToken, updateTask]);
 
   useEffect(() => {
     const localTasks = localStorage.getItem('bps_superbrain_tasks');
@@ -242,6 +405,7 @@ export default function TasksPage() {
 
   const handleOpenAddModal = () => {
     setModalMode('add');
+    setSelectedTaskForEdit(null);
     setFormJudul('');
     setFormDesc('');
     setFormPeran('admin');
@@ -249,6 +413,8 @@ export default function TasksPage() {
     setFormChecklist([]);
     setNewChecklistItem('');
     setFormLinkedScheduleId('');
+    setFormAttachments([]);
+    setTaskFiles([]);
     setIsModalOpen(true);
   };
 
@@ -262,6 +428,8 @@ export default function TasksPage() {
     setFormChecklist(task.checklist || []);
     setNewChecklistItem('');
     setFormLinkedScheduleId(task.linkedScheduleId || '');
+    setFormAttachments(task.attachments || []);
+    setTaskFiles([]);
     setIsModalOpen(true);
   };
 
@@ -306,7 +474,8 @@ export default function TasksPage() {
           skpId: Number(formSkpId),
           tanggalDibuat: new Date().toISOString().split('T')[0],
           checklist: formChecklist,
-          linkedScheduleId: finalScheduleId
+          linkedScheduleId: finalScheduleId,
+          attachments: []
         };
         const ref = await addTask(newTask);
         savedTaskId = ref.id;
@@ -319,9 +488,54 @@ export default function TasksPage() {
           peran: formPeran,
           skpId: Number(formSkpId),
           checklist: formChecklist,
-          linkedScheduleId: finalScheduleId
+          linkedScheduleId: finalScheduleId,
+          attachments: formAttachments
         });
         showToast('Tugas berhasil diperbarui.', 'success');
+      }
+
+      // Handle file uploads to Google Drive under "Lampiran Tugas"
+      if (taskFiles.length > 0) {
+        setIsUploadingFiles(true);
+        const uploadedAttachments = [];
+        const offlineFilesToSave = [];
+        let needsOfflineSave = false;
+
+        const cleanJudul = formJudul.substring(0, 30).replace(/[^a-zA-Z0-9 -]/g, '').trim();
+        const startIdx = formAttachments.length;
+
+        for (let i = 0; i < taskFiles.length; i++) {
+          const file = taskFiles[i];
+          const customFileName = `${new Date().toISOString().split('T')[0]} - ${cleanJudul} - ${file.name}`;
+          const idx = startIdx + i;
+
+          if (accessToken) {
+            try {
+              const parentFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
+              const folderId = await getOrCreateFolder(accessToken, 'Lampiran Tugas', parentFolderId);
+              const driveUrl = await uploadFileToDrive(file, accessToken, folderId, customFileName);
+              uploadedAttachments.push({ name: file.name, url: driveUrl });
+            } catch (err) {
+              console.error("Gagal unggah file tugas:", file.name, err);
+              needsOfflineSave = true;
+              offlineFilesToSave.push({ file, customFileName, idx });
+            }
+          } else {
+            needsOfflineSave = true;
+            offlineFilesToSave.push({ file, customFileName, idx });
+          }
+        }
+
+        const finalAttachments = [...formAttachments, ...uploadedAttachments];
+        await updateTask(savedTaskId, { attachments: finalAttachments });
+
+        if (needsOfflineSave && offlineFilesToSave.length > 0) {
+          for (const item of offlineFilesToSave) {
+            await savePendingUpload(savedTaskId + '_' + item.idx, item.file, item.customFileName, 'tasks');
+          }
+          alert('Beberapa lampiran tugas disimpan secara lokal karena kendala koneksi/sesi Google Drive.');
+          fetchPendingUploads();
+        }
       }
 
       setIsModalOpen(false);
@@ -339,6 +553,9 @@ export default function TasksPage() {
     } catch (e) {
       console.error(e);
       showToast('Gagal menyimpan tugas.', 'error');
+    } finally {
+      setIsUploadingFiles(false);
+      setTaskFiles([]);
     }
   };
 
@@ -599,13 +816,94 @@ export default function TasksPage() {
       )}
 
       {/* Header */}
-      <div className={styles.header}>
-        <h1 className={styles.title}>
-          <LayoutGrid size={28} color="#6366f1" /> Papan & Peta Kerja
-        </h1>
-        <p className={styles.subtitle}>
-          Kelola penugasan khusus organisasi BPS Anda. Hubungkan tugas dengan SKP strategis dan urai menjadi checklist mikro.
-        </p>
+      <div className={styles.header} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+        <div>
+          <h1 className={styles.title}>
+            <LayoutGrid size={28} color="#6366f1" /> Papan & Peta Kerja
+          </h1>
+          <p className={styles.subtitle}>
+            Kelola penugasan khusus organisasi BPS Anda. Hubungkan tugas dengan SKP strategis dan urai menjadi checklist mikro.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          {pendingUploads.length > 0 && (
+            <button
+              onClick={handleSyncOfflineFiles}
+              disabled={isSyncing}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: 'rgba(239, 68, 68, 0.15)',
+                color: '#f87171',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                padding: '10px 16px',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '13px',
+                fontFamily: 'Inter, sans-serif'
+              }}
+            >
+              {isSyncing ? 'Sinkronisasi...' : `Sinkronkan ${pendingUploads.length} File`}
+            </button>
+          )}
+          {accessToken ? (
+            <button
+              onClick={handleOpenDriveFolder}
+              disabled={openingFolder}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: 'rgba(99, 102, 241, 0.15)',
+                color: '#818cf8',
+                border: '1px solid rgba(99, 102, 241, 0.3)',
+                padding: '10px 16px',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '13px',
+                transition: 'all 0.2s ease',
+                fontFamily: 'Inter, sans-serif'
+              }}
+            >
+              {openingFolder ? (
+                <>
+                  <div style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                  Membuka...
+                </>
+              ) : (
+                <>
+                  <FolderOpen size={16} />
+                  Buka Folder Drive
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={loginWithGoogle}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                color: '#94a3b8',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                padding: '10px 16px',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '13px',
+                transition: 'all 0.2s ease',
+                fontFamily: 'Inter, sans-serif'
+              }}
+            >
+              <FolderOpen size={16} style={{ opacity: 0.5 }} />
+              Hubungkan Drive
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tab Switcher */}
@@ -1267,6 +1565,96 @@ export default function TasksPage() {
                 </div>
               </div>
 
+              <div className={styles.formGroup} style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '16px', marginTop: '16px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Paperclip size={14} color="#6366f1" />
+                  Berkas Pendukung / Lampiran
+                </label>
+                
+                {formAttachments.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
+                    <span style={{ fontSize: '11px', color: '#64748b' }}>Lampiran Terunggah:</span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      {formAttachments.map((att, idx) => (
+                        <div 
+                          key={idx} 
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: 'rgba(255,255,255,0.05)',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            borderRadius: '8px',
+                            padding: '4px 8px',
+                            fontSize: '12px'
+                          }}
+                        >
+                          <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ color: '#38bdf8', textDecoration: 'none' }}>
+                            {att.name}
+                          </a>
+                          <button 
+                            type="button" 
+                            onClick={() => setFormAttachments(prev => prev.filter((_, i) => i !== idx))}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#ef4444',
+                              cursor: 'pointer',
+                              padding: '2px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                            title="Hapus Lampiran"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <input 
+                  type="file" 
+                  multiple 
+                  onChange={(e) => setTaskFiles(Array.from(e.target.files))}
+                  style={{ display: 'none' }}
+                  id="task-file-input"
+                />
+                
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button 
+                    type="button" 
+                    className={styles.templateBtn}
+                    onClick={() => document.getElementById('task-file-input').click()}
+                    style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px' }}
+                    disabled={isUploadingFiles}
+                  >
+                    {isUploadingFiles ? (
+                      <>
+                        <Loader2 size={14} className="animate-spin" />
+                        Mengunggah...
+                      </>
+                    ) : (
+                      <>
+                        <Paperclip size={14} />
+                        Pilih Berkas Lampiran
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {taskFiles.length > 0 && (
+                  <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span>Terpilih ({taskFiles.length} file):</span>
+                    {taskFiles.map((f, i) => (
+                      <span key={i} style={{ fontFamily: 'monospace' }}>• {f.name} ({Math.round(f.size / 1024)} KB)</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div className={styles.modalActions}>
                 <button 
                   type="button" 
@@ -1472,6 +1860,44 @@ function TaskCard({
             </div>
           )}
         </>
+      )}
+
+      {task.attachments && task.attachments.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+          <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Paperclip size={12} /> Lampiran ({task.attachments.length})
+          </span>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+            {task.attachments.map((att, idx) => (
+              <a 
+                key={idx} 
+                href={att.url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  fontSize: '11px',
+                  color: '#38bdf8',
+                  background: 'rgba(56, 189, 248, 0.08)',
+                  border: '1px solid rgba(56, 189, 248, 0.2)',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: '150px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+                title={att.name}
+              >
+                {att.name}
+              </a>
+            ))}
+          </div>
+        </div>
       )}
 
       <div className={styles.cardActions}>

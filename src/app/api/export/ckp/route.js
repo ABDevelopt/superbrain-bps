@@ -11,8 +11,11 @@ export async function POST(request) {
       return NextResponse.json({ error: 'templateName is required' }, { status: 400 });
     }
 
-    // Path to the template
-    const templatePath = path.join(process.cwd(), 'src', 'export_templates', templateName);
+    // Path to the template (try public first, fallback to src)
+    let templatePath = path.join(process.cwd(), 'public', 'export_templates', templateName);
+    if (!fs.existsSync(templatePath)) {
+      templatePath = path.join(process.cwd(), 'src', 'export_templates', templateName);
+    }
 
     if (!fs.existsSync(templatePath)) {
       return NextResponse.json({ error: `Template ${templateName} not found` }, { status: 404 });

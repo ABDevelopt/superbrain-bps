@@ -6,6 +6,8 @@ import { Settings as SettingsIcon, Send, User, Bell, Shield, LogOut, Database, C
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
 import { exportToJSON, createCloudSnapshot, restoreFromCloudSnapshot, restoreFromBackupData } from '@/lib/backupService';
+import { db } from '@/lib/firebase';
+import { doc, setDoc, deleteDoc, getDocs, collection, query, where } from 'firebase/firestore';
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
@@ -30,15 +32,61 @@ export default function SettingsPage() {
     }
   }, []);
 
-  const handleSaveChatId = () => {
-    if (chatId.trim()) {
-      localStorage.setItem('telegramChatId', chatId.trim());
-      setSavedChatId(chatId.trim());
-      showAlert('Chat ID berhasil disimpan! Notifikasi Telegram sudah aktif.');
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchChatIdFromDB = async () => {
+      try {
+        const q = query(collection(db, 'telegram_mappings'), where('userId', '==', user.uid));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          const dbChatId = snap.docs[0].id;
+          setChatId(dbChatId);
+          setSavedChatId(dbChatId);
+          localStorage.setItem('telegramChatId', dbChatId);
+        }
+      } catch (err) {
+        console.error("Gagal mengambil Chat ID dari Firestore:", err);
+      }
+    };
+    fetchChatIdFromDB();
+  }, [user]);
+
+  const handleSaveChatId = async () => {
+    if (!user) {
+      showAlert('Gagal: Anda tidak terautentikasi.');
+      return;
+    }
+
+    const trimmed = chatId.trim();
+    if (trimmed) {
+      try {
+        if (savedChatId && savedChatId !== trimmed) {
+          await deleteDoc(doc(db, 'telegram_mappings', savedChatId));
+        }
+        await setDoc(doc(db, 'telegram_mappings', trimmed), {
+          userId: user.uid,
+          updatedAt: new Date().toISOString()
+        });
+        localStorage.setItem('telegramChatId', trimmed);
+        setSavedChatId(trimmed);
+        showAlert('Chat ID berhasil disimpan! Notifikasi Telegram sudah aktif.');
+      } catch (err) {
+        console.error("Gagal menyimpan Chat ID:", err);
+        showAlert('Gagal menyimpan Chat ID ke database: ' + err.message);
+      }
     } else {
-      localStorage.removeItem('telegramChatId');
-      setSavedChatId('');
-      showAlert('Integrasi Telegram dimatikan.');
+      try {
+        if (savedChatId) {
+          await deleteDoc(doc(db, 'telegram_mappings', savedChatId));
+        }
+        localStorage.removeItem('telegramChatId');
+        setSavedChatId('');
+        showAlert('Integrasi Telegram dimatikan.');
+      } catch (err) {
+        console.error("Gagal menghapus Chat ID:", err);
+        showAlert('Gagal menonaktifkan Chat ID: ' + err.message);
+      }
     }
   };
 

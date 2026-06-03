@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, getDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, where } from 'firebase/firestore';
 import { parseInvitation, parseInvitationText } from '@/lib/invitationParser';
 import { skpData } from '@/data/skpData';
 
@@ -35,14 +35,33 @@ async function handleTelegramWebhook(token, body) {
   if (messageText && (messageText.startsWith('/start') || messageText.startsWith('/help'))) {
     const welcomeMessage = 
       `Halo! Saya adalah bot asisten SuperBrain BPS.\n\n` +
-      `Anda dapat mengirim atau memforward berkas surat undangan (*PDF* atau *Gambar/Foto*) ke saya.\n\n` +
-      `Saya akan membaca dan menganalisis berkas tersebut dengan AI, mengelompokkannya ke Butir SKP BPS yang cocok secara semantik, dan langsung menyimpannya ke kalender jadwal Anda.\n\n` +
-      `Silakan kirimkan dokumen atau foto surat undangan Anda sekarang!`;
+      `Chat ID Anda adalah: *${chatId}*\n\n` +
+      `Silakan salin Chat ID di atas, lalu daftarkan di menu *Pengaturan* aplikasi SuperBrain BPS Anda.\n\n` +
+      `Setelah terdaftar, Anda dapat mengirim atau memforward berkas surat undangan (*PDF* atau *Gambar/Foto*) ke saya untuk disimpan otomatis ke kalender jadwal Anda!`;
     await sendTelegramMessage(token, chatId, welcomeMessage);
     return NextResponse.json({ success: true });
   }
 
-  // 2. Detect Document, Photo, or Text
+  // 2. Resolve userId from telegram_mappings
+  let userId;
+  try {
+    const mappingRef = doc(db, 'telegram_mappings', String(chatId));
+    const mappingSnap = await getDoc(mappingRef);
+    if (!mappingSnap.exists()) {
+      const registerMsg = 
+        `Halo! Chat ID Anda (*${chatId}*) belum terdaftar di aplikasi SuperBrain BPS.\n\n` +
+        `Silakan buka aplikasi SuperBrain BPS, masuk ke menu *Pengaturan*, lalu masukkan dan simpan Chat ID Anda di sana agar saya dapat memproses pesan Anda.`;
+      await sendTelegramMessage(token, chatId, registerMsg);
+      return NextResponse.json({ success: true });
+    }
+    userId = mappingSnap.data().userId;
+  } catch (err) {
+    console.error("Gagal melakukan pencarian mapping Telegram:", err);
+    await sendTelegramMessage(token, chatId, `Terjadi kesalahan saat memeriksa akun Anda di database: _${err.message}_`);
+    return NextResponse.json({ success: false, error: err.message });
+  }
+
+  // 3. Detect Document, Photo, or Text
   const document = tgMessage.document;
   const photo = tgMessage.photo;
 
@@ -51,9 +70,9 @@ async function handleTelegramWebhook(token, body) {
 
     try {
       let parsedData;
+      let fileId = null;
 
       if (document || photo) {
-        let fileId;
         let mimeType;
 
         if (document) {
@@ -82,10 +101,10 @@ async function handleTelegramWebhook(token, body) {
         const fileBuffer = Buffer.from(await downloadRes.arrayBuffer());
 
         // Fetch context
-        const contextData = await fetchAllContextData();
+        const contextData = await fetchAllContextData(userId);
         parsedData = await parseInvitation(fileBuffer, mimeType, contextData);
       } else {
-        const contextData = await fetchAllContextData();
+        const contextData = await fetchAllContextData(userId);
         parsedData = await parseInvitationText(messageText, contextData);
       }
 
@@ -101,7 +120,8 @@ async function handleTelegramWebhook(token, body) {
         : '\n*Butir SKP Terkait:* Tidak ada SKP BPS yang cocok';
 
       if (payloadType === 'CREATE_JADWAL' || payloadType === 'JADWAL') {
-        docRef = await addDoc(collection(db, 'schedule'), {
+        const scheduleDoc = {
+          userId: userId,
           judul: payloadData.judul || '',
           tanggal: payloadData.tanggal || '',
           waktu: payloadData.waktu || '09:00',
@@ -115,22 +135,43 @@ async function handleTelegramWebhook(token, body) {
           sentReminders: [],
           isSelesai: false,
           createdAt: serverTimestamp(),
-        });
+        };
+        if (fileId) scheduleDoc.telegramFileId = fileId;
+        docRef = await addDoc(collection(db, 'schedule'), scheduleDoc);
 
-        successMsg = `📅 *Agenda Berhasil Ditambahkan!*\n*Acara:* ${payloadData.judul}\n*Tanggal:* ${payloadData.tanggal}`;
+        successMsg = `📅 *Agenda Berhasil Ditambahkan!*\n` +
+                     `*Acara:* ${payloadData.judul}\n` +
+                     `*Tanggal:* ${payloadData.tanggal}\n` +
+                     `*Waktu:* ${payloadData.waktu || '09:00'}` +
+                     (payloadData.lokasi ? `\n*Tempat:* ${payloadData.lokasi}` : '') +
+                     `\n${skpInfo}`;
+        if (fileId) {
+          successMsg += `\n📎 _Berkas lampiran terdeteksi dan akan disinkronisasikan ke Google Drive Anda._`;
+        }
       } 
       else if (payloadType === 'UPDATE_JADWAL') {
         if (!payloadData.id) throw new Error("ID Jadwal tidak ditemukan untuk diupdate.");
-        await updateDoc(doc(db, 'schedule', payloadData.id), payloadData);
+        const targetRef = doc(db, 'schedule', payloadData.id);
+        const snap = await getDoc(targetRef);
+        if (!snap.exists()) throw new Error("Jadwal tidak ditemukan.");
+        if (snap.data().userId !== userId) throw new Error("Akses ditolak: Anda bukan pemilik jadwal ini.");
+        
+        await updateDoc(targetRef, payloadData);
         successMsg = `✅ *Jadwal Diperbarui!*\nJadwal "${payloadData.judul || payloadData.id}" berhasil disesuaikan.`;
       }
       else if (payloadType === 'DELETE_JADWAL') {
         if (!payloadData.id) throw new Error("ID Jadwal tidak ditemukan untuk dihapus.");
-        await deleteDoc(doc(db, 'schedule', payloadData.id));
+        const targetRef = doc(db, 'schedule', payloadData.id);
+        const snap = await getDoc(targetRef);
+        if (!snap.exists()) throw new Error("Jadwal tidak ditemukan.");
+        if (snap.data().userId !== userId) throw new Error("Akses ditolak: Anda bukan pemilik jadwal ini.");
+
+        await deleteDoc(targetRef);
         successMsg = `🗑️ *Jadwal Dihapus!*\nJadwal dengan ID tersebut berhasil dihapus.`;
       }
       else if (payloadType === 'CREATE_CKP' || payloadType === 'CKP') {
         const ckpDoc = {
+          userId: userId,
           tanggal: payloadData.tanggal || '',
           waktuMulai: payloadData.waktuMulai || '08:00',
           waktuSelesai: payloadData.waktuSelesai || '16:00',
@@ -144,38 +185,71 @@ async function handleTelegramWebhook(token, body) {
         if (fileId) ckpDoc.telegramFileId = fileId;
         docRef = await addDoc(collection(db, 'ckp'), ckpDoc);
 
-        successMsg = `✅ *Laporan CKP Ditambahkan!*\n${payloadData.rincian}\n*Output:* ${payloadData.kuantitas} ${payloadData.satuan}`;
+        successMsg = `✅ *Laporan CKP Ditambahkan!*\n` +
+                     `*Kegiatan:* ${payloadData.rincian}\n` +
+                     `*Output:* ${payloadData.kuantitas} ${payloadData.satuan}` +
+                     `\n${skpInfo}`;
       }
       else if (payloadType === 'UPDATE_CKP') {
         if (!payloadData.id) throw new Error("ID CKP tidak ditemukan untuk diupdate.");
-        await updateDoc(doc(db, 'ckp', payloadData.id), payloadData);
+        const targetRef = doc(db, 'ckp', payloadData.id);
+        const snap = await getDoc(targetRef);
+        if (!snap.exists()) throw new Error("CKP tidak ditemukan.");
+        if (snap.data().userId !== userId) throw new Error("Akses ditolak: Anda bukan pemilik catatan CKP ini.");
+
+        await updateDoc(targetRef, payloadData);
         successMsg = `✅ *CKP Diperbarui!*\nCatatan CKP berhasil disesuaikan.`;
       }
       else if (payloadType === 'DELETE_CKP') {
         if (!payloadData.id) throw new Error("ID CKP tidak ditemukan untuk dihapus.");
-        await deleteDoc(doc(db, 'ckp', payloadData.id));
+        const targetRef = doc(db, 'ckp', payloadData.id);
+        const snap = await getDoc(targetRef);
+        if (!snap.exists()) throw new Error("CKP tidak ditemukan.");
+        if (snap.data().userId !== userId) throw new Error("Akses ditolak: Anda bukan pemilik catatan CKP ini.");
+
+        await deleteDoc(targetRef);
         successMsg = `🗑️ *CKP Dihapus!*\nCatatan CKP berhasil dihapus.`;
       }
       else if (payloadType === 'CREATE_TASK') {
-        docRef = await addDoc(collection(db, 'tasks'), {
+        const taskDoc = {
+          userId: userId,
           judul: payloadData.judul || '',
           deskripsi: payloadData.deskripsi || '',
           peran: payloadData.peran || 'admin',
           skpId: payloadData.skpId || 1,
           urgensi: payloadData.urgensi || 'Sedang',
           status: 'todo',
-          checklist: []
-        });
-        successMsg = `📌 *Tugas Baru Kanban*\n*Judul:* ${payloadData.judul}`;
+          checklist: [],
+          createdAt: serverTimestamp()
+        };
+        if (fileId) taskDoc.telegramFileId = fileId;
+        docRef = await addDoc(collection(db, 'tasks'), taskDoc);
+        
+        successMsg = `📌 *Tugas Baru Kanban*\n` +
+                     `*Judul:* ${payloadData.judul}` +
+                     `\n${skpInfo}`;
+        if (fileId) {
+          successMsg += `\n📎 _Berkas lampiran terdeteksi dan akan disinkronisasikan ke Google Drive Anda._`;
+        }
       }
       else if (payloadType === 'UPDATE_TASK') {
         if (!payloadData.id) throw new Error("ID Tugas tidak ditemukan.");
-        await updateDoc(doc(db, 'tasks', payloadData.id), payloadData);
+        const targetRef = doc(db, 'tasks', payloadData.id);
+        const snap = await getDoc(targetRef);
+        if (!snap.exists()) throw new Error("Tugas tidak ditemukan.");
+        if (snap.data().userId !== userId) throw new Error("Akses ditolak: Anda bukan pemilik tugas ini.");
+
+        await updateDoc(targetRef, payloadData);
         successMsg = `✅ *Tugas Diperbarui!*\nPerubahan tugas berhasil disimpan.`;
       }
       else if (payloadType === 'DELETE_TASK') {
         if (!payloadData.id) throw new Error("ID Tugas tidak ditemukan.");
-        await deleteDoc(doc(db, 'tasks', payloadData.id));
+        const targetRef = doc(db, 'tasks', payloadData.id);
+        const snap = await getDoc(targetRef);
+        if (!snap.exists()) throw new Error("Tugas tidak ditemukan.");
+        if (snap.data().userId !== userId) throw new Error("Akses ditolak: Anda bukan pemilik tugas ini.");
+
+        await deleteDoc(targetRef);
         successMsg = `🗑️ *Tugas Dihapus!*\nTugas berhasil dihapus dari Papan Kanban.`;
       }
       else if (payloadType === 'REPLY_TEXT') {
@@ -282,7 +356,7 @@ export async function POST(request) {
 }
 
 // Fetch all existing data to provide as context to AI
-async function fetchAllContextData() {
+async function fetchAllContextData(userId) {
   try {
     const contextData = {
       tasks: [],
@@ -290,13 +364,13 @@ async function fetchAllContextData() {
       ckp: []
     };
     
-    const tasksSnap = await getDocs(collection(db, 'tasks'));
+    const tasksSnap = await getDocs(query(collection(db, 'tasks'), where('userId', '==', userId)));
     tasksSnap.forEach(doc => contextData.tasks.push({ id: doc.id, ...doc.data() }));
 
-    const schedSnap = await getDocs(collection(db, 'schedule'));
+    const schedSnap = await getDocs(query(collection(db, 'schedule'), where('userId', '==', userId)));
     schedSnap.forEach(doc => contextData.schedules.push({ id: doc.id, ...doc.data() }));
 
-    const ckpSnap = await getDocs(collection(db, 'ckp'));
+    const ckpSnap = await getDocs(query(collection(db, 'ckp'), where('userId', '==', userId)));
     ckpSnap.forEach(doc => contextData.ckp.push({ id: doc.id, ...doc.data() }));
 
     return contextData;

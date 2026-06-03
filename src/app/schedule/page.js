@@ -2,12 +2,14 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Bell, X, Plus, ChevronLeft, ChevronRight, CheckCircle, Circle, Edit3, Trash2, LayoutGrid, List, MapPin, Video, User, Link as LinkIcon, AlignLeft, Clock, Tag, ClipboardCheck, FileText, Loader2, ListTodo } from 'lucide-react';
+import { Calendar, Bell, X, Plus, ChevronLeft, ChevronRight, CheckCircle, Circle, Edit3, Trash2, LayoutGrid, List, MapPin, Video, User, Link as LinkIcon, AlignLeft, Clock, Tag, ClipboardCheck, FileText, Loader2, ListTodo, CloudOff, FolderOpen, AlertTriangle } from 'lucide-react';
 import { skpData } from '@/data/skpData';
 import styles from './page.module.css';
 import { useFirestore } from '@/hooks/useFirestore';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchGCalEvents, createGCalEvent, updateGCalEvent, deleteGCalEvent } from '@/lib/gcal';
+import { uploadFileToDrive, getOrCreateFolder } from '@/lib/drive';
+import { savePendingUpload, getPendingUploads, removePendingUpload } from '@/lib/localdb';
 import AddEventModal, { URGENSI_COLORS } from './AddEventModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { useChatAction } from '@/contexts/ChatActionContext';
@@ -89,7 +91,7 @@ function getCalendarDays(year, month) {
 }
 
 // Event Card
-function EventCard({ event, onToggle, onEdit, onDelete, onJadikanCKP, ckpCount = 0 }) {
+function EventCard({ event, onToggle, onEdit, onDelete, onJadikanCKP, ckpCount = 0, pendingUploads = [] }) {
   const skp = event.skpId ? skpData.find((s) => s.id === event.skpId) : null;
   const color = KATEGORI_COLORS[event.kategori] || KATEGORI_COLORS.Lainnya;
   const isSelesai = event.isSelesai;
@@ -149,6 +151,66 @@ function EventCard({ event, onToggle, onEdit, onDelete, onJadikanCKP, ckpCount =
         </div>
       )}
       {event.deskripsi && <p className={styles.eventDesc}>{event.deskripsi}</p>}
+      
+      {/* Attachments */}
+      {event.attachments && event.attachments.length > 0 && (
+        <div style={{ marginTop: '8px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          {event.attachments.map((att, idx) => (
+            <a
+              key={idx}
+              href={att.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                fontSize: '11px',
+                color: '#38bdf8',
+                background: 'rgba(56, 189, 248, 0.08)',
+                border: '1px solid rgba(56, 189, 248, 0.2)',
+                padding: '3px 6px',
+                borderRadius: '4px',
+                textDecoration: 'none'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <FileText size={10} />
+              <span style={{ maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.name}</span>
+            </a>
+          ))}
+        </div>
+      )}
+
+      {/* Pending Offline Attachments */}
+      {(() => {
+        const pendingAttachments = pendingUploads.filter(item => item.id.startsWith(event.id));
+        return pendingAttachments.length > 0 && (
+          <div style={{ marginTop: '8px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {pendingAttachments.map((att, idx) => (
+              <span
+                key={idx}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '11px',
+                  color: '#ef4444',
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px dashed rgba(239, 68, 68, 0.3)',
+                  padding: '3px 6px',
+                  borderRadius: '4px',
+                  cursor: 'default'
+                }}
+              >
+                <CloudOff size={10} />
+                <span style={{ maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.customFileName.split(' - ').slice(2).join(' - ') || att.customFileName} (Offline)</span>
+              </span>
+            ))}
+          </div>
+        );
+      })()}
+
       {skp && (
         <div className={styles.eventSkp}>
           SKP #{event.skpId}: {skp.nama}
@@ -167,7 +229,7 @@ function EventCard({ event, onToggle, onEdit, onDelete, onJadikanCKP, ckpCount =
 }
 
 export default function SchedulePage() {
-  const { accessToken } = useAuth();
+  const { accessToken, loginWithGoogle } = useAuth();
   const router = useRouter();
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
@@ -180,9 +242,101 @@ export default function SchedulePage() {
   const { docs: ckpEvents = [] } = useFirestore('ckp');
   const { setPageData } = useAIContext();
 
+  const [pendingUploads, setPendingUploads] = useState([]);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [openingFolder, setOpeningFolder] = useState(false);
+
+  const handleOpenDriveFolder = async () => {
+    if (!accessToken) {
+      alert('Silakan hubungkan Google Drive Anda terlebih dahulu.');
+      return;
+    }
+    setOpeningFolder(true);
+    try {
+      const parentFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
+      const folderId = await getOrCreateFolder(accessToken, 'Lampiran Jadwal', parentFolderId);
+      if (folderId) {
+        window.open(`https://drive.google.com/drive/folders/${folderId}`, '_blank');
+      } else {
+        throw new Error('Folder ID tidak ditemukan.');
+      }
+    } catch (err) {
+      console.error(err);
+      if (err.message && err.message.includes('401')) {
+        alert('Sesi Google Drive kedaluwarsa. Menghubungkan ulang...');
+        try {
+          await loginWithGoogle();
+        } catch (loginErr) {
+          console.error("Login failed:", loginErr);
+        }
+      } else {
+        alert('Gagal mengakses Google Drive: ' + err.message);
+      }
+    } finally {
+      setOpeningFolder(false);
+    }
+  };
+
+  const fetchPendingUploads = useCallback(async () => {
+    const list = await getPendingUploads();
+    const scheduleList = list.filter(item => item.type === 'schedule');
+    setPendingUploads(scheduleList || []);
+  }, []);
+
+  useEffect(() => {
+    fetchPendingUploads();
+  }, [fetchPendingUploads]);
+
   useEffect(() => {
     setPageData(events);
   }, [events, setPageData]);
+
+  // Handle auto-sync of telegram file attachments for schedules
+  useEffect(() => {
+    if (!events || events.length === 0 || !accessToken) return;
+
+    const syncPendingFiles = async () => {
+      const pendingEvents = events.filter(e => e.telegramFileId);
+      
+      for (const event of pendingEvents) {
+        try {
+          console.log('[Telegram Sync] Syncing attachment for schedule event:', event.id);
+          // 1. Download file content from Telegram via proxy
+          const res = await fetch(`/api/telegram-file?id=${event.telegramFileId}`);
+          if (!res.ok) throw new Error('Gagal mengunduh file Telegram via proxy.');
+          
+          const blob = await res.blob();
+          const disp = res.headers.get('content-disposition');
+          const filenameMatch = disp ? disp.match(/filename="([^"]+)"/) : null;
+          const filename = filenameMatch ? filenameMatch[1] : `Lampiran_Jadwal_${event.tanggal}.pdf`;
+          
+          const file = new File([blob], filename, { type: blob.type });
+
+          // 2. Get folder ID ("SuperBrain BPS/Lampiran Jadwal")
+          const parentFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
+          const folderId = await getOrCreateFolder(accessToken, 'Lampiran Jadwal', parentFolderId);
+
+          // 3. Upload to Google Drive
+          const driveUrl = await uploadFileToDrive(file, accessToken, folderId);
+
+          // 4. Update Firestore
+          const currentAttachments = event.attachments || [];
+          const updatedAttachments = [...currentAttachments, { name: file.name, url: driveUrl }];
+
+          await updateDocument(event.id, {
+            attachments: updatedAttachments,
+            telegramFileId: null // Clear the temporary ID
+          });
+          
+          console.log('[Telegram Sync] Successfully synced schedule attachment:', filename);
+        } catch (err) {
+          console.error('Failed to sync telegram file for event', event.id, err);
+        }
+      }
+    };
+
+    syncPendingFiles();
+  }, [events, accessToken, updateDocument]);
 
   // Handle AI Create Schedule
   const handleAICreateSchedule = useCallback(async (data) => {
@@ -573,19 +727,60 @@ export default function SchedulePage() {
     }
   }, []);
 
-  const handleAddEvent = useCallback(async (formData) => {
+  const handleAddEvent = useCallback(async (formData, selectedFiles = []) => {
     let gcalEventId = null;
     if (accessToken) {
       try {
         gcalEventId = await createGCalEvent(accessToken, formData);
       } catch (gcalErr) {
         console.error('Failed to sync to Google Calendar:', gcalErr);
-        alert('Gagal mensinkronisasi ke Google Calendar (kredensial kedaluwarsa atau tidak valid). Jadwal tetap akan disimpan secara lokal di SuperBrain.');
+        alert('Gagal mensinkronisasi ke Google Calendar. Jadwal tetap disimpan secara lokal.');
       }
     }
 
-    const docRef = await addDocument({ ...formData, gcalEventId });
+    const docRef = await addDocument({ ...formData, gcalEventId, attachments: [] });
     setModalOpen(false);
+
+    // File upload logic
+    if (selectedFiles.length > 0) {
+      let uploadedList = [];
+      let needsOfflineSave = false;
+      let offlineFiles = [];
+
+      for (let idx = 0; idx < selectedFiles.length; idx++) {
+        const file = selectedFiles[idx];
+        const cleanJudul = formData.judul.substring(0, 30).replace(/[^a-zA-Z0-9 -]/g, '').trim();
+        const customFileName = `${formData.tanggal} - ${cleanJudul} - ${file.name}`;
+
+        if (accessToken) {
+          try {
+            const parentFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
+            const folderId = await getOrCreateFolder(accessToken, 'Lampiran Jadwal', parentFolderId);
+            const driveUrl = await uploadFileToDrive(file, accessToken, folderId, customFileName);
+            uploadedList.push({ name: file.name, url: driveUrl });
+          } catch (err) {
+            console.error("Upload error for file:", file.name, err);
+            needsOfflineSave = true;
+            offlineFiles.push({ file, customFileName, idx });
+          }
+        } else {
+          needsOfflineSave = true;
+          offlineFiles.push({ file, customFileName, idx });
+        }
+      }
+
+      if (uploadedList.length > 0) {
+        await updateDocument(docRef.id, { attachments: uploadedList });
+      }
+
+      if (needsOfflineSave) {
+        for (const item of offlineFiles) {
+          await savePendingUpload(`${docRef.id}_${item.idx}`, item.file, item.customFileName, 'schedule');
+        }
+        alert('Beberapa lampiran disimpan secara lokal karena kendala koneksi/sesi Google Drive.');
+        fetchPendingUploads();
+      }
+    }
 
     // If this schedule was created from a task, update the task with this new schedule ID
     if (formData.linkedTaskIds && formData.linkedTaskIds.length > 0) {
@@ -636,9 +831,9 @@ export default function SchedulePage() {
         console.error('Failed to send telegram notification:', e);
       }
     }
-  }, [addDocument, accessToken, updateTask]);
+  }, [addDocument, accessToken, updateTask, updateDocument, addTask, fetchPendingUploads]);
 
-  const handleUpdateEvent = async (id, formData) => {
+  const handleUpdateEvent = async (id, formData, selectedFiles = []) => {
     try {
       if (formData.isGCal) {
         if (accessToken && formData.gcalEventId) {
@@ -649,7 +844,50 @@ export default function SchedulePage() {
         if (accessToken && formData.gcalEventId) {
           await updateGCalEvent(accessToken, formData.gcalEventId, formData);
         }
-        await updateDocument(id, formData);
+      }
+      
+      await updateDocument(id, formData);
+
+      // Handle new file uploads
+      if (selectedFiles.length > 0) {
+        let uploadedList = [...(formData.attachments || [])];
+        let needsOfflineSave = false;
+        let offlineFiles = [];
+
+        const startIdx = uploadedList.length;
+
+        for (let i = 0; i < selectedFiles.length; i++) {
+          const file = selectedFiles[i];
+          const cleanJudul = formData.judul.substring(0, 30).replace(/[^a-zA-Z0-9 -]/g, '').trim();
+          const customFileName = `${formData.tanggal} - ${cleanJudul} - ${file.name}`;
+          const idx = startIdx + i;
+
+          if (accessToken) {
+            try {
+              const parentFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
+              const folderId = await getOrCreateFolder(accessToken, 'Lampiran Jadwal', parentFolderId);
+              const driveUrl = await uploadFileToDrive(file, accessToken, folderId, customFileName);
+              uploadedList.push({ name: file.name, url: driveUrl });
+            } catch (err) {
+              console.error("Upload error for file:", file.name, err);
+              needsOfflineSave = true;
+              offlineFiles.push({ file, customFileName, idx });
+            }
+          } else {
+            needsOfflineSave = true;
+            offlineFiles.push({ file, customFileName, idx });
+          }
+        }
+
+        await updateDocument(id, { attachments: uploadedList });
+
+        if (needsOfflineSave) {
+          for (const item of offlineFiles) {
+            await savePendingUpload(`${id}_${item.idx}`, item.file, item.customFileName, 'schedule');
+          }
+          alert('Beberapa lampiran disimpan secara lokal karena kendala koneksi/sesi Google Drive.');
+          fetchPendingUploads();
+        }
       }
       
       // Sync update to linked tasks
@@ -669,6 +907,87 @@ export default function SchedulePage() {
       setEditingEvent(null);
     } catch (e) {
       alert("Gagal memperbarui jadwal: " + e.message);
+    }
+  };
+
+  const handleSyncOfflineFiles = async () => {
+    if (!accessToken) {
+      try {
+        await loginWithGoogle();
+      } catch (err) {
+        alert('Gagal menghubungkan ke Google Drive.');
+        return;
+      }
+    }
+    setIsSyncing(true);
+    let successCount = 0;
+    
+    try {
+      const list = await getPendingUploads();
+      const scheduleList = list.filter(item => item.type === 'schedule');
+      if (scheduleList.length === 0) return;
+      
+      const parentFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
+      const folderId = await getOrCreateFolder(accessToken, 'Lampiran Jadwal', parentFolderId);
+      const updatesByEventId = {};
+
+      for (const item of scheduleList) {
+        try {
+          const driveUrl = await uploadFileToDrive(item.file, accessToken, folderId, item.customFileName);
+          const [eventId] = item.id.split('_');
+          
+          if (!updatesByEventId[eventId]) {
+            updatesByEventId[eventId] = [];
+          }
+          updatesByEventId[eventId].push({ name: item.file.name, url: driveUrl });
+          
+          await removePendingUpload(item.id);
+          successCount++;
+        } catch (err) {
+          console.error("Sync error for item", item.id, err);
+          if (err.message && err.message.includes('401')) {
+            if (confirm('Sesi Google Drive kedaluwarsa. Apakah Anda ingin menghubungkan ulang sekarang untuk menyinkronkan file?')) {
+              try {
+                await loginWithGoogle();
+                setTimeout(() => handleSyncOfflineFiles(), 500);
+              } catch (loginErr) {
+                console.error("Login failed:", loginErr);
+                alert('Gagal menghubungkan ke Google Drive.');
+              }
+            }
+            break;
+          }
+        }
+      }
+      
+      for (const eventId of Object.keys(updatesByEventId)) {
+        const eventDoc = events.find(e => e.id === eventId);
+        const currentAttachments = eventDoc?.attachments || [];
+        const newAttachments = [...currentAttachments, ...updatesByEventId[eventId]];
+        await updateDocument(eventId, { attachments: newAttachments });
+      }
+
+      if (successCount > 0) {
+        alert(`Berhasil menyinkronkan ${successCount} file lampiran ke Google Drive.`);
+        fetchPendingUploads();
+      }
+    } catch (err) {
+      console.error(err);
+      if (err.message && err.message.includes('401')) {
+        if (confirm('Sesi Google Drive kedaluwarsa. Apakah Anda ingin menghubungkan ulang sekarang untuk menyinkronkan file?')) {
+          try {
+            await loginWithGoogle();
+            setTimeout(() => handleSyncOfflineFiles(), 500);
+          } catch (loginErr) {
+            console.error("Login failed:", loginErr);
+            alert('Gagal menghubungkan ke Google Drive.');
+          }
+        }
+      } else {
+        alert('Gagal menyinkronkan file lampiran: ' + err.message);
+      }
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -757,6 +1076,61 @@ export default function SchedulePage() {
             <button className={`${styles.viewBtn} ${viewMode === 'month' ? styles.viewBtnActive : ''}`} onClick={() => setViewMode('month')}>Bulan</button>
             <button className={`${styles.viewBtn} ${viewMode === 'week' ? styles.viewBtnActive : ''}`} onClick={() => setViewMode('week')}>Minggu</button>
           </div>
+          {accessToken ? (
+            <button
+              onClick={handleOpenDriveFolder}
+              disabled={openingFolder}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: 'rgba(99, 102, 241, 0.15)',
+                color: '#818cf8',
+                border: '1px solid rgba(99, 102, 241, 0.3)',
+                padding: '10px 16px',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '13px',
+                transition: 'all 0.2s ease',
+                fontFamily: 'Inter, sans-serif'
+              }}
+            >
+              {openingFolder ? (
+                <>
+                  <div style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                  Membuka...
+                </>
+              ) : (
+                <>
+                  <FolderOpen size={16} />
+                  Buka Folder Drive
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={loginWithGoogle}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                color: '#94a3b8',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                padding: '10px 16px',
+                borderRadius: '10px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '13px',
+                transition: 'all 0.2s ease',
+                fontFamily: 'Inter, sans-serif'
+              }}
+            >
+              <FolderOpen size={16} style={{ opacity: 0.5 }} />
+              Hubungkan Drive
+            </button>
+          )}
           <button 
             className={styles.importBtn} 
             onClick={() => fileInputRef.current?.click()} 
@@ -778,6 +1152,55 @@ export default function SchedulePage() {
           </button>
         </div>
       </header>
+
+      {pendingUploads.length > 0 && (
+        <div style={{
+          background: 'rgba(239, 68, 68, 0.12)',
+          border: '1px dashed rgba(239, 68, 68, 0.3)',
+          borderRadius: '12px',
+          padding: '16px',
+          marginBottom: '24px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          color: '#fca5a5'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <AlertTriangle size={18} style={{ color: '#f87171' }} />
+            <span style={{ fontSize: '14px' }}>
+              Terdapat <strong>{pendingUploads.length}</strong> file lampiran jadwal yang belum terunggah ke Google Drive (tersimpan di lokal).
+            </span>
+          </div>
+          <button
+            onClick={handleSyncOfflineFiles}
+            disabled={isSyncing}
+            style={{
+              background: '#ef4444',
+              color: '#fff',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'background 0.2s',
+              fontFamily: 'Inter, sans-serif'
+            }}
+          >
+            {isSyncing ? (
+              <>
+                <div className={styles.spinnerSmall} />
+                Menyinkronkan...
+              </>
+            ) : (
+              accessToken ? 'Unggah Sekarang' : 'Hubungkan Ulang Drive'
+            )}
+          </button>
+        </div>
+      )}
 
       <div className={styles.layout}>
         {/* Calendar Section */}
@@ -873,6 +1296,7 @@ export default function SchedulePage() {
                       onDelete={() => handleDelete(ev)}
                       onJadikanCKP={() => handleJadikanCKP(ev)}
                       ckpCount={ckpCountByEventId[ev.id] || 0}
+                      pendingUploads={pendingUploads}
                     />
                   </div>
                 ))}
@@ -1101,6 +1525,78 @@ export default function SchedulePage() {
                   </div>
                 </div>
               )}
+
+              {/* Attachments rendering */}
+              {selectedEventForDetail.attachments && selectedEventForDetail.attachments.length > 0 && (
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                  <FileText size={18} color="#94a3b8" style={{ marginTop: '2px', flexShrink: 0 }} />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                    <div style={{ fontWeight: '600', color: '#94a3b8', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Lampiran ({selectedEventForDetail.attachments.length})</div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                      {selectedEventForDetail.attachments.map((att, idx) => (
+                        <a
+                          key={idx}
+                          href={att.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            fontSize: '13px',
+                            color: '#38bdf8',
+                            background: 'rgba(56, 189, 248, 0.08)',
+                            border: '1px solid rgba(56, 189, 248, 0.2)',
+                            padding: '6px 12px',
+                            borderRadius: '6px',
+                            textDecoration: 'none',
+                            fontFamily: 'Inter, sans-serif'
+                          }}
+                        >
+                          <FileText size={14} />
+                          <span style={{ maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.name}</span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Offline pending attachments rendering */}
+              {(() => {
+                const pendingAttachments = pendingUploads.filter(item => item.id.startsWith(selectedEventForDetail.id));
+                return pendingAttachments.length > 0 && (
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                    <CloudOff size={18} color="#f87171" style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+                      <div style={{ fontWeight: '600', color: '#f87171', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Lampiran Offline ({pendingAttachments.length})</div>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                        {pendingAttachments.map((att, idx) => (
+                          <span
+                            key={idx}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              fontSize: '13px',
+                              color: '#ef4444',
+                              background: 'rgba(239, 68, 68, 0.08)',
+                              border: '1px dashed rgba(239, 68, 68, 0.3)',
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              cursor: 'default',
+                              fontFamily: 'Inter, sans-serif'
+                            }}
+                          >
+                            <CloudOff size={14} />
+                            <span style={{ maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.customFileName.split(' - ').slice(2).join(' - ') || att.customFileName}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
             </div>
           </div>
