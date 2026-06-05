@@ -19,7 +19,7 @@ function toDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export default function AddEventModal({ isOpen, onClose, onSubmit, initialData, onUpdate }) {
+export default function AddEventModal({ isOpen, onClose, onSubmit, initialData, onUpdate, skpData }) {
   const emptyForm = {
     judul: '',
     tanggal: toDateStr(new Date()),

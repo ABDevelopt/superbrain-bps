@@ -9,13 +9,15 @@ export async function POST(request) {
 
   try {
     const body = await request.json();
-    const { messages, currentPath, pageData, globalStats } = body;
+    const { messages, currentPath, pageData, globalStats, skps } = body;
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: 'Invalid messages array.' }, { status: 400 });
     }
 
-    const skpContext = skpData
+    const activeSkpData = skps && skps.length > 0 ? skps : skpData;
+
+    const skpContext = activeSkpData
       .map((item) => `ID: ${item.id}, Nama: "${item.nama}"`)
       .join('\n');
 

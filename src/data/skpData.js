@@ -10,7 +10,7 @@ export const skpData = [
     ],
     status: 'progress',
     tim: 'Subbagian Umum',
-    cluster: 'IT & Digital',
+    cluster: 'Pengelolaan IT, Humas, dan Aplikasi',
   },
   {
     id: 2,
@@ -22,7 +22,7 @@ export const skpData = [
     ],
     status: 'progress',
     tim: 'Tim IPJKD & DLS',
-    cluster: 'Survei & Sensus',
+    cluster: 'Statistical Business Register (SBR)',
   },
   {
     id: 3,
@@ -34,7 +34,7 @@ export const skpData = [
     ],
     status: 'progress',
     tim: 'Tim IPJKD & DLS',
-    cluster: 'Geospasial',
+    cluster: 'Pengelolaan Peta, Muatan Wilkerstat, dan Master File Desa',
   },
   {
     id: 4,
@@ -46,7 +46,7 @@ export const skpData = [
     ],
     status: 'selesai',
     tim: 'Subbagian Umum',
-    cluster: 'Pelayanan & Koordinasi',
+    cluster: 'Pelayanan Statistik Terpadu (PST)',
   },
   {
     id: 5,
@@ -58,7 +58,7 @@ export const skpData = [
     ],
     status: 'progress',
     tim: 'Subbagian Umum',
-    cluster: 'IT & Digital',
+    cluster: 'Pengelolaan IT, Humas, dan Aplikasi',
   },
   {
     id: 6,
@@ -70,19 +70,19 @@ export const skpData = [
     ],
     status: 'selesai',
     tim: 'Tim IPJKD & DLS',
-    cluster: 'Publikasi & Data',
+    cluster: 'Publikasi Kecamatan Dalam Angka (KDA)',
   },
   {
     id: 7,
     kategori: 'utama',
-    nama: 'Terlaksananya pelaporan Kinerja Pegawai (ASN/PPPK) yang menyeluruh dan tepat waktu',
+    nama: 'Terlaksananya pelaporan Kinerja Pegawai (ASN/PPPK) yang menyeluruh and tepat waktu',
     indikator: [
       { jenis: 'kuantitas', target: 100, realisasi: 45 },
       { jenis: 'kualitas', target: 100, realisasi: 50 },
     ],
     status: 'progress',
     tim: 'Subbagian Umum',
-    cluster: 'Administrasi',
+    cluster: 'Administrasi Kepegawaian, Keuangan, dan BMN',
   },
   {
     id: 8,
@@ -94,7 +94,7 @@ export const skpData = [
     ],
     status: 'progress',
     tim: 'Tim IPJKD & DLS',
-    cluster: 'Pelayanan & Koordinasi',
+    cluster: 'Statistik Sektoral dan Rekomendasi Statistik',
   },
   {
     id: 9,
@@ -106,7 +106,7 @@ export const skpData = [
     ],
     status: 'selesai',
     tim: 'Tim IPJKD & DLS',
-    cluster: 'Survei & Sensus',
+    cluster: 'Pelayanan Statistik Terpadu (PST)',
   },
   {
     id: 10,
@@ -118,7 +118,7 @@ export const skpData = [
     ],
     status: 'progress',
     tim: 'Tim IPJKD & DLS',
-    cluster: 'Publikasi & Data',
+    cluster: 'Publikasi Kecamatan Dalam Angka (KDA)',
   },
   {
     id: 11,
@@ -130,7 +130,7 @@ export const skpData = [
     ],
     status: 'progress',
     tim: 'Subbagian Umum',
-    cluster: 'Pelayanan & Koordinasi',
+    cluster: 'Pelayanan Statistik Terpadu (PST)',
   },
   {
     id: 12,
@@ -142,7 +142,7 @@ export const skpData = [
     ],
     status: 'selesai',
     tim: 'Tim Statistik Sosial',
-    cluster: 'Survei & Sensus',
+    cluster: 'Survei Angkatan Kerja Nasional SAKERNAS Tahun 2026',
   },
   {
     id: 13,
@@ -154,7 +154,7 @@ export const skpData = [
     ],
     status: 'progress',
     tim: 'Tim Statistik Sosial',
-    cluster: 'Survei & Sensus',
+    cluster: 'Survei Angkatan Kerja Nasional SAKERNAS Tahun 2026',
   },
   {
     id: 14,
@@ -166,7 +166,7 @@ export const skpData = [
     ],
     status: 'belum',
     tim: 'Tim Statistik Sosial',
-    cluster: 'Survei & Sensus',
+    cluster: 'Survei Angkatan Kerja Nasional SAKERNAS Tahun 2026',
   },
   {
     id: 15,
@@ -178,7 +178,7 @@ export const skpData = [
     ],
     status: 'belum',
     tim: 'Tim Statistik Sosial',
-    cluster: 'Survei & Sensus',
+    cluster: 'Survei Angkatan Kerja Nasional SAKERNAS Tahun 2026',
   },
   {
     id: 16,
@@ -190,7 +190,7 @@ export const skpData = [
     ],
     status: 'selesai',
     tim: 'Tim Statistik Sosial',
-    cluster: 'Survei & Sensus',
+    cluster: 'Survei Sosial Ekonomi Nasional tahun 2026',
   },
   {
     id: 17,
@@ -202,7 +202,7 @@ export const skpData = [
     ],
     status: 'terlambat',
     tim: 'Tim Statistik Harga & Sensus Ekonomi',
-    cluster: 'Survei & Sensus',
+    cluster: 'Sensus Ekonomi 2026',
   },
   {
     id: 18,
@@ -214,7 +214,7 @@ export const skpData = [
     ],
     status: 'progress',
     tim: 'Subbagian Umum',
-    cluster: 'Administrasi',
+    cluster: 'Administrasi Kepegawaian, Keuangan, dan BMN',
   },
   {
     id: 19,
@@ -226,7 +226,7 @@ export const skpData = [
     ],
     status: 'progress',
     tim: 'Subbagian Umum',
-    cluster: 'Administrasi',
+    cluster: 'Administrasi Kepegawaian, Keuangan, dan BMN',
   },
   {
     id: 20,
@@ -238,7 +238,7 @@ export const skpData = [
     ],
     status: 'terlambat',
     tim: 'Tim Statistik Sosial',
-    cluster: 'Survei & Sensus',
+    cluster: 'Survei Sosial Ekonomi Nasional tahun 2026',
   },
   {
     id: 21,
@@ -250,7 +250,7 @@ export const skpData = [
     ],
     status: 'belum',
     tim: 'Tim Statistik Sosial',
-    cluster: 'Survei & Sensus',
+    cluster: 'Survei Sosial Ekonomi Nasional tahun 2026',
   },
   {
     id: 22,
@@ -262,7 +262,7 @@ export const skpData = [
     ],
     status: 'belum',
     tim: 'Tim Statistik Sosial',
-    cluster: 'Survei & Sensus',
+    cluster: 'Survei Sosial Ekonomi Nasional tahun 2026',
   },
   {
     id: 23,
@@ -274,7 +274,7 @@ export const skpData = [
     ],
     status: 'selesai',
     tim: 'Tim Statistik Sosial',
-    cluster: 'Survei & Sensus',
+    cluster: 'Ground Check Penerima Bantuan Iuran (PBI) Tahun 2026',
   },
   {
     id: 24,
@@ -286,7 +286,7 @@ export const skpData = [
     ],
     status: 'selesai',
     tim: 'Subbagian Umum',
-    cluster: 'Administrasi',
+    cluster: 'Administrasi Kepegawaian, Keuangan, dan BMN',
   },
 
   // ===== TAMBAHAN (5 items) =====
@@ -300,7 +300,7 @@ export const skpData = [
     ],
     status: 'progress',
     tim: 'Subbagian Umum',
-    cluster: 'IT & Digital',
+    cluster: 'Pengelolaan IT, Humas, dan Aplikasi',
   },
   {
     id: 26,
@@ -312,7 +312,7 @@ export const skpData = [
     ],
     status: 'progress',
     tim: 'Tim IPJKD & DLS',
-    cluster: 'Publikasi & Data',
+    cluster: 'Penyusunan PDRB Lapangan Usaha dan Pengeluaran',
   },
   {
     id: 27,
@@ -324,7 +324,7 @@ export const skpData = [
     ],
     status: 'progress',
     tim: 'Tim IPJKD & DLS',
-    cluster: 'Publikasi & Data',
+    cluster: 'Penyusunan PDRB Lapangan Usaha dan Pengeluaran',
   },
   {
     id: 28,
@@ -336,7 +336,7 @@ export const skpData = [
     ],
     status: 'selesai',
     tim: 'Subbagian Umum',
-    cluster: 'Administrasi',
+    cluster: 'Administrasi Kepegawaian, Keuangan, dan BMN',
   },
   {
     id: 29,
@@ -348,6 +348,6 @@ export const skpData = [
     ],
     status: 'progress',
     tim: 'Tim Statistik Sosial',
-    cluster: 'Survei & Sensus',
+    cluster: 'Pembinaan Desa Cinta Statistik Tahun 2026',
   },
 ];

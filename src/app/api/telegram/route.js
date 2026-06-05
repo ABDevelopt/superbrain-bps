@@ -115,8 +115,9 @@ async function handleTelegramWebhook(token, body) {
       const payloadData = parsedData.data;
 
       // Find SKP info for response
+      const userSkpList = contextData && contextData.skps && contextData.skps.length > 0 ? contextData.skps : skpData;
       const skpInfo = payloadData.skpId
-        ? `\n*Butir SKP Terkait:* SKP #${payloadData.skpId} - ${skpData.find(s => s.id === payloadData.skpId)?.nama || ''}`
+        ? `\n*Butir SKP Terkait:* SKP #${payloadData.skpId} - ${userSkpList.find(s => Number(s.id) === Number(payloadData.skpId))?.nama || ''}`
         : '\n*Butir SKP Terkait:* Tidak ada SKP BPS yang cocok';
 
       if (payloadType === 'CREATE_JADWAL' || payloadType === 'JADWAL') {
@@ -361,7 +362,8 @@ async function fetchAllContextData(userId) {
     const contextData = {
       tasks: [],
       schedules: [],
-      ckp: []
+      ckp: [],
+      skps: []
     };
     
     const tasksSnap = await getDocs(query(collection(db, 'tasks'), where('userId', '==', userId)));
@@ -372,6 +374,9 @@ async function fetchAllContextData(userId) {
 
     const ckpSnap = await getDocs(query(collection(db, 'ckp'), where('userId', '==', userId)));
     ckpSnap.forEach(doc => contextData.ckp.push({ id: doc.id, ...doc.data() }));
+
+    const skpsSnap = await getDocs(query(collection(db, 'skps'), where('userId', '==', userId)));
+    skpsSnap.forEach(doc => contextData.skps.push({ id: doc.id, ...doc.data() }));
 
     return contextData;
   } catch(e) {

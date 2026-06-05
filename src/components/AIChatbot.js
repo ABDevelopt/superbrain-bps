@@ -6,6 +6,7 @@ import styles from './AIChatbot.module.css';
 import { useChatAction } from '@/contexts/ChatActionContext';
 import { useAIContext } from '@/contexts/AIContext';
 import { useFirestore } from '@/hooks/useFirestore';
+import { useSkps } from '@/hooks/useSkps';
 
 export default function AIChatbot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -22,6 +23,7 @@ export default function AIChatbot() {
   const { pageData } = useAIContext();
   
   // Global context for AI
+  const { skpData } = useSkps();
   const { docs: tasks = [] } = useFirestore('tasks');
   const { docs: schedule = [] } = useFirestore('schedule');
   const { docs: ckp = [] } = useFirestore('ckp');
@@ -105,6 +107,7 @@ export default function AIChatbot() {
           messages: newMessages,
           currentPath: window.location.pathname,
           pageData: pageData,
+          skps: skpData,
           globalStats: {
             totalTasks: tasks.length,
             uncompletedTasks: tasks.filter(t => t.status !== 'done').length,

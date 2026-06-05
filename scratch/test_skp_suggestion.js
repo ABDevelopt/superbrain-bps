@@ -1,35 +1,50 @@
-import { NextResponse } from 'next/server';
-import { skpData } from '@/data/skpData';
+const fs = require('fs');
 
-export async function POST(request) {
+// Mock NextResponse
+const NextResponse = {
+  json: (data, init) => {
+    return {
+      status: init?.status || 200,
+      data,
+      json: async () => data
+    };
+  }
+};
+
+// Set env var from .env.local
+const envFile = fs.readFileSync('.env.local', 'utf8');
+const match = envFile.match(/GEMINI_API_KEY=(.*)/);
+process.env.GEMINI_API_KEY = match ? match[1].trim() : '';
+
+// Mock import of skpData
+const { skpData } = require('../src/data/skpData');
+
+// Implementation of the API handler directly
+async function testHandler(rincian) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({ error: 'Kunci API Gemini tidak dikonfigurasi di server. Silakan periksa Environment Variables di Vercel Dashboard.' }, { status: 500 });
+    return NextResponse.json({ error: 'Kunci API Gemini tidak dikonfigurasi.' }, { status: 500 });
   }
 
   try {
-    const { rincian, skpList } = await request.json();
-
     if (!rincian || rincian.trim() === '') {
       return NextResponse.json({ error: 'Rincian kegiatan kosong.' }, { status: 400 });
     }
 
-    const activeSkpData = skpList && skpList.length > 0 ? skpList : skpData;
-
-    const skpContext = activeSkpData
+    const skpContext = skpData
       .map((item) => `ID: ${item.id}, Nama: "${item.nama}"`)
       .join('\n');
 
     const systemPrompt = `
 Anda adalah asisten kecerdasan buatan untuk Badan Pusat Statistik (BPS).
-Tugas Anda adalah membantu pengguna merekomendasikan/mencocokkan rincian kegiatan kerja harian mereka ke salah satu dari ${activeSkpData.length} Sasaran Kinerja Pegawai (SKP) BPS yang paling sesuai.
+Tugas Anda adalah membantu pengguna merekomendasikan/mencocokkan rincian kegiatan kerja harian mereka ke salah satu dari 29 Sasaran Kinerja Pegawai (SKP) BPS yang paling sesuai.
 
-Berikut adalah daftar ${activeSkpData.length} Sasaran Kinerja Pegawai (SKP) BPS:
+Berikut adalah daftar 29 Sasaran Kinerja Pegawai (SKP) BPS:
 ${skpContext}
 
 Tugas:
 Analisis rincian kegiatan berikut: "${rincian}"
-Pilih butir SKP BPS yang paling cocok (ID dari 1 sampai ${activeSkpData.length}). Jika tidak ada butir SKP yang cocok sama sekali, kembalikan skpId: null.
+Pilih butir SKP BPS yang paling cocok (ID dari 1 sampai 29). Jika tidak ada butir SKP yang cocok sama sekali, kembalikan skpId: null.
 Berikan tingkat kepercayaan (confidence) dari 0.0 hingga 1.0, serta alasan singkat (reason) dalam Bahasa Indonesia mengapa SKP ini dipilih.
 `;
 
@@ -52,34 +67,23 @@ Berikan tingkat kepercayaan (confidence) dari 0.0 hingga 1.0, serta alasan singk
       },
     };
 
-    let response = await fetch(url, {
+    console.log('Sending request to Gemini...');
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody),
     });
 
-    if (response.status === 503) {
-      console.warn('Gemini API returned 503 (overloaded) for SKP suggestions. Retrying in 3 seconds...');
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
-    }
-
     if (!response.ok) {
-      let extMsg = '';
-      try {
-        extMsg = ' - ' + await response.text();
-      } catch (_) {}
-      throw new Error(`Gemini API Error: ${response.status} ${response.statusText}${extMsg}`);
+      const errText = await response.text();
+      throw new Error(`Gemini API Error: ${response.status} ${response.statusText} - ${errText}`);
     }
 
     const responseData = await response.json();
     const rawText = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!rawText) throw new Error('Respon Gemini API kosong.');
 
+    console.log('Raw text response from Gemini:', rawText);
     const parsedData = JSON.parse(rawText.trim());
 
     return NextResponse.json({
@@ -92,3 +96,11 @@ Berikan tingkat kepercayaan (confidence) dari 0.0 hingga 1.0, serta alasan singk
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+async function run() {
+  const result = await testHandler("Membantu ground check penerima PBI BPJS di desa");
+  console.log('Result Status:', result.status);
+  console.log('Result Data:', JSON.stringify(result.data, null, 2));
+}
+
+run();

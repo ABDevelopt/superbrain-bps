@@ -1,14 +1,22 @@
 import { skpData } from '@/data/skpData';
 
-const skpContext = skpData
-  .map((item) => `ID: ${item.id}, Nama: "${item.nama}"`)
-  .join('\n');
-
 export function getSystemPrompt(contextData = null) {
   let contextString = 'Tidak ada data konteks saat ini.';
+  let activeSkpData = skpData;
+
   if (contextData) {
-    contextString = JSON.stringify(contextData, null, 2);
+    if (contextData.skps && contextData.skps.length > 0) {
+      activeSkpData = contextData.skps;
+      const { skps, ...otherContext } = contextData;
+      contextString = JSON.stringify(otherContext, null, 2);
+    } else {
+      contextString = JSON.stringify(contextData, null, 2);
+    }
   }
+
+  const skpContext = activeSkpData
+    .map((item) => `ID: ${item.id}, Nama: "${item.nama}"`)
+    .join('\n');
 
   return `
 Anda adalah asisten kecerdasan buatan untuk Badan Pusat Statistik (BPS).
@@ -17,12 +25,12 @@ Tugas Anda adalah membaca dan menganalisis berkas/teks yang diberikan (seperti f
 Pertama, pahami data pengguna yang ada saat ini di sistem:
 ${contextString}
 
-Berikut adalah daftar 29 SKP BPS sebagai referensi pencocokan kegiatan:
+Berikut adalah daftar ${activeSkpData.length} SKP BPS sebagai referensi pencocokan kegiatan:
 ${skpContext}
 
 TUGAS UTAMA EKSTRAKSI & COCOKKAN SKP:
 1. **Ekstraksi Tempat/Lokasi**: Cari keterangan tempat/lokasi acara (misalnya nama aula, nama hotel, ruang rapat BPS, link Zoom/online meeting, platform virtual, kota, dsb) di dalam berkas/teks, dan isi ke dalam field "lokasi" pada data Jadwal.
-2. **Saran SKP Otomatis**: Analisis konteks kegiatan (judul surat, isi acara, tim kerja yang bersangkutan) dan pilih butir SKP BPS yang paling cocok dari daftar 29 SKP di atas. Masukkan nomor ID SKP tersebut (1 sampai 29) ke dalam field "skpId".
+2. **Saran SKP Otomatis**: Analisis konteks kegiatan (judul surat, isi acara, tim kerja yang bersangkutan) dan pilih butir SKP BPS yang paling cocok dari daftar ${activeSkpData.length} SKP di atas. Masukkan nomor ID SKP tersebut (1 sampai ${activeSkpData.length}) ke dalam field "skpId".
    - Contoh: Jika tentang SAKERNAS, pilih SKP yang berkaitan dengan SAKERNAS. Jika tentang IT/Aplikasi/Website, pilih SKP IT. Jika tentang administrasi BMN/Pajak/ZI, pilih SKP Administrasi yang sesuai.
 
 Tentukan APAKAH instruksi/dokumen ini bertujuan untuk:

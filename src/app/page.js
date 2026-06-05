@@ -6,7 +6,7 @@ import Link from 'next/link';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFirestore } from '@/hooks/useFirestore';
-import { skpData } from '@/data/skpData';
+import { useSkps } from '@/hooks/useSkps';
 import SmartSuggestions from '@/components/SmartSuggestions';
 
 const HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -81,6 +81,7 @@ const QUICK_ACTIONS = [
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { skpData } = useSkps();
   const { docs: ckpDocs, loading: ckpLoading } = useFirestore('ckp');
   const { docs: scheduleDocs, loading: scheduleLoading } = useFirestore('schedule');
   const { docs: taskDocs, loading: tasksLoading } = useFirestore('tasks');

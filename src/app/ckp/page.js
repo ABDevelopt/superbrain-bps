@@ -4,8 +4,8 @@ import { useState, useMemo, useCallback, useEffect, useRef, Suspense } from 'rea
 import { useSearchParams } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { useAlert } from '@/contexts/AlertContext';
-import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Clock, Link as LinkIcon, CloudOff, FolderOpen, AlertTriangle } from 'lucide-react';
-import { skpData } from '@/data/skpData';
+import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Clock, Link as LinkIcon, CloudOff, FolderOpen, AlertTriangle, Sparkles } from 'lucide-react';
+import { useSkps } from '@/hooks/useSkps';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFirestore } from '@/hooks/useFirestore';
@@ -15,7 +15,7 @@ import { savePendingUpload, getPendingUploads, removePendingUpload, getPendingUp
 import { useChatAction } from '@/contexts/ChatActionContext';
 import { useAIContext } from '@/contexts/AIContext';
 import * as XLSX from 'xlsx';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 const SATUAN_OPTIONS = ['Kegiatan', 'Lembar', 'File', 'Dokumen', 'Orang', 'Formulir', 'Lainnya'];
@@ -162,8 +162,8 @@ function Toast({ message, visible, onClose }) {
 }
 
 // TAB 1: Input Kegiatan
-function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit, entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday, onPendingChange }) {
-  const { accessToken } = useAuth();
+function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit, entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday, onPendingChange, skpData }) {
+  const { accessToken, user } = useAuth();
   const { showAlert } = useAlert();
   const [mounted, setMounted] = useState(false);
   const [showSchedulePicker, setShowSchedulePicker] = useState(false);
@@ -185,6 +185,10 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
   const [file, setFile] = useState(null);
   const [buktiType, setBuktiType] = useState('file');
   const [buktiLink, setBuktiLink] = useState('');
+  const [showShortenerModal, setShowShortenerModal] = useState(false);
+  const [shortenerSlug, setShortenerSlug] = useState('');
+  const [shortenerError, setShortenerError] = useState('');
+  const [shortenerLoading, setShortenerLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -247,6 +251,85 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
       setForm(prev => ({ ...prev, tanggal: sharedDate }));
     }
   }, [initialData, sharedDate]);
+
+  const handleShortenLinkInline = async () => {
+    if (!buktiLink) return;
+    
+    // Check if it's already shortened
+    if (buktiLink.includes('/s/')) {
+      showAlert('Tautan ini sudah merupakan tautan singkat.');
+      return;
+    }
+    
+    // Format URL
+    let formattedUrl = buktiLink.trim();
+    if (!/^https?:\/\//i.test(formattedUrl)) {
+      formattedUrl = 'https://' + formattedUrl;
+    }
+    
+    setShortenerLoading(true);
+    setShortenerError('');
+    
+    try {
+      let finalSlug = shortenerSlug.trim().toLowerCase();
+      
+      // If custom slug is defined, check uniqueness
+      if (finalSlug) {
+        if (!/^[a-z0-9-_]+$/i.test(finalSlug)) {
+          throw new Error('Slug hanya boleh berisi huruf, angka, tanda hubung (-) dan garis bawah (_).');
+        }
+        
+        const q = query(collection(db, 'short_links'), where('slug', '==', finalSlug));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          throw new Error('Slug kustom ini sudah digunakan. Silakan gunakan slug lain.');
+        }
+      } else {
+        // Generate random 6-character slug
+        let unique = false;
+        let attempts = 0;
+        while (!unique && attempts < 10) {
+          const rand = Math.random().toString(36).substring(2, 8);
+          const q = query(collection(db, 'short_links'), where('slug', '==', rand));
+          const snap = await getDocs(q);
+          if (snap.empty) {
+            finalSlug = rand;
+            unique = true;
+          }
+          attempts++;
+        }
+        if (!unique) {
+          throw new Error('Gagal men-generate slug acak. Silakan coba lagi atau masukkan slug kustom.');
+        }
+      }
+      
+      // Add document to short_links
+      await addDoc(collection(db, 'short_links'), {
+        slug: finalSlug,
+        longUrl: formattedUrl,
+        clicks: 0,
+        userId: user?.uid || 'anonymous',
+        createdAt: serverTimestamp()
+      });
+      
+      // Replace input URL with the new shortened link
+      const baseShortUrl = typeof window !== 'undefined' 
+        ? `${window.location.origin}/s/${finalSlug}`
+        : `/s/${finalSlug}`;
+        
+      setBuktiLink(baseShortUrl);
+      setShowShortenerModal(false);
+      setShortenerSlug('');
+      
+      // Show success alert
+      showAlert(`Tautan berhasil diringkas menjadi ${baseShortUrl}!`);
+      
+    } catch (error) {
+      setShortenerError(error.message || 'Gagal meringkas tautan.');
+    } finally {
+      setShortenerLoading(false);
+    }
+  };
 
   const { docs: scheduleEvents = [] } = useFirestore('schedule');
 
@@ -350,11 +433,11 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
       const res = await fetch('/api/suggestions/skp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rincian: form.rincian })
+        body: JSON.stringify({ rincian: form.rincian, skpList: skpData })
       });
 
       if (!res.ok) {
-        let errMsg = 'Gagal mendapatkan respon dari server.';
+        let errMsg = `Gagal mendapatkan respon dari server (Status ${res.status}).`;
         try {
           const errJSON = await res.json();
           if (errJSON.error) errMsg = errJSON.error;
@@ -1246,20 +1329,26 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
                 >
                   <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>Tidak terkait SKP</span>
                 </div>
-                {skpData
-                  .filter(s => s.nama.toLowerCase().includes(skpSearch.toLowerCase()) || String(s.id).includes(skpSearch))
-                  .map((item) => (
-                    <div 
-                      key={item.id} 
-                      className={styles.customDropdownItem}
-                      onClick={() => {
-                        setForm(prev => ({...prev, skpId: item.id}));
-                        setShowSkpDropdown(false);
-                      }}
-                    >
-                      <span className={styles.customDropdownItemId}>{item.id}.</span> {item.nama}
-                    </div>
-                ))}
+                {skpData.length === 0 ? (
+                  <div className={styles.customDropdownItem} style={{ color: '#fb7185', fontStyle: 'italic', padding: '10px' }}>
+                    Belum ada SKP. Silakan atur SKP di menu Manajemen SKP.
+                  </div>
+                ) : (
+                  skpData
+                    .filter(s => s.nama.toLowerCase().includes(skpSearch.toLowerCase()) || String(s.id).includes(skpSearch))
+                    .map((item) => (
+                      <div 
+                        key={item.id} 
+                        className={styles.customDropdownItem}
+                        onClick={() => {
+                          setForm(prev => ({...prev, skpId: item.id}));
+                          setShowSkpDropdown(false);
+                        }}
+                      >
+                        <span className={styles.customDropdownItemId}>{item.id}.</span> {item.nama}
+                      </div>
+                    ))
+                )}
               </div>
             </div>
           )}
@@ -1379,22 +1468,113 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
             )}
           </>
         ) : (
-          <input
-            type="url"
-            className={styles.input}
-            value={buktiLink}
-            onChange={(e) => setBuktiLink(e.target.value)}
-            placeholder="Masukkan URL bukti dukung (misal: https://docs.google.com/...)"
-            style={{ 
-              background: 'rgba(255, 255, 255, 0.05)', 
-              border: '1px solid rgba(255, 255, 255, 0.1)', 
-              borderRadius: '8px', 
-              padding: '12px 14px', 
-              color: '#fff',
-              fontSize: '14px',
-              fontFamily: 'Inter, sans-serif'
-            }}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="url"
+                className={styles.input}
+                value={buktiLink}
+                onChange={(e) => setBuktiLink(e.target.value)}
+                placeholder="Masukkan URL bukti dukung (misal: https://docs.google.com/...)"
+                style={{ 
+                  background: 'rgba(255, 255, 255, 0.05)', 
+                  border: '1px solid rgba(255, 255, 255, 0.1)', 
+                  borderRadius: '8px', 
+                  padding: '12px 14px', 
+                  color: '#fff',
+                  fontSize: '14px',
+                  fontFamily: 'Inter, sans-serif',
+                  flex: 1
+                }}
+              />
+              {buktiLink && !buktiLink.includes('/s/') && /^https?:\/\//i.test(buktiLink) && (
+                <button
+                  type="button"
+                  onClick={() => setShowShortenerModal(true)}
+                  className="btn btn-primary"
+                  style={{ padding: '0 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', height: '46px', whiteSpace: 'nowrap' }}
+                >
+                  <Sparkles size={14} /> Ringkas Link
+                </button>
+              )}
+            </div>
+            {buktiLink && buktiLink.includes('/s/') && (
+              <div style={{ fontSize: '12px', color: '#34d399', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Check size={14} /> Tautan bukti dukung diringkas: <strong>{buktiLink}</strong>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Inline Shortener Modal */}
+        {showShortenerModal && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(15, 7, 40, 0.7)', backdropFilter: 'blur(8px)',
+            zIndex: 1100, display: 'flex', alignItems: 'center',
+            padding: '20px', justifyContent: 'center'
+          }}>
+            <div style={{
+              background: 'rgba(30, 27, 75, 0.95)', border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '16px', maxWidth: '450px', width: '100%', padding: '24px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
+              display: 'flex', flexDirection: 'column'
+            }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#f1f5f9', margin: '0 0 6px 0' }}>⚡ Buat Tautan Ringkas BPS</h3>
+              <p style={{ fontSize: '12px', color: '#94a3b8', margin: '0 0 16px 0', lineHeight: 1.5 }}>
+                URL Anda akan disederhanakan menjadi link internal SuperBrain yang pendek dan bersih.
+              </p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 500 }}>URL Tujuan:</span>
+                  <span style={{ fontSize: '11px', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', background: 'rgba(0,0,0,0.2)', padding: '6px 10px', borderRadius: '6px' }} title={buktiLink}>
+                    {buktiLink}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: 500 }}>Slug Kustom (Opsional)</label>
+                  <input 
+                    type="text" 
+                    placeholder="Contoh: bukti-sakernas-maret" 
+                    value={shortenerSlug}
+                    onChange={(e) => setShortenerSlug(e.target.value)}
+                    className="input-base"
+                    style={{ fontSize: '13px', padding: '8px 12px' }}
+                  />
+                  <span style={{ fontSize: '10px', color: '#64748b' }}>Karakter aman: a-z, 0-9, dash (-), underscore (_). Biarkan kosong untuk slug acak.</span>
+                </div>
+              </div>
+
+              {shortenerError && (
+                <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#f87171', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', marginBottom: '16px' }}>
+                  {shortenerError}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button 
+                  type="button" 
+                  onClick={() => { setShowShortenerModal(false); setShortenerSlug(''); setShortenerError(''); }} 
+                  className="btn btn-secondary"
+                  disabled={shortenerLoading}
+                  style={{ fontSize: '13px', padding: '8px 16px' }}
+                >
+                  Batal
+                </button>
+                <button 
+                  type="button" 
+                  onClick={handleShortenLinkInline} 
+                  className="btn btn-primary"
+                  disabled={shortenerLoading}
+                  style={{ fontSize: '13px', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  {shortenerLoading ? 'Memproses...' : 'Ringkas Sekarang'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
 
@@ -1727,7 +1907,7 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, onStretchCl
 }
 
 // TAB 2: Rekap Harian
-function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDate, checkHoliday, onToggleHoliday, pendingUploads = [], onStretchClick }) {
+function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDate, checkHoliday, onToggleHoliday, pendingUploads = [], onStretchClick, skpData }) {
   const dayEntries = useMemo(
     () => entries
       .filter((e) => e.tanggal === selectedDate)
@@ -2068,7 +2248,7 @@ function stretchMonthEntries(originalEntries, checkHoliday) {
 }
 
 // TAB 3: Rekap Bulanan
-function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday, onStretchClick, onEdit }) {
+function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday, onStretchClick, onEdit, skpData }) {
   const { showAlert } = useAlert();
   const [selectedMonth, setSelectedMonth] = useState(sharedDate ? sharedDate.substring(0, 7) : getCurrentMonthStr());
 
@@ -2578,6 +2758,7 @@ function CKPPageInner() {
   const { accessToken, loginWithGoogle } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const [openingFolder, setOpeningFolder] = useState(false);
+  const { skpData } = useSkps();
   const { docs: entries, loading, addDocument, updateDocument, deleteDocument } = useFirestore('ckp');
   const { docs: holidaysData, addDocument: addHoliday, deleteDocument: deleteHoliday } = useFirestore('holidays');
 
@@ -3058,6 +3239,7 @@ function CKPPageInner() {
                 checkHoliday={checkHoliday}
                 onToggleHoliday={toggleHoliday}
                 onPendingChange={fetchPendingUploads}
+                skpData={skpData}
               />
             )}
             {activeTab === 1 && (
@@ -3071,6 +3253,7 @@ function CKPPageInner() {
                 onToggleHoliday={toggleHoliday}
                 pendingUploads={pendingUploads}
                 onStretchClick={setStretchConfirmDate}
+                skpData={skpData}
               />
             )}
             {activeTab === 2 && (
@@ -3082,6 +3265,7 @@ function CKPPageInner() {
                 onToggleHoliday={toggleHoliday} 
                 onStretchClick={setStretchConfirmDate}
                 onEdit={handleEdit}
+                skpData={skpData}
               />
             )}
             {activeTab === 3 && <TabRekapTriwulanan entries={entries} />}

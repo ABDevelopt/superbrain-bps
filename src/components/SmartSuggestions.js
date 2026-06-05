@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import styles from './SmartSuggestions.module.css';
 import { Sparkles, CheckCircle2, Clock, Check, X } from 'lucide-react';
 import { useFirestore } from '@/hooks/useFirestore';
-import { skpData } from '@/data/skpData';
+import { useSkps } from '@/hooks/useSkps';
 import { getSmartSuggestionsAction } from '@/actions/suggestions';
 
 export default function SmartSuggestions({ contextData, buttonClassName, labelClassName, arrowClassName }) {
@@ -13,6 +13,7 @@ export default function SmartSuggestions({ contextData, buttonClassName, labelCl
   const [error, setError] = useState(null);
   const [usagePercent, setUsagePercent] = useState(0);
   
+  const { skpData } = useSkps();
   const { addDocument: addCkp } = useFirestore('ckp');
   const { addDocument: addTask, updateDocument: updateTask } = useFirestore('tasks');
 

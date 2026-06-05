@@ -6,19 +6,19 @@ import {
   Play, Pause, RotateCcw, CheckSquare, Trash2, Plus, 
   ChevronRight, ChevronDown, Check, X, Sparkles, Clock, 
   ArrowRight, ArrowLeft, PlusCircle, Briefcase, Info, 
-  Calendar, Edit3, ClipboardCheck, LayoutGrid,
+  Calendar, Edit3, ClipboardCheck, LayoutGrid, Bell,
   GraduationCap, Award, Search, MapPin, Target, Coffee, Zap,
   Monitor, Map as MapIcon, Book, Users, Folder, Network, BarChart2, ClipboardList,
   SlidersHorizontal, FolderOpen, Paperclip, Loader2
 } from 'lucide-react';
 
-import { skpData } from '@/data/skpData';
+import { useSkps } from '@/hooks/useSkps';
 import { BPS_ROLES, ROLE_TEMPLATES, initialTasks } from '@/data/taskData';
 import styles from './page.module.css';
 import { useChatAction } from '@/contexts/ChatActionContext';
 import { useAIContext } from '@/contexts/AIContext';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, writeBatch } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, writeBatch, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/hooks/useFirestore';
 import { useAuth } from '@/contexts/AuthContext';
 import { uploadFileToDrive, getOrCreateFolder } from '@/lib/drive';
@@ -55,6 +55,12 @@ export default function TasksPage() {
   // GDrive & Sync states
   const [openingFolder, setOpeningFolder] = useState(false);
   const [taskFiles, setTaskFiles] = useState([]);
+  const [taskLinkUrl, setTaskLinkUrl] = useState('');
+  const [taskLinkLabel, setTaskLinkLabel] = useState('');
+  const [showTaskShortener, setShowTaskShortener] = useState(false);
+  const [taskShortenerSlug, setTaskShortenerSlug] = useState('');
+  const [taskShortenerError, setTaskShortenerError] = useState('');
+  const [taskShortenerLoading, setTaskShortenerLoading] = useState(false);
   const [isUploadingFiles, setIsUploadingFiles] = useState(false);
   const [pendingUploads, setPendingUploads] = useState([]);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -68,6 +74,100 @@ export default function TasksPage() {
   useEffect(() => {
     fetchPendingUploads();
   }, [fetchPendingUploads]);
+
+  const handleAddLinkAttachment = () => {
+    if (!taskLinkUrl) return;
+    
+    let formattedUrl = taskLinkUrl.trim();
+    if (!/^https?:\/\//i.test(formattedUrl)) {
+      formattedUrl = 'https://' + formattedUrl;
+    }
+    
+    const label = taskLinkLabel.trim() || 'Tautan Bukti';
+    setFormAttachments(prev => [...prev, { name: label, url: formattedUrl }]);
+    
+    // Clear inputs
+    setTaskLinkUrl('');
+    setTaskLinkLabel('');
+  };
+
+  const handleShortenTaskLinkInline = async () => {
+    if (!taskLinkUrl) return;
+    
+    if (taskLinkUrl.includes('/s/')) {
+      alert('Tautan ini sudah merupakan tautan singkat.');
+      return;
+    }
+    
+    let formattedUrl = taskLinkUrl.trim();
+    if (!/^https?:\/\//i.test(formattedUrl)) {
+      formattedUrl = 'https://' + formattedUrl;
+    }
+    
+    setTaskShortenerLoading(true);
+    setTaskShortenerError('');
+    
+    try {
+      let finalSlug = taskShortenerSlug.trim().toLowerCase();
+      
+      if (finalSlug) {
+        if (!/^[a-z0-9-_]+$/i.test(finalSlug)) {
+          throw new Error('Slug hanya boleh berisi huruf, angka, tanda hubung (-) dan garis bawah (_).');
+        }
+        
+        const q = query(collection(db, 'short_links'), where('slug', '==', finalSlug));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          throw new Error('Slug kustom ini sudah digunakan. Silakan gunakan slug lain.');
+        }
+      } else {
+        let unique = false;
+        let attempts = 0;
+        while (!unique && attempts < 10) {
+          const rand = Math.random().toString(36).substring(2, 8);
+          const q = query(collection(db, 'short_links'), where('slug', '==', rand));
+          const snap = await getDocs(q);
+          if (snap.empty) {
+            finalSlug = rand;
+            unique = true;
+          }
+          attempts++;
+        }
+        if (!unique) {
+          throw new Error('Gagal men-generate slug acak. Silakan coba lagi.');
+        }
+      }
+      
+      // Save short link
+      await addDoc(collection(db, 'short_links'), {
+        slug: finalSlug,
+        longUrl: formattedUrl,
+        clicks: 0,
+        userId: user?.uid || 'anonymous',
+        createdAt: serverTimestamp()
+      });
+      
+      const baseShortUrl = typeof window !== 'undefined' 
+        ? `${window.location.origin}/s/${finalSlug}`
+        : `/s/${finalSlug}`;
+        
+      const label = taskLinkLabel.trim() || `Tautan Singkat (/s/${finalSlug})`;
+      setFormAttachments(prev => [...prev, { name: label, url: baseShortUrl }]);
+      
+      // Clear states
+      setTaskLinkUrl('');
+      setTaskLinkLabel('');
+      setTaskShortenerSlug('');
+      setShowTaskShortener(false);
+      
+      showToast('Link berhasil diringkas dan ditambahkan ke lampiran.', 'success');
+      
+    } catch (err) {
+      setTaskShortenerError(err.message || 'Gagal meringkas tautan.');
+    } finally {
+      setTaskShortenerLoading(false);
+    }
+  };
 
   const handleOpenDriveFolder = async () => {
     if (!accessToken) {
@@ -177,6 +277,15 @@ export default function TasksPage() {
   const [newChecklistItem, setNewChecklistItem] = useState('');
   const [formLinkedScheduleId, setFormLinkedScheduleId] = useState('');
   const [formAttachments, setFormAttachments] = useState([]);
+  const [formDueDate, setFormDueDate] = useState('');
+  const [formReminders, setFormReminders] = useState([]);
+
+  const handleReminderToggle = (r) => {
+    setFormReminders((prev) => {
+      const isSelected = prev.includes(r);
+      return isSelected ? prev.filter(x => x !== r) : [...prev, r];
+    });
+  };
 
   // Mode Fokus Tenang
   const [focusedTask, setFocusedTask] = useState(null);
@@ -193,6 +302,7 @@ export default function TasksPage() {
   // Refs
   const timerIntervalRef = useRef(null);
 
+  const { skpData } = useSkps();
   const { docs: tasks = [], loading: tasksLoading, addDocument: addTask, updateDocument: updateTask, deleteDocument: deleteTask } = useFirestore('tasks');
   const { docs: schedules = [], addDocument: addSchedule, updateDocument: updateSchedule } = useFirestore('schedule');
 
@@ -414,6 +524,8 @@ export default function TasksPage() {
     setNewChecklistItem('');
     setFormLinkedScheduleId('');
     setFormAttachments([]);
+    setFormDueDate('');
+    setFormReminders([]);
     setTaskFiles([]);
     setIsModalOpen(true);
   };
@@ -429,6 +541,8 @@ export default function TasksPage() {
     setNewChecklistItem('');
     setFormLinkedScheduleId(task.linkedScheduleId || '');
     setFormAttachments(task.attachments || []);
+    setFormDueDate(task.dueDate || '');
+    setFormReminders(task.reminders || []);
     setTaskFiles([]);
     setIsModalOpen(true);
   };
@@ -475,13 +589,19 @@ export default function TasksPage() {
           tanggalDibuat: new Date().toISOString().split('T')[0],
           checklist: formChecklist,
           linkedScheduleId: finalScheduleId,
-          attachments: []
+          attachments: [],
+          dueDate: formDueDate || null,
+          reminders: formReminders,
+          sentReminders: []
         };
         const ref = await addTask(newTask);
         savedTaskId = ref.id;
         showToast('Tugas baru berhasil ditambahkan.', 'success');
       } else {
         savedTaskId = selectedTaskForEdit.id;
+        const didDueDateChange = (selectedTaskForEdit.dueDate || '') !== formDueDate;
+        const finalSentReminders = didDueDateChange ? [] : (selectedTaskForEdit.sentReminders || []);
+
         await updateTask(savedTaskId, {
           judul: formJudul.trim(),
           deskripsi: formDesc.trim(),
@@ -489,7 +609,10 @@ export default function TasksPage() {
           skpId: Number(formSkpId),
           checklist: formChecklist,
           linkedScheduleId: finalScheduleId,
-          attachments: formAttachments
+          attachments: formAttachments,
+          dueDate: formDueDate || null,
+          reminders: formReminders,
+          sentReminders: finalSentReminders
         });
         showToast('Tugas berhasil diperbarui.', 'success');
       }
@@ -768,6 +891,40 @@ export default function TasksPage() {
 
   // Helper BPS Group Icons
   const getGroupIcon = (groupName) => {
+    if (!groupName) return <Folder size={16} />;
+    const name = groupName.toLowerCase();
+
+    if (name === 'utama') return <Target size={16} color="#6366f1" />;
+    if (name === 'tambahan') return <Plus size={16} color="#f59e0b" />;
+    if (name === 'subbagian umum') return <Folder size={16} />;
+    if (name === 'tim ipjkd & dls') return <Network size={16} />;
+    if (name === 'tim statistik sosial') return <Users size={16} />;
+    if (name === 'tim statistik harga & sensus ekonomi') return <BarChart2 size={16} />;
+
+    // Map projects by keywords
+    if (name.includes('peta') || name.includes('wilkerstat') || name.includes('desa cantik') || name.includes('desa cinta')) {
+      return <MapIcon size={16} />;
+    }
+    if (name.includes('it') || name.includes('aplikasi') || name.includes('humas')) {
+      return <Monitor size={16} />;
+    }
+    if (name.includes('sbr') || name.includes('business register')) {
+      return <Network size={16} />;
+    }
+    if (name.includes('sakernas') || name.includes('susenas') || name.includes('sensus') || name.includes('sektoral') || name.includes('pdrb') || name.includes('data')) {
+      return <BarChart2 size={16} />;
+    }
+    if (name.includes('publikasi') || name.includes('kda') || name.includes('buku') || name.includes('rekomendasi')) {
+      return <Book size={16} />;
+    }
+    if (name.includes('administrasi') || name.includes('kepegawaian') || name.includes('keuangan') || name.includes('bmn')) {
+      return <ClipboardList size={16} />;
+    }
+    if (name.includes('pelayanan') || name.includes('pst') || name.includes('koordinasi')) {
+      return <Users size={16} />;
+    }
+
+    // Old fallbacks
     switch (groupName) {
       case 'IT & Digital': return <Monitor size={16} />;
       case 'Geospasial': return <MapIcon size={16} />;
@@ -775,12 +932,6 @@ export default function TasksPage() {
       case 'Publikasi & Data': return <Book size={16} />;
       case 'Pelayanan & Koordinasi': return <Users size={16} />;
       case 'Administrasi': return <ClipboardList size={16} />;
-      case 'utama': return <Target size={16} color="#6366f1" />;
-      case 'tambahan': return <Plus size={16} color="#f59e0b" />;
-      case 'Subbagian Umum': return <Folder size={16} />;
-      case 'Tim IPJKD & DLS': return <Network size={16} />;
-      case 'Tim Statistik Sosial': return <Users size={16} />;
-      case 'Tim Statistik Harga & Sensus Ekonomi': return <BarChart2 size={16} />;
       default: return <Folder size={16} />;
     }
   };
@@ -1051,6 +1202,7 @@ export default function TasksPage() {
                     onEdit={() => handleOpenEditModal(task)}
                     onStartFocus={() => handleStartFocus(task)}
                     onJadikanCKP={() => handleJadikanCKP(task)}
+                    skpData={skpData}
                   />
                 ))}
                 {todoTasks.length === 0 && <EmptyColumnState />}
@@ -1080,6 +1232,7 @@ export default function TasksPage() {
                     onEdit={() => handleOpenEditModal(task)}
                     onStartFocus={() => handleStartFocus(task)}
                     onJadikanCKP={() => handleJadikanCKP(task)}
+                    skpData={skpData}
                   />
                 ))}
                 {inProgressTasks.length === 0 && <EmptyColumnState />}
@@ -1109,6 +1262,7 @@ export default function TasksPage() {
                     onEdit={() => handleOpenEditModal(task)}
                     onStartFocus={() => handleStartFocus(task)}
                     onJadikanCKP={() => handleJadikanCKP(task)}
+                    skpData={skpData}
                   />
                 ))}
                 {doneTasks.length === 0 && <EmptyColumnState />}
@@ -1148,7 +1302,7 @@ export default function TasksPage() {
                   value={mappingGroupBy}
                   onChange={(e) => setMappingGroupBy(e.target.value)}
                 >
-                  <option value="cluster">Kelompok Bidang (Klaster)</option>
+                  <option value="cluster">Proyek Tim</option>
                   <option value="tim">Tim Kerja BPS</option>
                   <option value="kategori">Kategori (Utama/Tambahan)</option>
                 </select>
@@ -1503,13 +1657,52 @@ export default function TasksPage() {
                   value={formSkpId}
                   onChange={(e) => setFormSkpId(e.target.value)}
                 >
-                  {skpData.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      SKP #{s.id}: {s.nama} ({s.kategori})
-                    </option>
-                  ))}
+                  {skpData.length === 0 ? (
+                    <option value="">Belum ada SKP - Atur di menu SKP</option>
+                  ) : (
+                    skpData.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        SKP #{s.id}: {s.nama} ({s.kategori})
+                      </option>
+                    ))
+                  )}
                 </select>
               </div>
+
+              <div className={styles.formGroup}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Clock size={14} color="#6366f1" />
+                  Tenggat Waktu (Opsional)
+                </label>
+                <input 
+                  type="date"
+                  className={styles.input}
+                  value={formDueDate}
+                  onChange={(e) => setFormDueDate(e.target.value)}
+                />
+              </div>
+
+              {formDueDate && (
+                <div className={styles.formGroup}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Bell size={14} color="#6366f1" />
+                    Pengingat Telegram
+                  </label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '6px' }}>
+                    {['Hari H', 'H-1', 'H-3'].map((r) => (
+                      <label key={r} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', color: '#cbd5e1', cursor: 'pointer', background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                        <input
+                          type="checkbox"
+                          checked={formReminders.includes(r)}
+                          onChange={() => handleReminderToggle(r)}
+                          style={{ accentColor: '#6366f1' }}
+                        />
+                        {r}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div className={styles.formGroup}>
                 <label>Langkah Kerja Mikro Checklist ({formChecklist.length})</label>
@@ -1653,6 +1846,121 @@ export default function TasksPage() {
                     ))}
                   </div>
                 )}
+
+                {/* Tambah Tautan Web */}
+                <div style={{ marginTop: '16px', background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '8px', padding: '12px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#f1f5f9', display: 'block', marginBottom: '8px' }}>🔗 Tambah Tautan Web (Link)</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <input 
+                      type="text" 
+                      placeholder="Nama/Label Tautan (misal: Spreadsheet SBR)" 
+                      value={taskLinkLabel}
+                      onChange={(e) => setTaskLinkLabel(e.target.value)}
+                      className="input-base"
+                      style={{ fontSize: '12px', padding: '8px 12px' }}
+                    />
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input 
+                        type="url" 
+                        placeholder="https://docs.google.com/..." 
+                        value={taskLinkUrl}
+                        onChange={(e) => setTaskLinkUrl(e.target.value)}
+                        className="input-base"
+                        style={{ fontSize: '12px', padding: '8px 12px', flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddLinkAttachment}
+                        disabled={!taskLinkUrl}
+                        className="btn btn-secondary"
+                        style={{ padding: '0 12px', fontSize: '12px', whiteSpace: 'nowrap' }}
+                      >
+                        Tambah
+                      </button>
+                      {taskLinkUrl && !taskLinkUrl.includes('/s/') && /^https?:\/\//i.test(taskLinkUrl) && (
+                        <button
+                          type="button"
+                          onClick={() => setShowTaskShortener(true)}
+                          className="btn btn-primary"
+                          style={{ padding: '0 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
+                        >
+                          <Sparkles size={12} /> Ringkas
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Inline Shortener Modal for Tasks */}
+                {showTaskShortener && (
+                  <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(15, 7, 40, 0.7)', backdropFilter: 'blur(8px)',
+                    zIndex: 1100, display: 'flex', alignItems: 'center',
+                    padding: '20px', justifyContent: 'center'
+                  }}>
+                    <div style={{
+                      background: 'rgba(30, 27, 75, 0.95)', border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '16px', maxWidth: '450px', width: '100%', padding: '24px',
+                      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
+                      display: 'flex', flexDirection: 'column', textAlign: 'left'
+                    }}>
+                      <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#f1f5f9', margin: '0 0 6px 0' }}>⚡ Buat Tautan Ringkas BPS</h3>
+                      <p style={{ fontSize: '12px', color: '#94a3b8', margin: '0 0 16px 0', lineHeight: 1.5 }}>
+                        Tautan web ini akan disingkat dan ditambahkan secara otomatis ke daftar lampiran tugas.
+                      </p>
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span style={{ fontSize: '11px', color: '#cbd5e1', fontWeight: 500 }}>Tautan Asal:</span>
+                          <span style={{ fontSize: '11px', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', background: 'rgba(0,0,0,0.2)', padding: '6px 10px', borderRadius: '6px' }} title={taskLinkUrl}>
+                            {taskLinkUrl}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <label style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: 500 }}>Slug Kustom (Opsional)</label>
+                          <input 
+                            type="text" 
+                            placeholder="Contoh: link-sbr-maret" 
+                            value={taskShortenerSlug}
+                            onChange={(e) => setTaskShortenerSlug(e.target.value)}
+                            className="input-base"
+                            style={{ fontSize: '13px', padding: '8px 12px' }}
+                          />
+                          <span style={{ fontSize: '10px', color: '#64748b' }}>Karakter aman: a-z, 0-9, dash (-), underscore (_). Biarkan kosong untuk slug acak.</span>
+                        </div>
+                      </div>
+
+                      {taskShortenerError && (
+                        <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#f87171', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', marginBottom: '16px' }}>
+                          {taskShortenerError}
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                        <button 
+                          type="button" 
+                          onClick={() => { setShowTaskShortener(false); setTaskShortenerSlug(''); setTaskShortenerError(''); }} 
+                          className="btn btn-secondary"
+                          disabled={taskShortenerLoading}
+                          style={{ fontSize: '13px', padding: '8px 16px' }}
+                        >
+                          Batal
+                        </button>
+                        <button 
+                          type="button" 
+                          onClick={handleShortenTaskLinkInline} 
+                          className="btn btn-primary"
+                          disabled={taskShortenerLoading}
+                          style={{ fontSize: '13px', padding: '8px 16px' }}
+                        >
+                          {taskShortenerLoading ? 'Memproses...' : 'Ringkas & Tambah'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className={styles.modalActions}>
@@ -1685,9 +1993,9 @@ export default function TasksPage() {
                 <div className={styles.modalMetaRow}>
                   <span style={{ fontSize: '11px', color: '#64748b' }}>Nomor SKP: #{selectedSkp.id}</span>
                   <span style={{ fontSize: '11px', color: '#64748b' }}>•</span>
-                  <span style={{ fontSize: '11px', color: '#64748b' }}>Tim: {selectedSkp.tim}</span>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>Tim Kerja: {selectedSkp.tim}</span>
                   <span style={{ fontSize: '11px', color: '#64748b' }}>•</span>
-                  <span style={{ fontSize: '11px', color: '#64748b' }}>Klaster: {selectedSkp.cluster}</span>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>Proyek Tim: {selectedSkp.cluster}</span>
                 </div>
               </div>
               <button className={styles.modalCloseBtn} onClick={() => setSelectedSkp(null)}>
@@ -1778,7 +2086,8 @@ export default function TasksPage() {
 // Sub-Component: TaskCard
 function TaskCard({ 
   task, expanded, onToggleExpand, onToggleSubtask, 
-  onMoveStatus, onDelete, onEdit, onStartFocus, onJadikanCKP 
+  onMoveStatus, onDelete, onEdit, onStartFocus, onJadikanCKP,
+  skpData = []
 }) {
   const roleObj = BPS_ROLES.find((r) => r.id === task.peran);
   const skpObj = skpData.find((s) => s.id === task.skpId);
@@ -1812,6 +2121,16 @@ function TaskCard({
         {task.linkedScheduleId && (
           <span className={styles.skpTag} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(14, 165, 233, 0.15)', borderColor: 'rgba(14, 165, 233, 0.3)', color: '#38bdf8' }} title="Tertaut dengan Jadwal">
             <Calendar size={11} /> Tertaut Jadwal
+          </span>
+        )}
+        {task.dueDate && (
+          <span className={styles.skpTag} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.3)', color: '#f87171' }} title={`Tenggat waktu: ${task.dueDate}`}>
+            <Clock size={11} /> Tenggat: {task.dueDate}
+          </span>
+        )}
+        {task.dueDate && task.reminders && task.reminders.length > 0 && (
+          <span className={styles.skpTag} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(245, 158, 11, 0.15)', borderColor: 'rgba(245, 158, 11, 0.3)', color: '#fbbf24' }} title={`Pengingat Telegram aktif: ${task.reminders.join(', ')}`}>
+            <Bell size={11} /> Pengingat: {task.reminders.join(', ')}
           </span>
         )}
       </div>

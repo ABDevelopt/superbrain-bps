@@ -2,8 +2,8 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Bell, X, Plus, ChevronLeft, ChevronRight, CheckCircle, Circle, Edit3, Trash2, LayoutGrid, List, MapPin, Video, User, Link as LinkIcon, AlignLeft, Clock, Tag, ClipboardCheck, FileText, Loader2, ListTodo, CloudOff, FolderOpen, AlertTriangle } from 'lucide-react';
-import { skpData } from '@/data/skpData';
+import { Calendar, Award, Bell, X, Plus, ChevronLeft, ChevronRight, CheckCircle, Circle, Edit3, Trash2, LayoutGrid, List, MapPin, Video, User, Link as LinkIcon, AlignLeft, Clock, Tag, ClipboardCheck, FileText, Loader2, ListTodo, CloudOff, FolderOpen, AlertTriangle } from 'lucide-react';
+import { useSkps } from '@/hooks/useSkps';
 import styles from './page.module.css';
 import { useFirestore } from '@/hooks/useFirestore';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,6 +12,7 @@ import { uploadFileToDrive, getOrCreateFolder } from '@/lib/drive';
 import { savePendingUpload, getPendingUploads, removePendingUpload } from '@/lib/localdb';
 import AddEventModal, { URGENSI_COLORS } from './AddEventModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import TrainingTracker from './TrainingTracker';
 import { useChatAction } from '@/contexts/ChatActionContext';
 import { useAIContext } from '@/contexts/AIContext';
 import { db } from '@/lib/firebase';
@@ -91,7 +92,7 @@ function getCalendarDays(year, month) {
 }
 
 // Event Card
-function EventCard({ event, onToggle, onEdit, onDelete, onJadikanCKP, ckpCount = 0, pendingUploads = [] }) {
+function EventCard({ event, onToggle, onEdit, onDelete, onJadikanCKP, ckpCount = 0, pendingUploads = [], skpData = [] }) {
   const skp = event.skpId ? skpData.find((s) => s.id === event.skpId) : null;
   const color = KATEGORI_COLORS[event.kategori] || KATEGORI_COLORS.Lainnya;
   const isSelesai = event.isSelesai;
@@ -236,7 +237,9 @@ export default function SchedulePage() {
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [selectedDate, setSelectedDate] = useState(toDateStr(today));
   const [viewMode, setViewMode] = useState('month');
+  const [activeScheduleTab, setActiveScheduleTab] = useState('calendar'); // 'calendar' | 'training'
   
+  const { skpData } = useSkps();
   const { docs: events = [], addDocument, updateDocument, deleteDocument } = useFirestore('schedule');
   const { docs: tasks = [], updateDocument: updateTask, addDocument: addTask, deleteDocument: deleteTask } = useFirestore('tasks');
   const { docs: ckpEvents = [] } = useFirestore('ckp');
@@ -1153,6 +1156,50 @@ export default function SchedulePage() {
         </div>
       </header>
 
+      {/* Tab Switcher */}
+      <div style={{ marginBottom: '24px', display: 'flex', gap: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '12px' }}>
+        <button
+          onClick={() => setActiveScheduleTab('calendar')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: activeScheduleTab === 'calendar' ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
+            color: activeScheduleTab === 'calendar' ? '#818cf8' : '#94a3b8',
+            border: activeScheduleTab === 'calendar' ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid transparent',
+            padding: '10px 18px',
+            borderRadius: '10px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '600',
+            transition: 'all 0.2s',
+            fontFamily: 'Inter, sans-serif'
+          }}
+        >
+          <Calendar size={16} /> Kalender & Agenda
+        </button>
+        <button
+          onClick={() => setActiveScheduleTab('training')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: activeScheduleTab === 'training' ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
+            color: activeScheduleTab === 'training' ? '#818cf8' : '#94a3b8',
+            border: activeScheduleTab === 'training' ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid transparent',
+            padding: '10px 18px',
+            borderRadius: '10px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '600',
+            transition: 'all 0.2s',
+            fontFamily: 'Inter, sans-serif'
+          }}
+        >
+          <Award size={16} /> Tracker Pelatihan (Gantt Chart)
+        </button>
+      </div>
+
       {pendingUploads.length > 0 && (
         <div style={{
           background: 'rgba(239, 68, 68, 0.12)',
@@ -1202,7 +1249,8 @@ export default function SchedulePage() {
         </div>
       )}
 
-      <div className={styles.layout}>
+      {activeScheduleTab === 'calendar' ? (
+        <div className={styles.layout}>
         {/* Calendar Section */}
         <div className={styles.calendarSection}>
           <div className={styles.calendarCard}>
@@ -1297,6 +1345,7 @@ export default function SchedulePage() {
                       onJadikanCKP={() => handleJadikanCKP(ev)}
                       ckpCount={ckpCountByEventId[ev.id] || 0}
                       pendingUploads={pendingUploads}
+                      skpData={skpData}
                     />
                   </div>
                 ))}
@@ -1359,6 +1408,9 @@ export default function SchedulePage() {
           </div>
         </aside>
       </div>
+      ) : (
+        <TrainingTracker />
+      )}
 
       <AddEventModal
         isOpen={modalOpen}
@@ -1369,6 +1421,7 @@ export default function SchedulePage() {
         onSubmit={handleAddEvent}
         initialData={editingEvent}
         onUpdate={handleUpdateEvent}
+        skpData={skpData}
       />
 
       {/* Event Detail Modal */}
