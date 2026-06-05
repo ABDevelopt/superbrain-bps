@@ -181,10 +181,10 @@ export default function TrainingTracker() {
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '20px', marginTop: '20px' }}>
+    <div className={styles.trackerLayout}>
       
       {/* LEFT COLUMN: PROGRAMS LIST */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} className="animate-fade-in stagger-1">
+      <div className={`${styles.trackerSidebar} animate-fade-in stagger-1`}>
         <button 
           className={styles.addBtn}
           style={{ width: '100%', justifyContent: 'center' }}
@@ -196,7 +196,7 @@ export default function TrainingTracker() {
           <Plus size={16} /> Tambah Pelatihan
         </button>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '75vh', overflowY: 'auto' }}>
+        <div className={styles.programsList}>
           {programs.length === 0 ? (
             <div 
               className="glass-card" 
@@ -277,20 +277,17 @@ export default function TrainingTracker() {
       </div>
 
       {/* RIGHT COLUMN: GANTT CHART & DETAILS PANEL */}
-      <div style={{ display: 'flex', flexDirection: 'column' }} className="animate-fade-in stagger-2">
+      <div className={`${styles.trackerMain} animate-fade-in stagger-2`}>
         {activeProgram ? (
           <>
             {/* Header Pelatihan */}
             <div 
-              className="glass-card" 
+              className={`glass-card ${styles.trackerHeader}`} 
               style={{ 
                 padding: '20px', 
                 marginBottom: '20px', 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
                 boxShadow: 'var(--shadow-sm)',
-                background: 'rgba(255,255,255,0.02)'
+                background: 'rgba(255, 255, 255, 0.02)'
               }}
             >
               <div>
@@ -350,7 +347,7 @@ export default function TrainingTracker() {
                 </div>
 
                 {/* Sub Tab Switcher */}
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', background: 'rgba(0,0,0,0.2)', padding: '4px', borderRadius: 'var(--radius-lg)', width: 'fit-content' }}>
+                <div className={styles.trackerSubTabs}>
                   <button
                     onClick={() => setActiveDetailTab('checklist')}
                     style={{

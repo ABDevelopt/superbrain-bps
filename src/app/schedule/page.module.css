@@ -1104,3 +1104,117 @@
     transform: rotate(360deg);
   }
 }
+
+/* ===== Training Tracker Layout & Responsive ===== */
+.trackerLayout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.trackerSidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.programsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 75vh;
+  overflow-y: auto;
+}
+
+.trackerMain {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.trackerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.trackerSubTabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 4px;
+  border-radius: var(--radius-lg);
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+
+.trackerSubTabs::-webkit-scrollbar {
+  display: none;
+}
+
+.ganttHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ganttTitle {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.ganttDateBadge {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
+  padding: 4px 10px;
+  background: var(--primary-glow);
+  border: 1px solid rgba(99,102,241,0.25);
+  border-radius: var(--radius-full);
+  color: var(--primary-light);
+  white-space: normal;
+  display: inline-block;
+}
+
+@media (max-width: 900px) {
+  .trackerLayout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  
+  .programsList {
+    max-height: 250px;
+  }
+
+  .trackerHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .ganttTitle {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .ganttDateBadge {
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+  }
+}

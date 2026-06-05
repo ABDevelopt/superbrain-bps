@@ -177,20 +177,10 @@ export default function GanttChart({ startDate, endDate, phases = [], activePhas
         background: 'rgba(255, 255, 255, 0.02)'
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h4 style={{ fontSize: 'var(--font-size-base)', fontWeight: 'var(--font-weight-bold)', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div className={styles.ganttHeader}>
+        <h4 className={styles.ganttTitle}>
           <span>📊 Timeline Gantt Chart</span>
-          <span 
-            style={{ 
-              fontSize: 'var(--font-size-xs)', 
-              fontWeight: 'var(--font-weight-normal)', 
-              padding: '3px 10px', 
-              background: 'var(--primary-glow)', 
-              border: '1px solid rgba(99,102,241,0.25)', 
-              borderRadius: 'var(--radius-full)', 
-              color: 'var(--primary-light)' 
-            }}
-          >
+          <span className={styles.ganttDateBadge}>
             {formatFullDate(start.toISOString().split('T')[0])} - {formatFullDate(end.toISOString().split('T')[0])}
           </span>
         </h4>
