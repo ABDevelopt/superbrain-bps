@@ -262,9 +262,8 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
     isFullday: false,
     isMultiHari: false,
     tanggalAkhir: '',
-    skipWeekend: true,
     skipHoliday: true,
-    waktuMulai: '',
+    waktuMulai: ''
     waktuSelesai: '',
     skpId: '',
     rincian: '',
@@ -1046,28 +1045,36 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         const multiData = { ...dataToSave };
         delete multiData.isMultiHari;
         delete multiData.tanggalAkhir;
-        delete multiData.skipWeekend;
         delete multiData.skipHoliday;
+
+        const DOW_NAMES = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
         let cursor = new Date(start);
         while (cursor <= end) {
           const dateStr = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
           const dow = cursor.getDay(); // 0=Sun, 6=Sat
-
-          // Skip weekend jika diaktifkan
           const isWeekend = dow === 0 || dow === 6;
-          if (form.skipWeekend && isWeekend) {
+          const isHoliday = checkHoliday && checkHoliday(dateStr);
+
+          // Skip hari libur nasional/cuti jika diaktifkan (weekend tetap masuk)
+          if (form.skipHoliday && isHoliday && !isWeekend) {
             cursor.setDate(cursor.getDate() + 1);
             continue;
           }
 
-          // Skip hari libur/cuti jika diaktifkan
-          if (form.skipHoliday && checkHoliday && checkHoliday(dateStr)) {
-            cursor.setDate(cursor.getDate() + 1);
-            continue;
+          // Tentukan keterangan hari
+          let keteranganHari = null;
+          if (isWeekend) {
+            keteranganHari = `Hari Libur (${DOW_NAMES[dow]})`;
+          } else if (isHoliday) {
+            keteranganHari = 'Libur Nasional / Cuti';
           }
 
-          const dayEntry = { ...multiData, tanggal: dateStr };
+          const dayEntry = { 
+            ...multiData, 
+            tanggal: dateStr,
+            ...(keteranganHari ? { keteranganHari } : {}),
+          };
           const eid = await onSubmit(dayEntry);
           if (eid) savedEntryIds.push(eid);
 
@@ -1157,7 +1164,6 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         isFullday: false,
         isMultiHari: false,
         tanggalAkhir: '',
-        skipWeekend: true,
         skipHoliday: true,
         waktuMulai: '',
         waktuSelesai: '',
@@ -1507,24 +1513,16 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
                 <label className={styles.multiHariCheck}>
                   <input
                     type="checkbox"
-                    checked={form.skipWeekend}
-                    onChange={e => setForm(prev => ({ ...prev, skipWeekend: e.target.checked }))}
-                  />
-                  <span>Lewati Sabtu &amp; Minggu</span>
-                </label>
-                <label className={styles.multiHariCheck}>
-                  <input
-                    type="checkbox"
                     checked={form.skipHoliday}
                     onChange={e => setForm(prev => ({ ...prev, skipHoliday: e.target.checked }))}
                   />
-                  <span>Lewati Libur Nasional/Cuti</span>
+                  <span>Lewati Libur Nasional/Cuti <em style={{fontSize:'11px',opacity:0.6}}>(Sabtu &amp; Minggu tetap masuk dengan keterangan)</em></span>
                 </label>
               </div>
 
               {/* Preview jumlah hari */}
               {form.tanggalAkhir && form.tanggalAkhir >= form.tanggal && (() => {
-                let count = 0;
+                let total = 0, weekend = 0, holiday = 0;
                 const cur = new Date(form.tanggal + 'T00:00:00');
                 const fin = new Date(form.tanggalAkhir + 'T00:00:00');
                 while (cur <= fin) {
@@ -1532,13 +1530,28 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
                   const ds = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}-${String(cur.getDate()).padStart(2, '0')}`;
                   const isWknd = dow === 0 || dow === 6;
                   const isHol = checkHoliday ? checkHoliday(ds) : false;
-                  if (!(form.skipWeekend && isWknd) && !(form.skipHoliday && isHol)) count++;
+                  // Skip hanya libur nasional non-weekend (jika diaktifkan)
+                  if (form.skipHoliday && isHol && !isWknd) {
+                    cur.setDate(cur.getDate() + 1);
+                    continue;
+                  }
+                  total++;
+                  if (isWknd) weekend++;
+                  else if (isHol) holiday++;
                   cur.setDate(cur.getDate() + 1);
                 }
                 return (
-                  <div className={styles.multiHariPreview}>
-                    <CalendarClock size={14} />
-                    <span>Akan membuat <strong>{count} entri</strong> CKP</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div className={styles.multiHariPreview}>
+                      <CalendarClock size={14} />
+                      <span>Akan membuat <strong>{total} entri</strong> CKP</span>
+                    </div>
+                    {(weekend > 0 || holiday > 0) && (
+                      <div className={styles.multiHariPreviewNote}>
+                        {weekend > 0 && <span>📅 {weekend} hari libur (Sabtu/Minggu)</span>}
+                        {holiday > 0 && <span>🏖️ {holiday} hari Libur Nasional/Cuti</span>}
+                      </div>
+                    )}
                   </div>
                 );
               })()}
@@ -2686,6 +2699,11 @@ function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDa
                   <div className={styles.timelineSkp}>
                     SKP #{entry.skpId}: {getSkpName(entry.skpId)}
                   </div>
+                  {entry.keteranganHari && (
+                    <div className={styles.keteranganHariBadge}>
+                      🏖️ {entry.keteranganHari}
+                    </div>
+                  )}
                   <div className={styles.timelineRincian}>{entry.rincian}</div>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
                     {entry.buktiDukung ? (
