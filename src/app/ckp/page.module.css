@@ -1850,7 +1850,102 @@
   box-shadow: 0 0 10px rgba(6, 182, 212, 0.15);
 }
 
-/* ===== Unified Upload Cards ===== */
+/* Orange Theme Active (Multi Hari) */
+.toggleChipActiveOrange {
+  background: rgba(251, 146, 60, 0.12) !important;
+  border-color: rgba(251, 146, 60, 0.45) !important;
+  color: #fdba74 !important;
+  box-shadow: 0 0 10px rgba(251, 146, 60, 0.18);
+}
+
+/* ===== Multi-Hari Panel ===== */
+.multiHariPanel {
+  margin-top: 12px;
+  background: rgba(251, 146, 60, 0.06);
+  border: 1px solid rgba(251, 146, 60, 0.2);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: fadeInDown 0.2s ease;
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.multiHariRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.multiHariField {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.multiHariLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fdba74;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.multiHariArrow {
+  font-size: 18px;
+  color: rgba(251, 146, 60, 0.6);
+  padding-bottom: 6px;
+  flex-shrink: 0;
+}
+
+.multiHariOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+}
+
+.multiHariCheck {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  user-select: none;
+}
+
+.multiHariCheck input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: #fb923c;
+  cursor: pointer;
+}
+
+.multiHariPreview {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: #fdba74;
+  background: rgba(251, 146, 60, 0.1);
+  border: 1px solid rgba(251, 146, 60, 0.25);
+  border-radius: 20px;
+  padding: 5px 12px;
+  width: fit-content;
+}
+
+.multiHariPreview strong {
+  color: #fb923c;
+  font-weight: 700;
+}
+
+
 .uploadCard {
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.05);

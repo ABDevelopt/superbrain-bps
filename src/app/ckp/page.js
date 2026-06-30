@@ -260,6 +260,10 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
   const [form, setForm] = useState({
     tanggal: sharedDate || getTodayStr(),
     isFullday: false,
+    isMultiHari: false,
+    tanggalAkhir: '',
+    skipWeekend: true,
+    skipHoliday: true,
     waktuMulai: '',
     waktuSelesai: '',
     skpId: '',
@@ -1035,7 +1039,41 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
 
       let savedEntryIds = [];
 
-      if (form.isFullday) {
+      // ── MULTI-HARI: buat satu entry per hari dalam rentang ────────────────
+      if (form.isMultiHari && form.tanggalAkhir && form.tanggalAkhir >= form.tanggal) {
+        const start = new Date(form.tanggal + 'T00:00:00');
+        const end = new Date(form.tanggalAkhir + 'T00:00:00');
+        const multiData = { ...dataToSave };
+        delete multiData.isMultiHari;
+        delete multiData.tanggalAkhir;
+        delete multiData.skipWeekend;
+        delete multiData.skipHoliday;
+
+        let cursor = new Date(start);
+        while (cursor <= end) {
+          const dateStr = cursor.toISOString().split('T')[0];
+          const dow = cursor.getDay(); // 0=Sun, 6=Sat
+
+          // Skip weekend jika diaktifkan
+          const isWeekend = dow === 0 || dow === 6;
+          if (form.skipWeekend && isWeekend) {
+            cursor.setDate(cursor.getDate() + 1);
+            continue;
+          }
+
+          // Skip hari libur/cuti jika diaktifkan
+          if (form.skipHoliday && checkHoliday && checkHoliday(dateStr)) {
+            cursor.setDate(cursor.getDate() + 1);
+            continue;
+          }
+
+          const dayEntry = { ...multiData, tanggal: dateStr };
+          const eid = await onSubmit(dayEntry);
+          if (eid) savedEntryIds.push(eid);
+
+          cursor.setDate(cursor.getDate() + 1);
+        }
+      } else if (form.isFullday) {
         const dow = new Date(form.tanggal + 'T00:00:00').getDay();
         const START_MIN = 7 * 60 + 30; // 07:30
         const END_MIN = dow === 5 ? 16 * 60 + 30 : 16 * 60;
@@ -1093,6 +1131,10 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         }
       } else {
         delete dataToSave.isFullday;
+        delete dataToSave.isMultiHari;
+        delete dataToSave.tanggalAkhir;
+        delete dataToSave.skipWeekend;
+        delete dataToSave.skipHoliday;
         if (initialData && initialData.id && onUpdate) {
           const eid = await onUpdate(initialData.id, dataToSave);
           if (eid) savedEntryIds.push(eid);
@@ -1113,6 +1155,10 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
       setForm({
         tanggal: sharedDate || getTodayStr(),
         isFullday: false,
+        isMultiHari: false,
+        tanggalAkhir: '',
+        skipWeekend: true,
+        skipHoliday: true,
         waktuMulai: '',
         waktuSelesai: '',
         skpId: '',
@@ -1363,10 +1409,25 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
             <button
               type="button"
               className={`${styles.toggleChip} ${form.isFullday ? styles.toggleChipActivePurple : ''}`}
-              onClick={() => setForm(prev => ({ ...prev, isFullday: !prev.isFullday }))}
+              onClick={() => setForm(prev => ({ ...prev, isFullday: !prev.isFullday, isMultiHari: false }))}
             >
               <Clock size={14} />
               <span>Isi Sisa Waktu (Fullday)</span>
+            </button>
+
+            {/* Multi Hari Toggle */}
+            <button
+              type="button"
+              className={`${styles.toggleChip} ${form.isMultiHari ? styles.toggleChipActiveOrange : ''}`}
+              onClick={() => setForm(prev => ({
+                ...prev,
+                isMultiHari: !prev.isMultiHari,
+                isFullday: false,
+                tanggalAkhir: !prev.isMultiHari ? prev.tanggal : '',
+              }))}
+            >
+              <CalendarClock size={14} />
+              <span>Multi Hari</span>
             </button>
 
             {/* Holiday Toggle */}
@@ -1413,6 +1474,76 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
               </button>
             )}
           </div>
+
+          {/* ── Panel rentang multi-hari ────────────────────────────────── */}
+          {form.isMultiHari && (
+            <div className={styles.multiHariPanel}>
+              <div className={styles.multiHariRow}>
+                <div className={styles.multiHariField}>
+                  <label className={styles.multiHariLabel}>Tanggal Mulai</label>
+                  <input
+                    type="date"
+                    className={styles.input}
+                    value={form.tanggal}
+                    onChange={handleChange('tanggal')}
+                    required
+                  />
+                </div>
+                <div className={styles.multiHariArrow}>→</div>
+                <div className={styles.multiHariField}>
+                  <label className={styles.multiHariLabel}>Tanggal Akhir</label>
+                  <input
+                    type="date"
+                    className={styles.input}
+                    value={form.tanggalAkhir}
+                    min={form.tanggal}
+                    onChange={handleChange('tanggalAkhir')}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className={styles.multiHariOptions}>
+                <label className={styles.multiHariCheck}>
+                  <input
+                    type="checkbox"
+                    checked={form.skipWeekend}
+                    onChange={e => setForm(prev => ({ ...prev, skipWeekend: e.target.checked }))}
+                  />
+                  <span>Lewati Sabtu &amp; Minggu</span>
+                </label>
+                <label className={styles.multiHariCheck}>
+                  <input
+                    type="checkbox"
+                    checked={form.skipHoliday}
+                    onChange={e => setForm(prev => ({ ...prev, skipHoliday: e.target.checked }))}
+                  />
+                  <span>Lewati Libur Nasional/Cuti</span>
+                </label>
+              </div>
+
+              {/* Preview jumlah hari */}
+              {form.tanggalAkhir && form.tanggalAkhir >= form.tanggal && (() => {
+                let count = 0;
+                const cur = new Date(form.tanggal + 'T00:00:00');
+                const fin = new Date(form.tanggalAkhir + 'T00:00:00');
+                while (cur <= fin) {
+                  const dow = cur.getDay();
+                  const ds = cur.toISOString().split('T')[0];
+                  const isWknd = dow === 0 || dow === 6;
+                  const isHol = checkHoliday ? checkHoliday(ds) : false;
+                  if (!(form.skipWeekend && isWknd) && !(form.skipHoliday && isHol)) count++;
+                  cur.setDate(cur.getDate() + 1);
+                }
+                return (
+                  <div className={styles.multiHariPreview}>
+                    <CalendarClock size={14} />
+                    <span>Akan membuat <strong>{count} entri</strong> CKP</span>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
         </div>
       </div>
 
