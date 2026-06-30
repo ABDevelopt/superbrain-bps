@@ -1051,7 +1051,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
 
         let cursor = new Date(start);
         while (cursor <= end) {
-          const dateStr = cursor.toISOString().split('T')[0];
+          const dateStr = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
           const dow = cursor.getDay(); // 0=Sun, 6=Sat
 
           // Skip weekend jika diaktifkan
@@ -1529,7 +1529,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
                 const fin = new Date(form.tanggalAkhir + 'T00:00:00');
                 while (cur <= fin) {
                   const dow = cur.getDay();
-                  const ds = cur.toISOString().split('T')[0];
+                  const ds = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}-${String(cur.getDate()).padStart(2, '0')}`;
                   const isWknd = dow === 0 || dow === 6;
                   const isHol = checkHoliday ? checkHoliday(ds) : false;
                   if (!(form.skipWeekend && isWknd) && !(form.skipHoliday && isHol)) count++;
