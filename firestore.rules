@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: pastikan user sudah login
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper: data yang AKAN ditulis harus milik user yang login
+    function isOwner() {
+      return request.resource.data.userId == request.auth.uid;
+    }
+
+    // Helper: dokumen yang ADA milik user yang login
+    // ATAU dokumen lama yang belum punya field userId (untuk migrasi legacy data)
+    function isDocOwner() {
+      return !('userId' in resource.data)
+          || resource.data.userId == null
+          || resource.data.userId == ''
+          || resource.data.userId == request.auth.uid;
+    }
+
+    // ─── Koleksi utama (tasks, schedule, ckp, dinas_lapangan, holidays) ─────
+    match /{collection}/{docId} {
+      allow read:   if isAuthenticated() && isDocOwner();
+      allow create: if isAuthenticated() && isOwner();
+      allow update: if isAuthenticated() && isDocOwner();
+      allow delete: if isAuthenticated() && isDocOwner();
+    }
+
+    // ─── Koleksi backups (cloud snapshot) ────────────────────────────────────
+    // Dokumen ID = uid user, jadi hanya user itu yang bisa akses
+    match /backups/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ─── Koleksi skp (per-user SKP items) ───────────────────────────────────
+    match /skp/{docId} {
+      allow read:   if isAuthenticated() && isDocOwner();
+      allow create: if isAuthenticated() && isOwner();
+      allow update: if isAuthenticated() && isDocOwner();
+      allow delete: if isAuthenticated() && isDocOwner();
+    }
+
+    // ─── Koleksi training_programs ──────────────────────────────────────────
+    match /training_programs/{docId} {
+      allow read:   if isAuthenticated() && isDocOwner();
+      allow create: if isAuthenticated() && isOwner();
+      allow update: if isAuthenticated() && isDocOwner();
+      allow delete: if isAuthenticated() && isDocOwner();
+    }
+
+    // ─── Short links (bisa dibaca publik untuk redirect) ────────────────────
+    match /short_links/{docId} {
+      allow read: if true; // publik untuk redirect
+      allow create: if isAuthenticated() && isOwner();
+      allow update, delete: if isAuthenticated() && isDocOwner();
+    }
+  }
+}

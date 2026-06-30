@@ -11,13 +11,15 @@ const dbPromise = (typeof window !== 'undefined') ? openDB(DB_NAME, 1, {
   },
 }) : null;
 
-export async function savePendingUpload(id, file, customFileName, type = 'ckp') {
+export async function savePendingUpload(id, file, customFileName, type = 'ckp', files = null, presensiFile = null) {
   if (!dbPromise) return;
   const db = await dbPromise;
   await db.put(STORE_NAME, {
     id, // this will be the entry id
     file, // the Blob/File object
     customFileName,
+    files, // array of { file, customFileName } for multifile
+    presensiFile, // { file, customFileName } for attendance proof
     type,
     timestamp: Date.now()
   });

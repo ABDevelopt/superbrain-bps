@@ -162,7 +162,7 @@ function Toast({ message, visible, onClose }) {
 }
 
 // TAB 1: Input Kegiatan
-function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit, entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday, onPendingChange, skpData }) {
+function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit, entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday, checkDl, onToggleDl, onPendingChange, skpData }) {
   const { accessToken, user } = useAuth();
   const { showAlert } = useAlert();
   const [mounted, setMounted] = useState(false);
@@ -182,16 +182,69 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
   }, []);useEffect(() => setMounted(true), []);
   const fileInputRef = useRef(null);
   const cameraRef = useRef(null);
-  const [file, setFile] = useState(null);
-  const [buktiType, setBuktiType] = useState('file');
+  const presensiFileInputRef = useRef(null);
+
+  const [files, setFiles] = useState([]); // multifile bukti dukung
+  const [currentBuktiDukungDriveLink, setCurrentBuktiDukungDriveLink] = useState('');
   const [buktiLink, setBuktiLink] = useState('');
+  const [currentBuktiPresensiDriveLink, setCurrentBuktiPresensiDriveLink] = useState('');
+  const [presensiFile, setPresensiFile] = useState(null);
+  const [presensiLink, setPresensiLink] = useState('');
+  const [presensiPreviewImage, setPresensiPreviewImage] = useState(null);
+
   const [showShortenerModal, setShowShortenerModal] = useState(false);
   const [shortenerSlug, setShortenerSlug] = useState('');
   const [shortenerError, setShortenerError] = useState('');
   const [shortenerLoading, setShortenerLoading] = useState(false);
+  const [autoShorten, setAutoShorten] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isDraggingPresensi, setIsDraggingPresensi] = useState(false);
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const droppedFiles = Array.from(e.dataTransfer.files);
+      setFiles((prev) => [...prev, ...droppedFiles]);
+    }
+  };
+
+  const handleDragOverPresensi = (e) => {
+    e.preventDefault();
+    setIsDraggingPresensi(true);
+  };
+
+  const handleDragLeavePresensi = (e) => {
+    e.preventDefault();
+    setIsDraggingPresensi(false);
+  };
+
+  const handleDropPresensi = (e) => {
+    e.preventDefault();
+    setIsDraggingPresensi(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const fileSelected = e.dataTransfer.files[0];
+      setPresensiFile(fileSelected);
+      if (fileSelected.type.startsWith('image/')) {
+        setPresensiPreviewImage(URL.createObjectURL(fileSelected));
+      } else {
+        setPresensiPreviewImage(null);
+      }
+    }
+  };
+
   const [showCamera, setShowCamera] = useState(false);
   const [cameraStream, setCameraStream] = useState(null);
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -234,19 +287,35 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
       });
       setSkpSearch(initialData.skpId ? (skpData.find(s => s.id === initialData.skpId)?.nama || '') : '');
       setPreviewImage(null);
-      setFile(null);
+      setFiles([]);
       if (initialData.buktiDukung) {
-        if (initialData.buktiDukung.startsWith('http') && !initialData.buktiDukung.includes('drive.google.com')) {
-          setBuktiType('link');
-          setBuktiLink(initialData.buktiDukung);
-        } else {
-          setBuktiType('file');
+        if (initialData.buktiDukung.includes('drive.google.com')) {
+          setCurrentBuktiDukungDriveLink(initialData.buktiDukung);
           setBuktiLink('');
+        } else {
+          setCurrentBuktiDukungDriveLink('');
+          setBuktiLink(initialData.buktiDukung);
         }
       } else {
-        setBuktiType('file');
+        setCurrentBuktiDukungDriveLink('');
         setBuktiLink('');
       }
+
+      setPresensiFile(null);
+      setPresensiPreviewImage(null);
+      if (initialData.buktiPresensi) {
+        if (initialData.buktiPresensi.includes('drive.google.com')) {
+          setCurrentBuktiPresensiDriveLink(initialData.buktiPresensi);
+          setPresensiLink('');
+        } else {
+          setCurrentBuktiPresensiDriveLink('');
+          setPresensiLink(initialData.buktiPresensi);
+        }
+      } else {
+        setCurrentBuktiPresensiDriveLink('');
+        setPresensiLink('');
+      }
+
     } else {
       setForm(prev => ({ ...prev, tanggal: sharedDate }));
     }
@@ -452,7 +521,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         const reason = responseData.data.reason;
 
         setForm(prev => ({ ...prev, skpId: recommendedId }));
-        showAlert(`✨ Rekomendasi SKP #${recommendedId} terpilih dengan tingkat kepercayaan ${Math.round(confidence * 100)}%!\n\nAlasan: ${reason}`);
+        showAlert(`Rekomendasi SKP #${recommendedId} terpilih dengan tingkat kepercayaan ${Math.round(confidence * 100)}%!\n\nAlasan: ${reason}`);
       } else {
         showAlert('AI tidak menemukan butir SKP yang cocok untuk rincian kegiatan ini.');
       }
@@ -515,7 +584,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
 
         canvas.toBlob((blob) => {
           const newFile = new File([blob], `Geotag_${Date.now()}.jpg`, { type: 'image/jpeg' });
-          setFile(newFile);
+          setFiles(prev => [...prev, newFile]);
           setPreviewImage(URL.createObjectURL(newFile));
         }, 'image/jpeg', 0.8);
       };
@@ -819,37 +888,130 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
     
     setIsUploading(true);
     let finalBuktiDukung = null;
+    let finalBuktiPresensi = null;
     let needsOfflineSave = false;
-    let offlineFile = null;
-    let offlineFileName = null;
+    let offlineFiles = null;
+    let offlinePresensiFile = null;
     let offlineErrorMsg = null;
 
+    const cleanKegiatan = form.rincian.substring(0, 30).replace(/[^a-zA-Z0-9 -]/g, '').trim();
+
     try {
-      if (buktiType === 'link' && buktiLink) {
-        finalBuktiDukung = buktiLink;
-      } else if (buktiType === 'file' && file) {
-        const cleanKegiatan = form.rincian.substring(0, 30).replace(/[^a-zA-Z0-9 -]/g, '').trim();
-        const fileName = `${form.tanggal} - ${cleanKegiatan} - ${file.name}`;
-        
+      // 1. Process Bukti Dukung
+      if (files.length > 0) {
         if (accessToken) {
           try {
             const parentFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
-            const folderId = await getOrCreateFolder(accessToken, 'Bukti Dukung CKP', parentFolderId);
-            finalBuktiDukung = await uploadFileToDrive(file, accessToken, folderId, fileName);
+            const mainFolderId = await getOrCreateFolder(accessToken, 'Bukti Dukung CKP', parentFolderId);
+            
+            if (files.length === 1) {
+              const fileName = `${form.tanggal} - ${cleanKegiatan} - ${files[0].name}`;
+              finalBuktiDukung = await uploadFileToDrive(files[0], accessToken, mainFolderId, fileName);
+            } else {
+              // Create subfolder
+              const subfolderName = `${form.tanggal} - ${cleanKegiatan}`;
+              const subfolderId = await getOrCreateFolder(accessToken, subfolderName, mainFolderId);
+              await makeFileOrFolderPublic(subfolderId, accessToken);
+              
+              // Upload all files into subfolder
+              for (let i = 0; i < files.length; i++) {
+                const fileName = `${form.tanggal} - ${cleanKegiatan} - ${i + 1}_${files[i].name}`;
+                await uploadFileToDrive(files[i], accessToken, subfolderId, fileName);
+              }
+              finalBuktiDukung = `https://drive.google.com/drive/folders/${subfolderId}`;
+            }
           } catch (err) {
-            console.error("Upload error:", err);
+            console.error("Upload bukti dukung error:", err);
             needsOfflineSave = true;
-            offlineFile = file;
-            offlineFileName = fileName;
+            offlineFiles = files.map((f, idx) => ({
+              file: f,
+              customFileName: `${form.tanggal} - ${cleanKegiatan} - ${files.length > 1 ? (idx + 1) + '_' : ''}${f.name}`
+            }));
             offlineErrorMsg = err.message && err.message.includes('401') 
               ? 'Sesi Google Drive kedaluwarsa. File disimpan sementara secara lokal.'
-              : 'Gagal mengunggah ke Google Drive. File disimpan secara lokal.';
+              : 'Gagal mengunggah bukti dukung ke Google Drive. File disimpan secara lokal.';
           }
         } else {
           needsOfflineSave = true;
-          offlineFile = file;
-          offlineFileName = fileName;
+          offlineFiles = files.map((f, idx) => ({
+            file: f,
+            customFileName: `${form.tanggal} - ${cleanKegiatan} - ${files.length > 1 ? (idx + 1) + '_' : ''}${f.name}`
+          }));
           offlineErrorMsg = 'Anda belum terhubung ke Google Drive. File disimpan sementara secara lokal.';
+        }
+      } else if (buktiLink) {
+        finalBuktiDukung = buktiLink;
+      } else if (currentBuktiDukungDriveLink) {
+        finalBuktiDukung = currentBuktiDukungDriveLink;
+      }
+
+      // 2. Process Bukti Presensi
+      if (presensiFile) {
+        if (accessToken) {
+          try {
+            const parentFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
+            const presensiFolderId = await getOrCreateFolder(accessToken, 'Bukti Presensi CKP', parentFolderId);
+            const fileName = `Presensi_${form.tanggal} - ${cleanKegiatan} - ${presensiFile.name}`;
+            
+            finalBuktiPresensi = await uploadFileToDrive(presensiFile, accessToken, presensiFolderId, fileName);
+          } catch (err) {
+            console.error("Upload presensi error:", err);
+            needsOfflineSave = true;
+            offlinePresensiFile = {
+              file: presensiFile,
+              customFileName: `Presensi_${form.tanggal} - ${cleanKegiatan} - ${presensiFile.name}`
+            };
+            if (!offlineErrorMsg) {
+              offlineErrorMsg = 'Gagal mengunggah bukti presensi ke Google Drive. File disimpan secara lokal.';
+            }
+          }
+        } else {
+          needsOfflineSave = true;
+          offlinePresensiFile = {
+            file: presensiFile,
+            customFileName: `Presensi_${form.tanggal} - ${cleanKegiatan} - ${presensiFile.name}`
+          };
+          if (!offlineErrorMsg) {
+            offlineErrorMsg = 'Anda belum terhubung ke Google Drive. File disimpan sementara secara lokal.';
+          }
+        }
+      } else if (presensiLink) {
+        finalBuktiPresensi = presensiLink;
+      } else if (currentBuktiPresensiDriveLink) {
+        finalBuktiPresensi = currentBuktiPresensiDriveLink;
+      }
+
+      // 3. Automatic URL Shortener logic
+      if (autoShorten && finalBuktiDukung && !finalBuktiDukung.includes('/s/')) {
+        try {
+          let finalSlug = '';
+          let unique = false;
+          let attempts = 0;
+          while (!unique && attempts < 10) {
+            const rand = Math.random().toString(36).substring(2, 8);
+            const q = query(collection(db, 'short_links'), where('slug', '==', rand));
+            const snap = await getDocs(q);
+            if (snap.empty) {
+              finalSlug = rand;
+              unique = true;
+            }
+            attempts++;
+          }
+          if (unique) {
+            await addDoc(collection(db, 'short_links'), {
+              slug: finalSlug,
+              longUrl: finalBuktiDukung,
+              clicks: 0,
+              userId: user?.uid || 'anonymous',
+              createdAt: serverTimestamp()
+            });
+            const baseShortUrl = typeof window !== 'undefined' 
+              ? `${window.location.origin}/s/${finalSlug}`
+              : `/s/${finalSlug}`;
+            finalBuktiDukung = baseShortUrl;
+          }
+        } catch (shortErr) {
+          console.error("Auto-shortening failed during submit:", shortErr);
         }
       }
 
@@ -859,6 +1021,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         kuantitas: Number(form.kuantitas) || 1,
         durasi: duration,
         buktiDukung: finalBuktiDukung || (initialData ? initialData.buktiDukung : null) || null,
+        buktiPresensi: finalBuktiPresensi || (initialData ? initialData.buktiPresensi : null) || null,
         fromScheduleEventId: form._fromScheduleEventId || (initialData ? initialData.fromScheduleEventId : null) || null,
         sumber: form._sumber || (initialData ? initialData.sumber : 'manual') || 'manual',
         sourceScheduleId: form._sourceScheduleId || (initialData ? initialData.sourceScheduleId : null) || null,
@@ -941,7 +1104,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
 
       if (needsOfflineSave && savedEntryIds.length > 0) {
         for (const eid of savedEntryIds) {
-          await savePendingUpload(eid, offlineFile, offlineFileName);
+          await savePendingUpload(eid, null, null, 'ckp', offlineFiles, offlinePresensiFile);
         }
         showAlert(offlineErrorMsg);
         if (onPendingChange) onPendingChange();
@@ -959,11 +1122,17 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         timKerja: TIM_KERJA_OPTIONS[0],
       });
       setSkpSearch('');
-      setFile(null);
+      setFiles([]);
       setPreviewImage(null);
+      setCurrentBuktiDukungDriveLink('');
       setBuktiLink('');
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      setCurrentBuktiPresensiDriveLink('');
+      setPresensiFile(null);
+      setPresensiLink('');
+      setPresensiPreviewImage(null);
+
       if (cameraRef.current) cameraRef.current.value = '';
+      if (presensiFileInputRef.current) presensiFileInputRef.current.value = '';
       if (initialData && onCancelEdit) onCancelEdit();
     } catch (err) {
       showAlert('Terjadi kesalahan: ' + err.message);
@@ -1147,10 +1316,10 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         highlightEnd={previewTimes.end}
       />
 
-      <div className={styles.formRow}>
-        <div className={styles.formGroup} style={{ flex: 'none', width: 'auto' }}>
+      <div className={styles.formRow} style={{ flexDirection: 'column', gap: '12px', alignItems: 'stretch' }}>
+        <div className={styles.formGroup} style={{ width: '100%' }}>
           <label className={styles.label}>Tanggal Kegiatan</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
             <button 
               type="button" 
               className={styles.dateNavBtn}
@@ -1169,7 +1338,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
               value={form.tanggal}
               onChange={handleChange('tanggal')}
               required
-              style={{ width: 'auto' }}
+              style={{ flex: 1 }}
             />
             <button 
               type="button" 
@@ -1183,42 +1352,67 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
             >
               <ChevronRight size={16} />
             </button>
+          </div>
+        </div>
+
+        {/* Status Chips */}
+        <div className={styles.formGroup} style={{ width: '100%' }}>
+          <label className={styles.label}>Status Hari / Mode Pengisian</label>
+          <div className={styles.toggleChipsContainer}>
+            {/* Fullday Toggle */}
+            <button
+              type="button"
+              className={`${styles.toggleChip} ${form.isFullday ? styles.toggleChipActivePurple : ''}`}
+              onClick={() => setForm(prev => ({ ...prev, isFullday: !prev.isFullday }))}
+            >
+              <Clock size={14} />
+              <span>Isi Sisa Waktu (Fullday)</span>
+            </button>
+
+            {/* Holiday Toggle */}
             {onToggleHoliday && checkHoliday && (
-              <div 
-                style={{ display: 'flex', alignItems: 'center', marginLeft: '16px', cursor: 'pointer' }}
+              <button
+                type="button"
+                className={`${styles.toggleChip} ${checkHoliday(form.tanggal) ? styles.toggleChipActiveRed : ''}`}
                 onClick={() => {
                   const dow = new Date(form.tanggal + 'T00:00:00').getDay();
                   if (dow !== 0 && dow !== 6) onToggleHoliday(form.tanggal);
                 }}
+                disabled={(() => {
+                  const dow = new Date(form.tanggal + 'T00:00:00').getDay();
+                  return dow === 0 || dow === 6;
+                })()}
               >
-                <input 
-                  type="checkbox" 
-                  checked={checkHoliday(form.tanggal)} 
-                  readOnly 
-                  style={{ marginRight: '8px', cursor: 'pointer' }} 
-                />
-                <label className={styles.label} style={{ cursor: 'pointer', margin: 0 }}>
+                <Calendar size={14} />
+                <span>
                   {(() => {
                     const dow = new Date(form.tanggal + 'T00:00:00').getDay();
                     if (dow === 0 || dow === 6) return 'Akhir Pekan (Libur)';
-                    return 'Tandai Libur Nasional / Cuti';
+                    return 'Libur Nasional / Cuti';
                   })()}
-                </label>
-              </div>
+                </span>
+              </button>
+            )}
+
+            {/* DL Toggle */}
+            {onToggleDl && checkDl && (
+              <button
+                type="button"
+                className={`${styles.toggleChip} ${checkDl(form.tanggal) ? styles.toggleChipActiveCyan : ''}`}
+                onClick={() => {
+                  const dow = new Date(form.tanggal + 'T00:00:00').getDay();
+                  if (dow !== 0 && dow !== 6) onToggleDl(form.tanggal);
+                }}
+                disabled={(() => {
+                  const dow = new Date(form.tanggal + 'T00:00:00').getDay();
+                  return dow === 0 || dow === 6;
+                })()}
+              >
+                <MapPin size={14} />
+                <span>Dinas Lapangan/Perjalanan Dinas</span>
+              </button>
             )}
           </div>
-        </div>
-
-        <div className={styles.formGroup} style={{ flex: 'none', width: 'auto' }}>
-          <label className={styles.label}>&nbsp;</label>
-          <label className={styles.checkboxLabel} style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-            <input 
-              type="checkbox"
-              checked={form.isFullday || false}
-              onChange={(e) => setForm(prev => ({...prev, isFullday: e.target.checked}))}
-            />
-            <span>Isi sisa waktu hari ini (Fullday)</span>
-          </label>
         </div>
       </div>
 
@@ -1297,13 +1491,22 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
               setShowSkpDropdown(true);
               setSkpSearch('');
             }}
+            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}
           >
-            {form.skpId === 'none' 
-              ? 'Tidak terkait SKP' 
-              : form.skpId 
-                ? `${form.skpId}. ${skpData.find(s => s.id == form.skpId)?.nama}` 
-                : '— Pilih Butir SKP —'}
-            <ChevronDown size={16} />
+            <span style={{ 
+              whiteSpace: 'nowrap', 
+              overflow: 'hidden', 
+              textOverflow: 'ellipsis',
+              flex: 1,
+              textAlign: 'left'
+            }}>
+              {form.skpId === 'none' 
+                ? 'Tidak terkait SKP' 
+                : form.skpId 
+                  ? `${form.skpId}. ${skpData.find(s => s.id == form.skpId)?.nama}` 
+                  : '— Pilih Butir SKP —'}
+            </span>
+            <ChevronDown size={16} style={{ flexShrink: 0 }} />
           </div>
           
           {showSkpDropdown && (
@@ -1368,107 +1571,166 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
       </div>
 
       <div className={styles.formGroup}>
-        <label className={styles.label}>Bukti Dukung (Opsional)</label>
+        <label className={styles.label}>Bukti Dukung (Opsional - Bisa Banyak File)</label>
         
-        {/* Toggle Tipe Bukti Dukung */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-          <button
-            type="button"
-            onClick={() => setBuktiType('file')}
-            style={{
-              flex: 1,
-              padding: '10px 16px',
-              borderRadius: '8px',
-              background: buktiType === 'file' ? 'rgba(99, 102, 241, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-              border: buktiType === 'file' ? '1px solid #6366f1' : '1px solid rgba(255, 255, 255, 0.08)',
-              color: buktiType === 'file' ? '#f1f5f9' : '#94a3b8',
-              cursor: 'pointer',
-              fontSize: '13px',
-              fontWeight: '600',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              transition: 'all 0.2s ease',
-              fontFamily: 'Inter, sans-serif'
+        <div className={styles.uploadCard}>
+          {/* Dropzone Area */}
+          <div 
+            className={`${styles.dropZone} ${isDragging ? styles.dropZoneActive : ''}`}
+            onDragOver={handleDragOver}
+            onDragEnter={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={(e) => {
+              // Only click if they didn't click on an action button
+              if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+                fileInputRef.current?.click();
+              }
             }}
           >
-            <Paperclip size={14} />
-            Unggah File / Foto
-          </button>
-          <button
-            type="button"
-            onClick={() => setBuktiType('link')}
-            style={{
-              flex: 1,
-              padding: '10px 16px',
-              borderRadius: '8px',
-              background: buktiType === 'link' ? 'rgba(99, 102, 241, 0.15)' : 'rgba(255, 255, 255, 0.03)',
-              border: buktiType === 'link' ? '1px solid #6366f1' : '1px solid rgba(255, 255, 255, 0.08)',
-              color: buktiType === 'link' ? '#f1f5f9' : '#94a3b8',
-              cursor: 'pointer',
-              fontSize: '13px',
-              fontWeight: '600',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '6px',
-              transition: 'all 0.2s ease',
-              fontFamily: 'Inter, sans-serif'
-            }}
-          >
-            <LinkIcon size={14} />
-            Teks Link URL
-          </button>
-        </div>
-
-        {/* Input Berdasarkan Tipe Bukti Dukung */}
-        {buktiType === 'file' ? (
-          <>
-            <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
-              <div className={styles.fileInputWrapper} style={{flex: 1}}>
-                <input
-                  type="file"
-                  className={styles.fileInput}
-                  ref={fileInputRef}
-                  onChange={(e) => {
-                    setFile(e.target.files[0]);
-                    setPreviewImage(null);
-                  }}
-                  id="buktiDukung"
-                />
-                <label htmlFor="buktiDukung" className={styles.fileLabel} style={{height: '100%'}}>
-                  <Paperclip size={18} /> 
-                  {file && !previewImage ? file.name : 'Pilih File PDF/Doc...'}
-                </label>
-              </div>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={(e) => {
+                if (e.target.files) {
+                  const selected = Array.from(e.target.files);
+                  setFiles(prev => [...prev, ...selected]);
+                }
+              }}
+              style={{ display: 'none' }}
+              id="buktiDukungInput"
+              multiple
+            />
+            
+            <div className={styles.dropZoneContent}>
+              <Paperclip size={24} className={styles.uploadIcon} />
+              <p className={styles.uploadText}>
+                {isDragging ? 'Lepas file di sini...' : 'Tarik & lepas file di sini atau gunakan tombol:'}
+              </p>
               
-              <div className={styles.fileInputWrapper} style={{flex: 1}}>
-                <button type="button" onClick={openCamera} className={styles.fileLabel} style={{background: 'rgba(56, 189, 248, 0.08)', color: '#38bdf8', border: '1px dashed rgba(56, 189, 248, 0.3)', height: '100%', width: '100%', cursor: 'pointer'}}>
-                  <Camera size={18} /> 
-                  Ambil Foto Geotag
+              <div className={styles.uploadActionsGroup}>
+                <button
+                  type="button"
+                  className={styles.uploadActionButton}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    fileInputRef.current?.click();
+                  }}
+                >
+                  <Paperclip size={12} /> Pilih File
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.uploadActionButton} ${styles.cameraActionButton}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openCamera();
+                  }}
+                >
+                  <Camera size={12} /> Foto Geotag
                 </button>
               </div>
             </div>
-            
-            {previewImage && (
-              <div className={styles.cameraPreviewContainer}>
-                <img src={previewImage} alt="Preview Geotag" className={styles.cameraPreviewImg} />
-                <button
-                  type="button"
-                  className={styles.cameraPreviewRetake}
-                  onClick={() => { setPreviewImage(null); setFile(null); }}
-                >
-                  <Camera size={12} /> Ambil Ulang
-                </button>
-                <div className={styles.cameraPreviewLabel}>
-                  <Check size={14} /> Foto Geotag siap diunggah
+          </div>
+
+          {/* Drive Link Badge (for Edit Mode) */}
+          {currentBuktiDukungDriveLink && (
+            <div className={styles.currentDriveLinkBadge} style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'rgba(52, 211, 153, 0.1)',
+              border: '1px solid rgba(52, 211, 153, 0.2)',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              color: '#34d399',
+              fontSize: '13px'
+            }}>
+              <a 
+                href={currentBuktiDukungDriveLink} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                style={{ color: '#34d399', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}
+              >
+                <FolderOpen size={14} style={{ flexShrink: 0 }} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  Berkas terunggah di Drive
+                </span>
+              </a>
+              <button
+                type="button"
+                onClick={() => setCurrentBuktiDukungDriveLink('')}
+                style={{ background: 'transparent', border: 'none', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px' }}
+                title="Hapus berkas terunggah ini"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
+          {/* Selected Files List */}
+          {files.length > 0 && (
+            <div className={styles.selectedFilesList} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {files.map((f, idx) => (
+                <div key={idx} className={styles.selectedFileItem} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.05)',
+                  borderRadius: '6px',
+                  padding: '6px 10px',
+                  fontSize: '12px'
+                }}>
+                  <span className={styles.selectedFileName} title={f.name} style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                    <Paperclip size={12} style={{ color: '#818cf8', flexShrink: 0 }} />
+                    <span className={styles.fileNameText} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                    <span className={styles.fileSizeText} style={{ color: '#64748b', fontSize: '10px', marginLeft: '4px' }}>({(f.size / (1024 * 1024)).toFixed(2)} MB)</span>
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.removeFileBtn}
+                    onClick={() => {
+                      const fileToRemove = files[idx];
+                      if (fileToRemove.name.startsWith('Geotag_')) {
+                        setPreviewImage(null);
+                      }
+                      setFiles(prev => prev.filter((_, i) => i !== idx));
+                    }}
+                    style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                    title="Hapus file ini"
+                  >
+                    <X size={12} />
+                  </button>
                 </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Geotag Photo Preview */}
+          {previewImage && (
+            <div className={styles.cameraPreviewContainer} style={{ position: 'relative', marginTop: '4px' }}>
+              <img src={previewImage} alt="Preview Geotag" className={styles.cameraPreviewImg} style={{ width: '100%', borderRadius: '8px', maxHeight: '180px', objectFit: 'cover' }} />
+              <button
+                type="button"
+                className={styles.cameraPreviewRetake}
+                onClick={() => {
+                  setPreviewImage(null);
+                  setFiles(prev => prev.filter(f => !f.name.startsWith('Geotag_')));
+                }}
+                style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0, 0, 0, 0.6)', color: '#fff', border: 'none', borderRadius: '4px', padding: '4px 8px', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                <X size={12} /> Tutup Preview
+              </button>
+              <div className={styles.cameraPreviewLabel} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#34d399', marginTop: '6px' }}>
+                <Check size={12} /> Foto Geotag siap diunggah
               </div>
-            )}
-          </>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            </div>
+          )}
+
+          {/* URL Input (Alternative) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '12px' }}>
+            <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '500' }}>Tautan URL (Alternatif)</span>
             <div style={{ display: 'flex', gap: '8px' }}>
               <input
                 type="url"
@@ -1477,12 +1739,12 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
                 onChange={(e) => setBuktiLink(e.target.value)}
                 placeholder="Masukkan URL bukti dukung (misal: https://docs.google.com/...)"
                 style={{ 
-                  background: 'rgba(255, 255, 255, 0.05)', 
-                  border: '1px solid rgba(255, 255, 255, 0.1)', 
+                  background: 'rgba(255, 255, 255, 0.04)', 
+                  border: '1px solid rgba(255, 255, 255, 0.08)', 
                   borderRadius: '8px', 
-                  padding: '12px 14px', 
+                  padding: '10px 12px', 
                   color: '#fff',
-                  fontSize: '14px',
+                  fontSize: '13px',
                   fontFamily: 'Inter, sans-serif',
                   flex: 1
                 }}
@@ -1492,19 +1754,42 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
                   type="button"
                   onClick={() => setShowShortenerModal(true)}
                   className="btn btn-primary"
-                  style={{ padding: '0 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '4px', height: '46px', whiteSpace: 'nowrap' }}
+                  style={{ padding: '0 12px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', height: '40px', whiteSpace: 'nowrap' }}
                 >
-                  <Sparkles size={14} /> Ringkas Link
+                  <Sparkles size={12} /> Ringkas Link
                 </button>
               )}
             </div>
+            
             {buktiLink && buktiLink.includes('/s/') && (
-              <div style={{ fontSize: '12px', color: '#34d399', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Check size={14} /> Tautan bukti dukung diringkas: <strong>{buktiLink}</strong>
+              <div style={{ fontSize: '11px', color: '#34d399', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Check size={12} /> Tautan diringkas: <strong>{buktiLink}</strong>
               </div>
             )}
+
+            {/* URL Shortener Toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+              <label style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '6px', 
+                cursor: 'pointer',
+                fontSize: '12px', 
+                color: '#cbd5e1',
+                userSelect: 'none'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={autoShorten}
+                  onChange={(e) => setAutoShorten(e.target.checked)}
+                  style={{ accentColor: '#6366f1', cursor: 'pointer' }}
+                />
+                <Sparkles size={11} style={{ color: '#818cf8' }} />
+                <span>Otomatis Ringkas Link</span>
+              </label>
+            </div>
           </div>
-        )}
+        </div>
 
         {/* Inline Shortener Modal */}
         {showShortenerModal && (
@@ -1520,7 +1805,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
               boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
               display: 'flex', flexDirection: 'column'
             }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#f1f5f9', margin: '0 0 6px 0' }}>⚡ Buat Tautan Ringkas BPS</h3>
+              <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#f1f5f9', margin: '0 0 6px 0' }}>Buat Tautan Ringkas BPS</h3>
               <p style={{ fontSize: '12px', color: '#94a3b8', margin: '0 0 16px 0', lineHeight: 1.5 }}>
                 URL Anda akan disederhanakan menjadi link internal SuperBrain yang pendek dan bersih.
               </p>
@@ -1576,6 +1861,179 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
             </div>
           </div>
         )}
+      </div>
+
+      <div className={styles.formGroup}>
+        <label className={styles.label}>Bukti Presensi (Opsional)</label>
+        
+        <div className={styles.uploadCard}>
+          {/* Dropzone Area */}
+          <div 
+            className={`${styles.dropZone} ${isDraggingPresensi ? styles.dropZoneActive : ''}`}
+            onDragOver={handleDragOverPresensi}
+            onDragEnter={handleDragOverPresensi}
+            onDragLeave={handleDragLeavePresensi}
+            onDrop={handleDropPresensi}
+            onClick={(e) => {
+              if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+                presensiFileInputRef.current?.click();
+              }
+            }}
+          >
+            <input
+              type="file"
+              ref={presensiFileInputRef}
+              onChange={(e) => {
+                if (e.target.files && e.target.files[0]) {
+                  const fileSelected = e.target.files[0];
+                  setPresensiFile(fileSelected);
+                  if (fileSelected.type.startsWith('image/')) {
+                    setPresensiPreviewImage(URL.createObjectURL(fileSelected));
+                  } else {
+                    setPresensiPreviewImage(null);
+                  }
+                }
+              }}
+              style={{ display: 'none' }}
+              id="buktiPresensiInput"
+            />
+            
+            <div className={styles.dropZoneContent}>
+              <Paperclip size={24} className={styles.uploadIcon} />
+              <p className={styles.uploadText}>
+                {isDraggingPresensi 
+                  ? 'Lepas file di sini...' 
+                  : presensiFile 
+                    ? `Foto terpilih: ${presensiFile.name}`
+                    : 'Tarik & lepas file di sini atau gunakan tombol:'}
+              </p>
+              
+              <div className={styles.uploadActionsGroup}>
+                <button
+                  type="button"
+                  className={styles.uploadActionButton}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    presensiFileInputRef.current?.click();
+                  }}
+                >
+                  <Paperclip size={12} /> Pilih File Presensi
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Drive Link Badge (for Edit Mode) */}
+          {currentBuktiPresensiDriveLink && (
+            <div className={styles.currentDriveLinkBadge} style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'rgba(168, 85, 247, 0.1)',
+              border: '1px solid rgba(168, 85, 247, 0.2)',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              color: '#c084fc',
+              fontSize: '13px'
+            }}>
+              <a 
+                href={currentBuktiPresensiDriveLink} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                style={{ color: '#c084fc', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}
+              >
+                <FolderOpen size={14} style={{ flexShrink: 0 }} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  Berkas presensi terunggah di Drive
+                </span>
+              </a>
+              <button
+                type="button"
+                onClick={() => setCurrentBuktiPresensiDriveLink('')}
+                style={{ background: 'transparent', border: 'none', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px' }}
+                title="Hapus berkas presensi ini"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+
+          {/* Selected File Details */}
+          {presensiFile && !presensiPreviewImage && (
+            <div className={styles.selectedFilesList}>
+              <div className={styles.selectedFileItem} style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid rgba(255, 255, 255, 0.05)',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                fontSize: '12px'
+              }}>
+                <span className={styles.selectedFileName} title={presensiFile.name} style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                  <Paperclip size={12} style={{ color: '#a855f7', flexShrink: 0 }} />
+                  <span className={styles.fileNameText} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{presensiFile.name}</span>
+                </span>
+                <button
+                  type="button"
+                  className={styles.removeFileBtn}
+                  onClick={() => {
+                    setPresensiFile(null);
+                    if (presensiFileInputRef.current) presensiFileInputRef.current.value = '';
+                  }}
+                  style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  title="Hapus file ini"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Presensi Photo Preview */}
+          {presensiPreviewImage && (
+            <div className={styles.cameraPreviewContainer} style={{ position: 'relative', marginTop: '4px', borderLeft: '3px solid #a855f7' }}>
+              <img src={presensiPreviewImage} alt="Preview Presensi" className={styles.cameraPreviewImg} style={{ width: '100%', borderRadius: '8px', maxHeight: '180px', objectFit: 'cover' }} />
+              <button
+                type="button"
+                className={styles.cameraPreviewRetake}
+                onClick={() => {
+                  setPresensiPreviewImage(null);
+                  setPresensiFile(null);
+                  if (presensiFileInputRef.current) presensiFileInputRef.current.value = '';
+                }}
+                style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0, 0, 0, 0.6)', color: '#fff', border: 'none', borderRadius: '4px', padding: '4px 8px', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+              >
+                <X size={12} /> Hapus
+              </button>
+              <div className={styles.cameraPreviewLabel} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#c084fc', marginTop: '6px', background: 'rgba(168, 85, 247, 0.08)', borderTop: '1px solid rgba(168, 85, 247, 0.2)' }}>
+                <Check size={12} /> Presensi siap diunggah
+              </div>
+            </div>
+          )}
+
+          {/* URL Input (Alternative) */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '12px' }}>
+            <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '500' }}>Tautan URL (Alternatif)</span>
+            <input
+              type="url"
+              className={styles.input}
+              value={presensiLink}
+              onChange={(e) => setPresensiLink(e.target.value)}
+              placeholder="Masukkan URL presensi (misal: https://presensi.bps.go.id/...)"
+              style={{ 
+                background: 'rgba(255, 255, 255, 0.04)', 
+                border: '1px solid rgba(255, 255, 255, 0.08)', 
+                borderRadius: '8px', 
+                padding: '10px 12px', 
+                color: '#fff',
+                fontSize: '13px',
+                fontFamily: 'Inter, sans-serif'
+              }}
+            />
+          </div>
+        </div>
       </div>
 
       <div className={styles.formRow}>
@@ -1772,7 +2230,7 @@ function DailyTimeVisualizer({ entries, date, highlightStart, highlightEnd }) {
 }
 
 // Komponen Visualisasi Waktu Bulanan
-function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, onStretchClick, onEdit }) {
+function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, onStretchClick, onEdit }) {
   const START_HOUR = 6;
   const END_HOUR = 18;
   const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60;
@@ -1813,15 +2271,17 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, onStretchCl
     }).filter(Boolean);
     
     const isHolidayDate = checkHoliday ? checkHoliday(dateStr) : (dow === 0 || dow === 6);
+    const isDlDate = checkDl ? checkDl(dateStr) : false;
 
     let hasGaps = false;
-    if (!isHolidayDate && dayEntries.length > 0) {
-      const stretchRes = stretchDayEntries(dayEntries, dateStr, checkHoliday);
+    if (!isHolidayDate && !isDlDate && dayEntries.length > 0) {
+      const stretchRes = stretchDayEntries(dayEntries, dateStr, checkHoliday, checkDl);
       hasGaps = stretchRes.hasGaps;
       
       console.log(`[DEBUG] MonthlyTimeVisualizer row ${dateStr}:`, {
         dayEntriesLength: dayEntries.length,
         isHolidayDate,
+        isDlDate,
         hasGaps,
         onStretchClick: !!onStretchClick
       });
@@ -1836,6 +2296,7 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, onStretchCl
       coreWidth: `${((coreEnd - coreStart) / TOTAL_MINUTES) * 100}%`,
       totalJamStr: formatDuration(dayEntries.reduce((sum, e) => sum + (getMinutes(e.waktuSelesai) - getMinutes(e.waktuMulai)), 0)),
       isHoliday: isHolidayDate,
+      isDl: isDlDate,
       hasGaps
     });
   }
@@ -1863,10 +2324,21 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, onStretchCl
 
       <div className={styles.monthlyVizList}>
         {days.map(d => (
-          <div key={d.dateStr} className={styles.monthlyVizRow} style={d.isHoliday ? { backgroundColor: 'rgba(239, 68, 68, 0.05)' } : {}}>
+          <div 
+            key={d.dateStr} 
+            className={styles.monthlyVizRow} 
+            style={
+              d.isHoliday 
+                ? { backgroundColor: 'rgba(239, 68, 68, 0.05)' } 
+                : d.isDl 
+                  ? { backgroundColor: 'rgba(56, 189, 248, 0.08)' } 
+                  : {}
+            }
+          >
             <div className={styles.monthlyVizLabel}>
               {d.dayName}, {d.day}
               {d.isHoliday && <span style={{ color: '#ef4444', fontSize: '10px', marginLeft: '4px' }}>●</span>}
+              {d.isDl && <span style={{ color: '#38bdf8', fontSize: '10px', marginLeft: '4px' }}>● (DL)</span>}
             </div>
             <div className={styles.monthlyVizBar}>
               <div 
@@ -1907,7 +2379,7 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, onStretchCl
 }
 
 // TAB 2: Rekap Harian
-function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDate, checkHoliday, onToggleHoliday, pendingUploads = [], onStretchClick, skpData }) {
+function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDate, checkHoliday, onToggleHoliday, checkDl, onToggleDl, pendingUploads = [], onStretchClick, skpData }) {
   const dayEntries = useMemo(
     () => entries
       .filter((e) => e.tanggal === selectedDate)
@@ -1916,8 +2388,8 @@ function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDa
   );
 
   const stretchResult = useMemo(
-    () => stretchDayEntries(dayEntries, selectedDate, checkHoliday),
-    [dayEntries, selectedDate, checkHoliday]
+    () => stretchDayEntries(dayEntries, selectedDate, checkHoliday, checkDl),
+    [dayEntries, selectedDate, checkHoliday, checkDl]
   );
   const hasGaps = stretchResult.hasGaps;
 
@@ -1942,62 +2414,92 @@ function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDa
 
   return (
     <div className={styles.rekapContainer}>
-      <div className={styles.datePickerRow}>
-        <label className={styles.label}>Pilih Tanggal:</label>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button 
-            type="button" 
-            className={styles.dateNavBtn}
-            onClick={() => {
-              const d = new Date(selectedDate);
-              d.setDate(d.getDate() - 1);
-              setSelectedDate(d.toISOString().split('T')[0]);
-            }}
-            title="Hari Sebelumnya"
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <input
-            type="date"
-            className={styles.input}
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-          />
-          <button 
-            type="button" 
-            className={styles.dateNavBtn}
-            onClick={() => {
-              const d = new Date(selectedDate);
-              d.setDate(d.getDate() + 1);
-              setSelectedDate(d.toISOString().split('T')[0]);
-            }}
-            title="Hari Berikutnya"
-          >
-            <ChevronRight size={16} />
-          </button>
-          {onToggleHoliday && checkHoliday && (
-            <div 
-              style={{ display: 'flex', alignItems: 'center', marginLeft: '16px', cursor: 'pointer' }}
+      <div className={styles.datePickerRow} style={{ flexDirection: 'column', gap: '12px', alignItems: 'stretch' }}>
+        <div className={styles.formGroup} style={{ width: '100%' }}>
+          <label className={styles.label}>Pilih Tanggal:</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+            <button 
+              type="button" 
+              className={styles.dateNavBtn}
               onClick={() => {
-                const dow = new Date(selectedDate + 'T00:00:00').getDay();
-                if (dow !== 0 && dow !== 6) onToggleHoliday(selectedDate);
+                const d = new Date(selectedDate);
+                d.setDate(d.getDate() - 1);
+                setSelectedDate(d.toISOString().split('T')[0]);
               }}
+              title="Hari Sebelumnya"
             >
-              <input 
-                type="checkbox" 
-                checked={checkHoliday(selectedDate)} 
-                readOnly 
-                style={{ marginRight: '8px', cursor: 'pointer' }} 
-              />
-              <label className={styles.label} style={{ cursor: 'pointer', margin: 0 }}>
-                {(() => {
+              <ChevronLeft size={16} />
+            </button>
+            <input
+              type="date"
+              className={styles.input}
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              style={{ flex: 1 }}
+            />
+            <button 
+              type="button" 
+              className={styles.dateNavBtn}
+              onClick={() => {
+                const d = new Date(selectedDate);
+                d.setDate(d.getDate() + 1);
+                setSelectedDate(d.toISOString().split('T')[0]);
+              }}
+              title="Hari Berikutnya"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* Status Chips */}
+        <div className={styles.formGroup} style={{ width: '100%' }}>
+          <label className={styles.label}>Status Hari</label>
+          <div className={styles.toggleChipsContainer}>
+            {/* Holiday Toggle */}
+            {onToggleHoliday && checkHoliday && (
+              <button
+                type="button"
+                className={`${styles.toggleChip} ${checkHoliday(selectedDate) ? styles.toggleChipActiveRed : ''}`}
+                onClick={() => {
                   const dow = new Date(selectedDate + 'T00:00:00').getDay();
-                  if (dow === 0 || dow === 6) return 'Akhir Pekan (Libur)';
-                  return 'Tandai Libur Nasional / Cuti';
+                  if (dow !== 0 && dow !== 6) onToggleHoliday(selectedDate);
+                }}
+                disabled={(() => {
+                  const dow = new Date(selectedDate + 'T00:00:00').getDay();
+                  return dow === 0 || dow === 6;
                 })()}
-              </label>
-            </div>
-          )}
+              >
+                <Calendar size={14} />
+                <span>
+                  {(() => {
+                    const dow = new Date(selectedDate + 'T00:00:00').getDay();
+                    if (dow === 0 || dow === 6) return 'Akhir Pekan (Libur)';
+                    return 'Libur Nasional / Cuti';
+                  })()}
+                </span>
+              </button>
+            )}
+
+            {/* DL Toggle */}
+            {onToggleDl && checkDl && (
+              <button
+                type="button"
+                className={`${styles.toggleChip} ${checkDl(selectedDate) ? styles.toggleChipActiveCyan : ''}`}
+                onClick={() => {
+                  const dow = new Date(selectedDate + 'T00:00:00').getDay();
+                  if (dow !== 0 && dow !== 6) onToggleDl(selectedDate);
+                }}
+                disabled={(() => {
+                  const dow = new Date(selectedDate + 'T00:00:00').getDay();
+                  return dow === 0 || dow === 6;
+                })()}
+              >
+                <MapPin size={14} />
+                <span>Dinas Lapangan/Perjalanan Dinas</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -2054,15 +2556,23 @@ function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDa
                     SKP #{entry.skpId}: {getSkpName(entry.skpId)}
                   </div>
                   <div className={styles.timelineRincian}>{entry.rincian}</div>
-                  {entry.buktiDukung ? (
-                    <a href={entry.buktiDukung} target="_blank" rel="noopener noreferrer" className={styles.buktiLink}>
-                      <Paperclip size={14} /> Lihat Bukti Dukung
-                    </a>
-                  ) : pendingUploads.some(item => item.id === entry.id) ? (
-                    <span className={styles.buktiLink} style={{ color: '#ef4444', border: '1px dashed rgba(239,68,68,0.3)', cursor: 'default', background: 'rgba(239,68,68,0.05)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                      <CloudOff size={14} /> Bukti Dukung (Offline)
-                    </span>
-                  ) : null}
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                    {entry.buktiDukung ? (
+                      <a href={entry.buktiDukung} target="_blank" rel="noopener noreferrer" className={styles.buktiLink} style={{ margin: 0 }}>
+                        <Paperclip size={14} /> Lihat Bukti Dukung
+                      </a>
+                    ) : pendingUploads.some(item => item.id === entry.id) ? (
+                      <span className={styles.buktiLink} style={{ color: '#ef4444', border: '1px dashed rgba(239,68,68,0.3)', cursor: 'default', background: 'rgba(239,68,68,0.05)', display: 'inline-flex', alignItems: 'center', gap: '4px', margin: 0 }}>
+                        <CloudOff size={14} /> Bukti Dukung (Offline)
+                      </span>
+                    ) : null}
+
+                    {entry.buktiPresensi && (
+                      <a href={entry.buktiPresensi} target="_blank" rel="noopener noreferrer" className={styles.presensiLink} style={{ margin: 0 }}>
+                        <Calendar size={14} /> Lihat Bukti Presensi
+                      </a>
+                    )}
+                  </div>
                   <div className={styles.timelineOutput}>
                     Output: {entry.kuantitas} {entry.satuan}
                     <span className={styles.timelineTim}>{entry.timKerja}</span>
@@ -2089,14 +2599,15 @@ const getMinutes = (timeStr) => {
   return h * 60 + m;
 };
 
-function stretchDayEntries(dayEntries, dateStr, checkHoliday) {
+function stretchDayEntries(dayEntries, dateStr, checkHoliday, checkDl) {
   if (!dayEntries || dayEntries.length === 0) {
     return { hasGaps: false, isApelOnly: false, updates: [] };
   }
 
   const dow = new Date(dateStr + 'T00:00:00').getDay();
   const isHoliday = (dow === 0 || dow === 6) || (checkHoliday ? checkHoliday(dateStr) : false);
-  if (isHoliday) {
+  const isDl = checkDl ? checkDl(dateStr) : false;
+  if (isHoliday || isDl) {
     return { hasGaps: false, isApelOnly: false, updates: [] };
   }
 
@@ -2177,7 +2688,7 @@ function stretchDayEntries(dayEntries, dateStr, checkHoliday) {
   return { hasGaps: true, isApelOnly: false, updates: realUpdates };
 }
 
-function stretchMonthEntries(originalEntries, checkHoliday) {
+function stretchMonthEntries(originalEntries, checkHoliday, checkDl) {
   let hasGaps = false;
   let hasApelOnly = false;
   const newEntries = [...originalEntries];
@@ -2190,7 +2701,9 @@ function stretchMonthEntries(originalEntries, checkHoliday) {
   
   for (const [dateStr, dayEvents] of Object.entries(dateMap)) {
     const dow = new Date(dateStr + 'T00:00:00').getDay();
-    if (checkHoliday ? checkHoliday(dateStr) : (dow === 0 || dow === 6)) continue;
+    const isHoliday = checkHoliday ? checkHoliday(dateStr) : (dow === 0 || dow === 6);
+    const isDl = checkDl ? checkDl(dateStr) : false;
+    if (isHoliday || isDl) continue;
     
     const START_MIN = 7 * 60 + 30;
     const END_MIN = dow === 5 ? 16 * 60 + 30 : 16 * 60;
@@ -2248,7 +2761,7 @@ function stretchMonthEntries(originalEntries, checkHoliday) {
 }
 
 // TAB 3: Rekap Bulanan
-function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday, onStretchClick, onEdit, skpData }) {
+function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday, checkDl, onToggleDl, onStretchClick, onEdit, skpData }) {
   const { showAlert } = useAlert();
   const [selectedMonth, setSelectedMonth] = useState(sharedDate ? sharedDate.substring(0, 7) : getCurrentMonthStr());
 
@@ -2276,22 +2789,25 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
       const dayEntries = entries.filter((e) => e.tanggal === dateStr);
       const dow = new Date(dateStr + 'T00:00:00').getDay();
       const isHolidayDate = checkHoliday ? checkHoliday(dateStr) : (dow === 0 || dow === 6);
+      const isDlDate = checkDl ? checkDl(dateStr) : false;
 
-      if (dayEntries.length > 0 || isHolidayDate) {
+      if (dayEntries.length > 0 || isHolidayDate || isDlDate) {
         const totalDurasi = dayEntries.reduce((sum, e) => sum + e.durasi, 0);
-        const skpIds = [...new Set(dayEntries.map((e) => e.skpId))];
+        const skpIds = [...new Set(dayEntries.map((e) => e.skpId))].filter(id => id !== null && id !== undefined && id !== '');
         data.push({
           tanggal: dateStr,
           hari: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'][dow],
           jumlahKegiatan: dayEntries.length,
           totalJam: totalDurasi,
+          totalJamStr: formatDuration(totalDurasi),
           skpIds,
-          isWeekend: checkHoliday ? checkHoliday(dateStr) : (dow === 0 || dow === 6),
+          isWeekend: isHolidayDate,
+          isDl: isDlDate,
         });
       }
     }
     return data;
-  }, [entries, selectedMonth]);
+  }, [entries, selectedMonth, checkHoliday, checkDl]);
 
   const totalKegiatan = monthData.reduce((s, d) => s + d.jumlahKegiatan, 0);
   const totalJam = monthData.reduce((s, d) => s + d.totalJam, 0);
@@ -2353,7 +2869,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
           e.satuan || 'kegiatan',
           skpItem ? (skpItem.kategori === 'utama' ? 'Utama' : 'Tambahan') : '',
           e.buktiDukung || '',
-          ''
+          e.buktiPresensi || ''
         ];
       });
       const fileName = `CKP-Daily_${getMonthName(monthVal - 1)}_${yearVal}_Yahya_Abdurrohman.xlsx`;
@@ -2395,7 +2911,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
     const monthEntries = getMonthEntries();
     if (monthEntries.length === 0) return showAlert('Tidak ada data bulan ini.');
     
-    const stretchResult = stretchMonthEntries(monthEntries, checkHoliday);
+    const stretchResult = stretchMonthEntries(monthEntries, checkHoliday, checkDl);
     if (stretchResult.hasGaps) {
       setStretchedEntriesData(stretchResult.newEntries);
       setHasApelWarning(stretchResult.hasApelOnly);
@@ -2464,7 +2980,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
         </div>
       </div>
 
-      <MonthlyTimeVisualizer entries={entries} year={yearVal} month={monthVal} checkHoliday={checkHoliday} onStretchClick={onStretchClick} onEdit={onEdit} />
+      <MonthlyTimeVisualizer entries={entries} year={yearVal} month={monthVal} checkHoliday={checkHoliday} checkDl={checkDl} onStretchClick={onStretchClick} onEdit={onEdit} />
 
       {monthData.length === 0 ? (
         <div className={styles.emptyState}>
@@ -2485,11 +3001,14 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
             </thead>
             <tbody>
               {monthData.map((row, idx) => (
-                <tr key={idx}>
+                <tr key={idx} style={row.isDl ? { backgroundColor: 'rgba(56, 189, 248, 0.08)' } : row.isWeekend ? { backgroundColor: 'rgba(239, 68, 68, 0.03)' } : {}}>
                   <td>{row.tanggal}</td>
-                  <td>{row.hari}</td>
-                  <td>{row.jumlahKegiatan}</td>
-                  <td>{row.totalJamStr}</td>
+                  <td>
+                    {row.hari}
+                    {row.isDl && <span style={{ color: '#38bdf8', fontSize: '10px', marginLeft: '6px', fontWeight: 'bold' }}>(DL)</span>}
+                  </td>
+                  <td>{row.isDl && row.jumlahKegiatan === 0 ? 'Dinas Lapangan' : row.jumlahKegiatan}</td>
+                  <td>{row.isDl && row.jumlahKegiatan === 0 ? '—' : row.totalJamStr}</td>
                   <td>
                     <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                       {row.skpIds.map(id => (
@@ -2552,7 +3071,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
             </p>
             {hasApelWarning && (
               <div style={{ padding: '12px', background: 'rgba(234, 179, 8, 0.1)', border: '1px solid #eab308', borderRadius: '6px', color: '#fef08a', fontSize: '13px', marginBottom: '16px' }}>
-                <strong style={{ color: '#eab308' }}>⚠️ Peringatan:</strong> Ada hari yang hanya berisi kegiatan "Apel" atau "Upacara". Sistem tidak akan meregangkan hari tersebut menjadi seharian penuh.
+                <strong style={{ color: '#eab308' }}>Peringatan:</strong> Ada hari yang hanya berisi kegiatan "Apel" atau "Upacara". Sistem tidak akan meregangkan hari tersebut menjadi seharian penuh.
               </div>
             )}
             <div className={styles.confirmActions}>
@@ -2761,6 +3280,7 @@ function CKPPageInner() {
   const { skpData } = useSkps();
   const { docs: entries, loading, addDocument, updateDocument, deleteDocument } = useFirestore('ckp');
   const { docs: holidaysData, addDocument: addHoliday, deleteDocument: deleteHoliday } = useFirestore('holidays');
+  const { docs: dlData, addDocument: addDl, deleteDocument: deleteDl } = useFirestore('dinas_lapangan');
 
   const checkHoliday = useCallback((dateStr) => {
     const dow = new Date(dateStr + 'T00:00:00').getDay();
@@ -2774,6 +3294,19 @@ function CKPPageInner() {
       await deleteHoliday(existing.id);
     } else {
       await addHoliday({ tanggal: dateStr });
+    }
+  };
+
+  const checkDl = useCallback((dateStr) => {
+    return dlData.some(d => d.tanggal === dateStr);
+  }, [dlData]);
+
+  const toggleDl = async (dateStr) => {
+    const existing = dlData.find(d => d.tanggal === dateStr);
+    if (existing) {
+      await deleteDl(existing.id);
+    } else {
+      await addDl({ tanggal: dateStr });
     }
   };
 
@@ -3238,6 +3771,8 @@ function CKPPageInner() {
                 setSharedDate={setSharedSelectedDate}
                 checkHoliday={checkHoliday}
                 onToggleHoliday={toggleHoliday}
+                checkDl={checkDl}
+                onToggleDl={toggleDl}
                 onPendingChange={fetchPendingUploads}
                 skpData={skpData}
               />
@@ -3251,6 +3786,8 @@ function CKPPageInner() {
                 setSelectedDate={setSharedSelectedDate}
                 checkHoliday={checkHoliday}
                 onToggleHoliday={toggleHoliday}
+                checkDl={checkDl}
+                onToggleDl={toggleDl}
                 pendingUploads={pendingUploads}
                 onStretchClick={setStretchConfirmDate}
                 skpData={skpData}
@@ -3263,6 +3800,8 @@ function CKPPageInner() {
                 setSharedDate={setSharedSelectedDate} 
                 checkHoliday={checkHoliday} 
                 onToggleHoliday={toggleHoliday} 
+                checkDl={checkDl}
+                onToggleDl={toggleDl}
                 onStretchClick={setStretchConfirmDate}
                 onEdit={handleEdit}
                 skpData={skpData}

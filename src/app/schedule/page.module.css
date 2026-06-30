@@ -1218,3 +1218,61 @@
     text-align: center;
   }
 }
+
+/* ===== Custom Searchable Dropdown ===== */
+.customSelectWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.customSelectInput {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.customDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  z-index: 50;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.customDropdownSearch {
+  padding: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.customDropdownList {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.customDropdownItem {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #f1f5f9;
+  cursor: pointer;
+  transition: background 0.2s;
+  text-align: left;
+}
+
+.customDropdownItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.customDropdownItemId {
+  font-weight: 600;
+  color: #38bdf8;
+  margin-right: 4px;
+}
+

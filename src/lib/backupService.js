@@ -2,7 +2,7 @@ import { db, auth } from './firebase';
 import { collection, getDocs, doc, setDoc, getDoc, writeBatch, query, where } from 'firebase/firestore';
 import { skpData } from '@/data/skpData';
 
-const COLLECTIONS = ['tasks', 'schedule', 'ckp'];
+const COLLECTIONS = ['tasks', 'schedule', 'ckp', 'dinas_lapangan', 'holidays'];
 
 /**
  * Fetches all dynamic data from Firestore and includes static SKP data.
@@ -23,8 +23,8 @@ export async function getBackupData() {
     const q = query(collection(db, col), where('userId', '==', user.uid));
     const snapshot = await getDocs(q);
     const docs = [];
-    snapshot.forEach(doc => {
-      docs.push({ id: doc.id, ...doc.data() });
+    snapshot.forEach(d => {
+      docs.push({ id: d.id, ...d.data() });
     });
     backup.data[col] = docs;
   }
@@ -40,7 +40,7 @@ export async function restoreFromBackupData(backup) {
   const user = auth.currentUser;
   if (!user) throw new Error('User tidak terautentikasi.');
 
-  const batch = writeBatch(db);
+  let batch = writeBatch(db);
   let operationCount = 0;
 
   for (const col of COLLECTIONS) {
@@ -57,8 +57,10 @@ export async function restoreFromBackupData(backup) {
         operationCount++;
 
         // Firestore batch has a limit of 500 operations.
-        if (operationCount === 490) {
+        // Commit and reinitialize the batch when approaching the limit.
+        if (operationCount >= 490) {
           await batch.commit();
+          batch = writeBatch(db); // PENTING: buat batch baru setelah commit
           operationCount = 0;
         }
       }

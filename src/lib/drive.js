@@ -139,3 +139,38 @@ export async function getOrCreateFolder(accessToken, folderName, parentId = null
     throw error;
   }
 }
+
+/**
+ * Sets public (anyone with link) reader permissions on a file or folder in Google Drive.
+ * 
+ * @param {string} fileId - The ID of the file or folder
+ * @param {string} accessToken - Google OAuth access token
+ * @returns {Promise<boolean>} - True if successful
+ */
+export async function makeFileOrFolderPublic(fileId, accessToken) {
+  try {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        role: 'reader',
+        type: 'anyone',
+      }),
+    });
+
+    if (!res.ok) {
+      const errData = await res.json();
+      console.error('Google Drive Permissions Error:', errData);
+      throw new Error(`Failed to set permissions: ${errData.error?.message || res.statusText}`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error making file/folder public:', error);
+    throw error;
+  }
+}
+

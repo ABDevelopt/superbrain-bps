@@ -121,10 +121,9 @@ export default function Dashboard() {
     deadlineDetail = nearestDeadline.judul;
   }
 
-  // Find upcoming schedules (nearest 3)
-  const currentTime = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+  // Find upcoming/ongoing schedules (nearest 3)
   const upcomingSchedules = scheduleDocs
-    .filter(doc => !doc.isSelesai && (doc.tanggal > todayYMD || (doc.tanggal === todayYMD && (doc.waktu || '00:00') >= currentTime)))
+    .filter(doc => !doc.isSelesai && doc.tanggal >= todayYMD)
     .sort((a, b) => a.tanggal.localeCompare(b.tanggal) || (a.waktu || '00:00').localeCompare(b.waktu || '00:00'))
     .slice(0, 3);
 

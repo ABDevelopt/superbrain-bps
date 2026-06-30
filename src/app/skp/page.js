@@ -217,11 +217,11 @@ export default function SKPPage() {
 
   // Derive unique tim and cluster lists for filtering
   const timList = useMemo(() => {
-    return teams.map(t => t.nama);
+    return Array.from(new Set(teams.map(t => t.nama)));
   }, [teams]);
 
   const clusterList = useMemo(() => {
-    return projects.map(p => p.nama);
+    return Array.from(new Set(projects.map(p => p.nama)));
   }, [projects]);
 
   // Compute realization from CKP

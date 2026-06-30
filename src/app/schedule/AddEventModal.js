@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { X, Calendar, MapPin, AlertTriangle, Plus, FileText } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { X, Calendar, MapPin, AlertTriangle, Plus, FileText, ChevronDown } from 'lucide-react';
 import { skpData } from '@/data/skpData';
 import styles from './page.module.css';
 
@@ -36,10 +36,25 @@ export default function AddEventModal({ isOpen, onClose, onSubmit, initialData, 
 
   const [form, setForm] = useState(emptyForm);
   const [files, setFiles] = useState([]);
+  const [showSkpDropdown, setShowSkpDropdown] = useState(false);
+  const [skpSearch, setSkpSearch] = useState('');
+  const skpDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (skpDropdownRef.current && !skpDropdownRef.current.contains(event.target)) {
+        setShowSkpDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
       setFiles([]);
+      setShowSkpDropdown(false);
+      setSkpSearch('');
       if (initialData) {
         setForm({
           judul: initialData.judul || '',
@@ -230,14 +245,67 @@ export default function AddEventModal({ isOpen, onClose, onSubmit, initialData, 
           {/* Butir SKP */}
           <div className={styles.formGroup}>
             <label className={styles.label}>Butir SKP Terkait</label>
-            <select className={styles.select} value={form.skpId} onChange={handleChange('skpId')}>
-              <option value="">— Tidak terkait SKP —</option>
-              {skpData.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.id}. {item.nama}
-                </option>
-              ))}
-            </select>
+            <div className={styles.customSelectWrapper} ref={skpDropdownRef}>
+              <div 
+                className={`${styles.input} ${styles.customSelectInput}`}
+                onClick={() => {
+                  setShowSkpDropdown(true);
+                  setSkpSearch('');
+                }}
+              >
+                {form.skpId 
+                  ? `${form.skpId}. ${skpData.find(s => s.id == form.skpId)?.nama || ''}` 
+                  : '— Tidak terkait SKP —'}
+                <ChevronDown size={16} />
+              </div>
+              
+              {showSkpDropdown && (
+                <div className={styles.customDropdown}>
+                  <div className={styles.customDropdownSearch}>
+                    <input
+                      type="text"
+                      autoFocus
+                      placeholder="Ketik untuk mencari SKP..."
+                      value={skpSearch}
+                      onChange={(e) => setSkpSearch(e.target.value)}
+                      className={styles.input}
+                      style={{ padding: '8px', fontSize: '13px' }}
+                    />
+                  </div>
+                  <div className={styles.customDropdownList}>
+                    <div 
+                      className={styles.customDropdownItem}
+                      onClick={() => {
+                        setForm(prev => ({...prev, skpId: ''}));
+                        setShowSkpDropdown(false);
+                      }}
+                    >
+                      <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>Tidak terkait SKP</span>
+                    </div>
+                    {skpData.length === 0 ? (
+                      <div className={styles.customDropdownItem} style={{ color: '#fb7185', fontStyle: 'italic', padding: '10px' }}>
+                        Belum ada SKP. Silakan atur SKP di menu Manajemen SKP.
+                      </div>
+                    ) : (
+                      skpData
+                        .filter(s => s.nama.toLowerCase().includes(skpSearch.toLowerCase()) || String(s.id).includes(skpSearch))
+                        .map((item) => (
+                          <div 
+                            key={item.id} 
+                            className={styles.customDropdownItem}
+                            onClick={() => {
+                              setForm(prev => ({...prev, skpId: String(item.id)}));
+                              setShowSkpDropdown(false);
+                            }}
+                          >
+                            <span className={styles.customDropdownItemId}>{item.id}.</span> {item.nama}
+                          </div>
+                        ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Deskripsi */}

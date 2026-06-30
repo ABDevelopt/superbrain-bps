@@ -273,6 +273,19 @@ export default function TasksPage() {
   const [formDesc, setFormDesc] = useState('');
   const [formPeran, setFormPeran] = useState('admin');
   const [formSkpId, setFormSkpId] = useState(1);
+  const [showSkpDropdown, setShowSkpDropdown] = useState(false);
+  const [skpSearch, setSkpSearch] = useState('');
+  const skpDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (skpDropdownRef.current && !skpDropdownRef.current.contains(event.target)) {
+        setShowSkpDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   const [formChecklist, setFormChecklist] = useState([]);
   const [newChecklistItem, setNewChecklistItem] = useState('');
   const [formLinkedScheduleId, setFormLinkedScheduleId] = useState('');
@@ -1652,21 +1665,58 @@ export default function TasksPage() {
 
               <div className={styles.formGroup}>
                 <label>Butir Target SKP Terkait</label>
-                <select 
-                  className={styles.select}
-                  value={formSkpId}
-                  onChange={(e) => setFormSkpId(e.target.value)}
-                >
-                  {skpData.length === 0 ? (
-                    <option value="">Belum ada SKP - Atur di menu SKP</option>
-                  ) : (
-                    skpData.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        SKP #{s.id}: {s.nama} ({s.kategori})
-                      </option>
-                    ))
+                <div className={styles.customSelectWrapper} ref={skpDropdownRef}>
+                  <div 
+                    className={`${styles.input} ${styles.customSelectInput}`}
+                    onClick={() => {
+                      setShowSkpDropdown(true);
+                      setSkpSearch('');
+                    }}
+                  >
+                    {formSkpId 
+                      ? `SKP #${formSkpId}: ${skpData.find(s => s.id == formSkpId)?.nama || ''}` 
+                      : '— Pilih Butir SKP —'}
+                    <ChevronDown size={16} />
+                  </div>
+                  
+                  {showSkpDropdown && (
+                    <div className={styles.customDropdown}>
+                      <div className={styles.customDropdownSearch}>
+                        <input
+                          type="text"
+                          autoFocus
+                          placeholder="Ketik untuk mencari SKP..."
+                          value={skpSearch}
+                          onChange={(e) => setSkpSearch(e.target.value)}
+                          className={styles.input}
+                          style={{ padding: '8px', fontSize: '13px' }}
+                        />
+                      </div>
+                      <div className={styles.customDropdownList}>
+                        {skpData.length === 0 ? (
+                          <div className={styles.customDropdownItem} style={{ color: '#fb7185', fontStyle: 'italic', padding: '10px' }}>
+                            Belum ada SKP. Silakan atur SKP di menu Manajemen SKP.
+                          </div>
+                        ) : (
+                          skpData
+                            .filter(s => s.nama.toLowerCase().includes(skpSearch.toLowerCase()) || String(s.id).includes(skpSearch))
+                            .map((item) => (
+                              <div 
+                                key={item.id} 
+                                className={styles.customDropdownItem}
+                                onClick={() => {
+                                  setFormSkpId(item.id);
+                                  setShowSkpDropdown(false);
+                                }}
+                              >
+                                <span className={styles.customDropdownItemId}>SKP #{item.id}:</span> {item.nama}
+                              </div>
+                            ))
+                        )}
+                      </div>
+                    </div>
                   )}
-                </select>
+                </div>
               </div>
 
               <div className={styles.formGroup}>

@@ -56,7 +56,11 @@ Jadwal: judul, tanggal, waktu, waktuSelesai, lokasi, deskripsi, skpId, kategori,
 CKP: tanggal, waktuMulai, waktuSelesai, skpId, rincian, kuantitas, satuan, timKerja
 Tugas: judul, deskripsi, peran, skpId, urgensi, status
 
-PENTING:
+PENTING FORMAT WAKTU:
+- Field "waktu", "waktuSelesai", dan "waktuMulai" harus diisi HANYA dengan format "HH:MM" (contoh: "08:30", "15:00") atau string "selesai" (untuk waktuSelesai jika tidak diketahui waktu berakhirnya).
+- DILARANG KERAS memasukkan penjelasan, komentar, teks alasan, atau zona waktu (seperti WITA, WIB) ke dalam field waktu. Field tersebut harus berupa string bersih (misalnya "selesai" atau "09:00").
+
+PENTING LAINNYA:
 - Pastikan respon HANYA berupa JSON valid sesuai schema bersarang di atas.
 - Jangan tambahkan markdown \`\`\`json.
 - Jangan gunakan emoji.
