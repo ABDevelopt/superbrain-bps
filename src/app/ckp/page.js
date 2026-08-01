@@ -10,7 +10,7 @@ import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFirestore } from '@/hooks/useFirestore';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { uploadFileToDrive, getOrCreateFolder } from '@/lib/drive';
+import { uploadFileToDrive, getOrCreateFolder, makeFileOrFolderPublic } from '@/lib/drive';
 import { savePendingUpload, getPendingUploads, removePendingUpload, getPendingUploadCount } from '@/lib/localdb';
 import { useChatAction } from '@/contexts/ChatActionContext';
 import { useAIContext } from '@/contexts/AIContext';
@@ -263,7 +263,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
     isMultiHari: false,
     tanggalAkhir: '',
     skipHoliday: true,
-    waktuMulai: ''
+    waktuMulai: '',
     waktuSelesai: '',
     skpId: '',
     rincian: '',
@@ -2523,7 +2523,7 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, on
 }
 
 // TAB 2: Rekap Harian
-function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDate, checkHoliday, onToggleHoliday, checkDl, onToggleDl, pendingUploads = [], onStretchClick, skpData }) {
+function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDate, checkHoliday, onToggleHoliday, checkDl, onToggleDl, pendingUploads = [], onStretchClick, skpData, onCreateEmptyFolder, creatingFolderId, accessToken }) {
   const dayEntries = useMemo(
     () => entries
       .filter((e) => e.tanggal === selectedDate)
@@ -2714,7 +2714,29 @@ function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDa
                       <span className={styles.buktiLink} style={{ color: '#ef4444', border: '1px dashed rgba(239,68,68,0.3)', cursor: 'default', background: 'rgba(239,68,68,0.05)', display: 'inline-flex', alignItems: 'center', gap: '4px', margin: 0 }}>
                         <CloudOff size={14} /> Bukti Dukung (Offline)
                       </span>
-                    ) : null}
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className={styles.warningBadge}>
+                          ⚠️ Belum Upload Bukti
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => onCreateEmptyFolder(entry.id, entry.tanggal, entry.rincian)}
+                          disabled={creatingFolderId === entry.id}
+                          className={styles.miniBtn}
+                          title="Buat folder kosong di Google Drive"
+                        >
+                          {creatingFolderId === entry.id ? (
+                            <div className={styles.spinnerTiny} />
+                          ) : (
+                            <>
+                              <FolderOpen size={12} />
+                              Buat Folder GDrive
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
 
                     {entry.buktiPresensi && (
                       <a href={entry.buktiPresensi} target="_blank" rel="noopener noreferrer" className={styles.presensiLink} style={{ margin: 0 }}>
@@ -2910,7 +2932,7 @@ function stretchMonthEntries(originalEntries, checkHoliday, checkDl) {
 }
 
 // TAB 3: Rekap Bulanan
-function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday, checkDl, onToggleDl, onStretchClick, onEdit, skpData }) {
+function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday, checkDl, onToggleDl, onStretchClick, onEdit, onDelete, onCreateEmptyFolder, creatingFolderId, accessToken, skpData }) {
   const { showAlert } = useAlert();
   const [selectedMonth, setSelectedMonth] = useState(sharedDate ? sharedDate.substring(0, 7) : getCurrentMonthStr());
 
@@ -3187,6 +3209,8 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
                   <th>Kegiatan</th>
                   <th>Kuantitas</th>
                   <th>SKP</th>
+                  <th>Bukti Dukung</th>
+                  <th>Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -3203,6 +3227,36 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
                       <span className={styles.skpBadge} style={{ backgroundColor: getColorForSkp(row.skpId), color: '#fff', border: 'none' }}>
                         #{row.skpId || 'Non-SKP'}
                       </span>
+                    </td>
+                    <td>
+                      {row.buktiDukung ? (
+                        <a href={row.buktiDukung} target="_blank" rel="noopener noreferrer" className={styles.buktiLinkTable}>
+                          <Paperclip size={12} style={{ marginRight: '4px' }} /> Lihat Bukti
+                        </a>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span className={styles.warningBadgeTable}>⚠️ Belum Upload</span>
+                          <button
+                            type="button"
+                            onClick={() => onCreateEmptyFolder(row.id, row.tanggal, row.rincian)}
+                            disabled={creatingFolderId === row.id}
+                            className={styles.miniBtnTable}
+                            title="Buat folder kosong di Google Drive"
+                          >
+                            {creatingFolderId === row.id ? (
+                              <div className={styles.spinnerTiny} />
+                            ) : (
+                              <FolderOpen size={12} />
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={() => onEdit(row)} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer' }} title="Edit"><Edit3 size={16} /></button>
+                        <button onClick={() => onDelete(row.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }} title="Hapus"><Trash2 size={16} /></button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -3456,6 +3510,49 @@ function CKPPageInner() {
       await deleteDl(existing.id);
     } else {
       await addDl({ tanggal: dateStr });
+    }
+  };
+
+  const [creatingFolderId, setCreatingFolderId] = useState(null);
+
+  const handleCreateEmptyFolder = async (entryId, tanggal, rincian) => {
+    if (!accessToken) {
+      showAlert('Silakan hubungkan Google Drive Anda terlebih dahulu.');
+      try {
+        await loginWithGoogle();
+      } catch (loginErr) {
+        console.error("Login failed:", loginErr);
+      }
+      return;
+    }
+    
+    setCreatingFolderId(entryId);
+    try {
+      const cleanKegiatan = (rincian || 'Kegiatan').substring(0, 30).replace(/[^a-zA-Z0-9 -]/g, '').trim();
+      const parentFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
+      const mainFolderId = await getOrCreateFolder(accessToken, 'Bukti Dukung CKP', parentFolderId);
+      
+      const subfolderName = `${tanggal} - ${cleanKegiatan}`;
+      const subfolderId = await getOrCreateFolder(accessToken, subfolderName, mainFolderId);
+      await makeFileOrFolderPublic(subfolderId, accessToken);
+      
+      const driveUrl = `https://drive.google.com/drive/folders/${subfolderId}`;
+      
+      // Update Firestore
+      await updateDocument(entryId, {
+        buktiDukung: driveUrl
+      });
+      
+      showAlert('Berhasil membuat folder bukti dukung kosong di Google Drive!', 'success');
+    } catch (err) {
+      console.error(err);
+      if (err.message && err.message.includes('401')) {
+        showAlert('Sesi Google Drive kedaluwarsa. Silakan hubungkan ulang.');
+      } else {
+        showAlert('Gagal membuat folder Google Drive: ' + err.message);
+      }
+    } finally {
+      setCreatingFolderId(null);
     }
   };
 
@@ -3940,6 +4037,9 @@ function CKPPageInner() {
                 pendingUploads={pendingUploads}
                 onStretchClick={setStretchConfirmDate}
                 skpData={skpData}
+                onCreateEmptyFolder={handleCreateEmptyFolder}
+                creatingFolderId={creatingFolderId}
+                accessToken={accessToken}
               />
             )}
             {activeTab === 2 && (
@@ -3953,6 +4053,10 @@ function CKPPageInner() {
                 onToggleDl={toggleDl}
                 onStretchClick={setStretchConfirmDate}
                 onEdit={handleEdit}
+                onDelete={handleDelete}
+                onCreateEmptyFolder={handleCreateEmptyFolder}
+                creatingFolderId={creatingFolderId}
+                accessToken={accessToken}
                 skpData={skpData}
               />
             )}
