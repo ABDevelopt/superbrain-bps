@@ -2374,7 +2374,7 @@ function DailyTimeVisualizer({ entries, date, highlightStart, highlightEnd }) {
 }
 
 // Komponen Visualisasi Waktu Bulanan
-function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, onStretchClick, onEdit }) {
+function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, onStretchClick, onEdit, onDelete }) {
   const START_HOUR = 6;
   const END_HOUR = 18;
   const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60;
@@ -2498,7 +2498,22 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, on
                   <div className={styles.monthlyVizTooltip}>
                     <strong>{b.entry.waktuMulai} — {b.entry.waktuSelesai}</strong>
                     <p>{b.entry.rincian}</p>
-                    <span>Klik untuk mengedit</span>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }} onClick={e => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => onEdit && onEdit(b.entry)}
+                        className={styles.tooltipBtnEdit}
+                      >
+                        <Edit3 size={11} /> Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDelete && onDelete(b.entry.id)}
+                        className={styles.tooltipBtnDelete}
+                      >
+                        <Trash2 size={11} /> Hapus
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -3151,7 +3166,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
         </div>
       </div>
 
-      <MonthlyTimeVisualizer entries={entries} year={yearVal} month={monthVal} checkHoliday={checkHoliday} checkDl={checkDl} onStretchClick={onStretchClick} onEdit={onEdit} />
+      <MonthlyTimeVisualizer entries={entries} year={yearVal} month={monthVal} checkHoliday={checkHoliday} checkDl={checkDl} onStretchClick={onStretchClick} onEdit={onEdit} onDelete={onDelete} />
 
       {monthData.length === 0 ? (
         <div className={styles.emptyState}>
