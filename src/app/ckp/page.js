@@ -164,7 +164,77 @@ function Toast({ message, visible, onClose }) {
   );
 }
 
+
+const compressImage = (file) => {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('image/') || file.type === 'image/gif') {
+      resolve(file);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        const MAX_WIDTH = 1600;
+        const MAX_HEIGHT = 1600;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          if (!blob) {
+            resolve(file);
+            return;
+          }
+          if (blob.size >= file.size) {
+            resolve(file);
+            return;
+          }
+          const compressedFile = new File([blob], file.name, {
+            type: 'image/jpeg',
+            lastModified: Date.now()
+          });
+          resolve(compressedFile);
+        }, 'image/jpeg', 0.7);
+      };
+      img.onerror = () => resolve(file);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+};
+
+const compressMultipleFiles = async (filesList) => {
+  const compressed = [];
+  for (const f of filesList) {
+    const cf = await compressImage(f);
+    compressed.push(cf);
+  }
+  return compressed;
+};
+
 // TAB 1: Input Kegiatan
+
 function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit, entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday, checkDl, onToggleDl, onPendingChange, skpData }) {
   const { accessToken, user, loginWithGoogle } = useAuth();
   const { showAlert } = useAlert();
@@ -311,12 +381,13 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
     setIsDragging(false);
   };
 
-  const handleDrop = (e) => {
+  const handleDrop = async (e) => {
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const droppedFiles = Array.from(e.dataTransfer.files);
-      const updated = [...files, ...droppedFiles];
+      const compressed = await compressMultipleFiles(droppedFiles);
+      const updated = [...files, ...compressed];
       setFiles(updated);
       triggerBackgroundUpload(updated);
     }
@@ -332,14 +403,15 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
     setIsDraggingPresensi(false);
   };
 
-  const handleDropPresensi = (e) => {
+  const handleDropPresensi = async (e) => {
     e.preventDefault();
     setIsDraggingPresensi(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const fileSelected = e.dataTransfer.files[0];
-      setPresensiFile(fileSelected);
-      if (fileSelected.type.startsWith('image/')) {
-        setPresensiPreviewImage(URL.createObjectURL(fileSelected));
+      const compressed = await compressImage(fileSelected);
+      setPresensiFile(compressed);
+      if (compressed.type.startsWith('image/')) {
+        setPresensiPreviewImage(URL.createObjectURL(compressed));
       } else {
         setPresensiPreviewImage(null);
       }
@@ -1957,10 +2029,11 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
             <input
               type="file"
               ref={fileInputRef}
-              onChange={(e) => {
+              onChange={async (e) => {
                 if (e.target.files) {
                   const selected = Array.from(e.target.files);
-                  const updated = [...files, ...selected];
+                  const compressed = await compressMultipleFiles(selected);
+                  const updated = [...files, ...compressed];
                   setFiles(updated);
                   triggerBackgroundUpload(updated);
                 }
@@ -2307,12 +2380,13 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
             <input
               type="file"
               ref={presensiFileInputRef}
-              onChange={(e) => {
+              onChange={async (e) => {
                 if (e.target.files && e.target.files[0]) {
                   const fileSelected = e.target.files[0];
-                  setPresensiFile(fileSelected);
-                  if (fileSelected.type.startsWith('image/')) {
-                    setPresensiPreviewImage(URL.createObjectURL(fileSelected));
+                  const compressed = await compressImage(fileSelected);
+                  setPresensiFile(compressed);
+                  if (compressed.type.startsWith('image/')) {
+                    setPresensiPreviewImage(URL.createObjectURL(compressed));
                   } else {
                     setPresensiPreviewImage(null);
                   }
