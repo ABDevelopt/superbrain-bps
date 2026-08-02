@@ -1454,11 +1454,20 @@
 }
 
 .monthlyVizDurasi {
-  width: 50px;
+  width: 140px;
   font-size: 11px;
   font-weight: 600;
   color: #22d3ee;
   text-align: left;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.monthlyVizDurasi span:first-child {
+  width: 50px;
+  display: inline-block;
   flex-shrink: 0;
 }
 .dateNavBtn {
