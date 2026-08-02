@@ -3800,32 +3800,12 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
     return `${lastDay} ${getMonthName(month - 1)} ${year}`;
   };
 
-  const handlePrintPDF = () => {
+  const handlePrintPDF = (type = 'daily') => {
     const monthEntries = getMonthEntries();
     if (monthEntries.length === 0) {
       showAlert('Tidak ada data kegiatan di bulan ini.');
       return;
     }
-
-    const sortedData = [...monthEntries].sort((a, b) => {
-      if (a.tanggal !== b.tanggal) return a.tanggal.localeCompare(b.tanggal);
-      return (a.waktuMulai || '').localeCompare(b.waktuMulai || '');
-    });
-
-    const rowsHtml = sortedData.map((e, idx) => {
-      const formattedDate = e.tanggal ? e.tanggal.split('-').reverse().join('/') : '';
-      return `
-        <tr>
-          <td class="center">${idx + 1}</td>
-          <td class="center">${formattedDate}</td>
-          <td class="center">${e.waktuMulai || ''} - ${e.waktuSelesai || ''}</td>
-          <td>${e.rincian || ''}</td>
-          <td class="center">${e.kuantitas || 1}</td>
-          <td class="center">${e.satuan || 'kegiatan'}</td>
-          <td class="center">${e.skpId ? '#' + e.skpId : '-'}</td>
-        </tr>
-      `;
-    }).join('');
 
     const [yearStr, monthStr] = selectedMonth.split('-');
     const monthIndex = Number(monthStr) - 1;
@@ -3833,6 +3813,122 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
     const yearVal = yearStr;
     const employeeName = user?.displayName || 'Yahya Abdurrohman';
     const sigDate = getSignatureDate();
+
+    let titleText = 'LAPORAN CAPAIAN KINERJA HARIAN PEGAWAI';
+    let tableHeaderHtml = '';
+    let rowsHtml = '';
+
+    if (type === 'daily') {
+      titleText = 'LAPORAN CAPAIAN KINERJA HARIAN PEGAWAI (CKP-DAILY)';
+      tableHeaderHtml = `
+        <tr>
+          <th style="width: 5%">No</th>
+          <th style="width: 12%">Tanggal</th>
+          <th style="width: 15%">Waktu Kerja</th>
+          <th style="width: 43%">Rincian Kegiatan</th>
+          <th style="width: 8%">Volume</th>
+          <th style="width: 10%">Satuan</th>
+          <th style="width: 7%">SKP</th>
+        </tr>
+      `;
+
+      const sortedData = [...monthEntries].sort((a, b) => {
+        if (a.tanggal !== b.tanggal) return a.tanggal.localeCompare(b.tanggal);
+        return (a.waktuMulai || '').localeCompare(b.waktuMulai || '');
+      });
+
+      rowsHtml = sortedData.map((e, idx) => {
+        const formattedDate = e.tanggal ? e.tanggal.split('-').reverse().join('/') : '';
+        return `
+          <tr>
+            <td class="center">${idx + 1}</td>
+            <td class="center">${formattedDate}</td>
+            <td class="center">${e.waktuMulai || ''} - ${e.waktuSelesai || ''}</td>
+            <td>${e.rincian || ''}</td>
+            <td class="center">${e.kuantitas || 1}</td>
+            <td class="center">${e.satuan || 'kegiatan'}</td>
+            <td class="center">${e.skpId ? '#' + e.skpId : '-'}</td>
+          </tr>
+        `;
+      }).join('');
+
+    } else if (type === 'ckpt' || type === 'ckpr') {
+      titleText = type === 'ckpt' 
+        ? 'TARGET SASARAN KINERJA PEGAWAI (CKP-T)'
+        : 'REALISASI SASARAN KINERJA PEGAWAI (CKP-R)';
+
+      if (type === 'ckpt') {
+        tableHeaderHtml = `
+          <tr>
+            <th style="width: 5%">No</th>
+            <th style="width: 55%">Kegiatan / Tugas (Butir SKP)</th>
+            <th style="width: 15%">Satuan</th>
+            <th style="width: 12%">Target Kuantitas</th>
+            <th style="width: 13%">Keterangan</th>
+          </tr>
+        `;
+      } else {
+        tableHeaderHtml = `
+          <tr>
+            <th style="width: 5%">No</th>
+            <th style="width: 45%">Kegiatan / Tugas (Butir SKP)</th>
+            <th style="width: 12%">Satuan</th>
+            <th style="width: 10%">Target</th>
+            <th style="width: 10%">Realisasi</th>
+            <th style="width: 9%">Capaian (%)</th>
+            <th style="width: 9%">Kualitas (%)</th>
+            <th style="width: 10%">Keterangan</th>
+          </tr>
+        `;
+      }
+
+      // Aggregate data by skpId
+      const sortedData = [...monthEntries].sort((a, b) => {
+        if (a.tanggal !== b.tanggal) return a.tanggal.localeCompare(b.tanggal);
+        return (a.waktuMulai || '').localeCompare(b.waktuMulai || '');
+      });
+
+      const aggregated = {};
+      sortedData.forEach(e => {
+        const skpKey = e.skpId || 'none';
+        if (!aggregated[skpKey]) {
+          aggregated[skpKey] = { kuantitas: 0, satuan: e.satuan || 'kegiatan' };
+        }
+        aggregated[skpKey].kuantitas += (e.kuantitas || 1);
+      });
+
+      rowsHtml = Object.keys(aggregated).map((skpIdStr, idx) => {
+        const skpItem = skpData.find(s => String(s.id) === skpIdStr);
+        const skpName = skpItem ? skpItem.nama : (skpIdStr === 'none' ? 'Kegiatan Tanpa SKP' : `SKP #${skpIdStr}`);
+        const qty = aggregated[skpIdStr].kuantitas;
+        const unit = aggregated[skpIdStr].satuan;
+
+        if (type === 'ckpt') {
+          return `
+            <tr>
+              <td class="center">${idx + 1}</td>
+              <td>${skpName}</td>
+              <td class="center">${unit}</td>
+              <td class="center">${qty}</td>
+              <td></td>
+            </tr>
+          `;
+        } else {
+          return `
+            <tr>
+              <td class="center">${idx + 1}</td>
+              <td>${skpName}</td>
+              <td class="center">${unit}</td>
+              <td class="center">${qty}</td>
+              <td class="center">${qty}</td>
+              <td class="center">100%</td>
+              <td class="center">100%</td>
+              <td></td>
+            </tr>
+          `;
+        }
+      }).join('');
+    }
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
@@ -3844,7 +3940,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Cetak CKP Harian - ${employeeName}</title>
+        <title>Cetak ${type.toUpperCase()} - ${employeeName}</title>
         <style>
           @media print {
             @page {
@@ -3988,7 +4084,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
           <button class="print-btn" onclick="window.print()">Cetak PDF</button>
         </div>
         <div class="print-card">
-          <div class="title">LAPORAN CAPAIAN KINERJA HARIAN PEGAWAI</div>
+          <div class="title">${titleText}</div>
           
           <table class="info-table">
             <tr>
@@ -4007,15 +4103,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
 
           <table class="main-table">
             <thead>
-              <tr>
-                <th style="width: 5%">No</th>
-                <th style="width: 12%">Tanggal</th>
-                <th style="width: 15%">Waktu Kerja</th>
-                <th style="width: 43%">Rincian Kegiatan</th>
-                <th style="width: 8%">Volume</th>
-                <th style="width: 10%">Satuan</th>
-                <th style="width: 7%">SKP</th>
-              </tr>
+              ${tableHeaderHtml}
             </thead>
             <tbody>
               ${rowsHtml}
@@ -4351,14 +4439,22 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
             </button>
           </div>
         </div>
-        <div className={styles.exportGroup}>
-          <button className={styles.exportBtnMini} style={{ backgroundColor: '#ef4444', color: '#fff', border: '1px solid #ef4444' }} onClick={handlePrintPDF} title="Cetak / Simpan sebagai PDF">PDF</button>
-          <button className={styles.exportBtnMini} onClick={handleExportDaily} title="Export CKP Daily">Daily</button>
-          <button className={styles.exportBtnMini} onClick={handleExportCKPT} title="Export CKP-T (Target)">CKP-T</button>
-          <button className={styles.exportBtnMini} onClick={handleExportCKPR} title="Export CKP-R (Realisasi)">CKP-R</button>
-          <button className={styles.exportBtnMiniPrimary} onClick={handleExportAll} title="Download 3 Laporan Sekaligus">
-            <Download size={14} style={{ marginRight: '6px' }} /> 1 Paket
-          </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
+          <div className={styles.exportGroup}>
+            <span style={{ fontSize: '11px', color: '#94a3b8', paddingLeft: '8px', paddingRight: '4px', fontWeight: 'bold' }}>Cetak PDF:</span>
+            <button className={styles.exportBtnMini} style={{ backgroundColor: '#ef4444', color: '#fff', border: '1px solid #ef4444' }} onClick={() => handlePrintPDF('daily')} title="Cetak PDF Daily">Daily</button>
+            <button className={styles.exportBtnMini} style={{ backgroundColor: '#ef4444', color: '#fff', border: '1px solid #ef4444' }} onClick={() => handlePrintPDF('ckpt')} title="Cetak PDF CKP-T (Target)">CKP-T</button>
+            <button className={styles.exportBtnMini} style={{ backgroundColor: '#ef4444', color: '#fff', border: '1px solid #ef4444' }} onClick={() => handlePrintPDF('ckpr')} title="Cetak PDF CKP-R (Realisasi)">CKP-R</button>
+          </div>
+          <div className={styles.exportGroup}>
+            <span style={{ fontSize: '11px', color: '#94a3b8', paddingLeft: '8px', paddingRight: '4px', fontWeight: 'bold' }}>Unduh Excel:</span>
+            <button className={styles.exportBtnMini} onClick={handleExportDaily} title="Export Excel Daily">Daily</button>
+            <button className={styles.exportBtnMini} onClick={handleExportCKPT} title="Export Excel CKP-T (Target)">CKP-T</button>
+            <button className={styles.exportBtnMini} onClick={handleExportCKPR} title="Export Excel CKP-R (Realisasi)">CKP-R</button>
+            <button className={styles.exportBtnMiniPrimary} onClick={handleExportAll} title="Download 3 Laporan Sekaligus">
+              <Download size={14} style={{ marginRight: '6px' }} /> 1 Paket
+            </button>
+          </div>
         </div>
       </div>
 
