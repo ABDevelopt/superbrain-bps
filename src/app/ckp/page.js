@@ -359,8 +359,21 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
   // 2. Prefill form fields when initialData (editing entry) is provided
   useEffect(() => {
     if (initialData) {
+      // Find the date range of the group if it's a multi-day activity
+      const groupEntries = (initialData.groupId && entries)
+        ? entries.filter(e => e.groupId === initialData.groupId)
+        : [];
+      const isMulti = groupEntries.length > 1;
+      let startDate = initialData.tanggal || sharedDate || getTodayStr();
+      let endDate = '';
+      if (isMulti) {
+        const sortedDates = groupEntries.map(e => e.tanggal).sort();
+        startDate = sortedDates[0];
+        endDate = sortedDates[sortedDates.length - 1];
+      }
+
       setForm({
-        tanggal: initialData.tanggal || sharedDate || getTodayStr(),
+        tanggal: startDate,
         waktuMulai: initialData.waktuMulai || '',
         waktuSelesai: initialData.waktuSelesai || '',
         skpId: initialData.skpId ? String(initialData.skpId) : '',
@@ -368,6 +381,10 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         kuantitas: initialData.kuantitas || '',
         satuan: initialData.satuan || 'Kegiatan',
         timKerja: initialData.timKerja || TIM_KERJA_OPTIONS[0],
+        isFullday: initialData.isFullday || false,
+        isMultiHari: isMulti,
+        tanggalAkhir: endDate || startDate,
+        skipHoliday: true, // Default to true
         _fromScheduleEventId: initialData.fromScheduleEventId || null,
         _sumber: initialData.sumber || 'manual',
         _sourceScheduleId: initialData.sourceScheduleId || null,
@@ -3525,9 +3542,115 @@ function stretchMonthEntries(originalEntries, checkHoliday, checkDl) {
 }
 
 // TAB 3: Rekap Bulanan
-function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday, checkDl, onToggleDl, onStretchClick, onEdit, onDelete, onCreateEmptyFolder, creatingFolderId, accessToken, skpData }) {
+function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday, checkDl, onToggleDl, onStretchClick, onEdit, onDelete, deleteDocument, updateDocument, onCreateEmptyFolder, creatingFolderId, accessToken, skpData }) {
   const { showAlert } = useAlert();
   const [selectedMonth, setSelectedMonth] = useState(sharedDate ? sharedDate.substring(0, 7) : getCurrentMonthStr());
+  
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [showBulkActionDeleteConfirm, setShowBulkActionDeleteConfirm] = useState(false);
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
+  const [bulkEditForm, setBulkEditForm] = useState({
+    updateSkp: false,
+    skpId: '',
+    updateTimKerja: false,
+    timKerja: TIM_KERJA_OPTIONS[0],
+    updateSatuan: false,
+    satuan: 'Kegiatan',
+    updateTanggal: false,
+    tanggal: sharedDate ? (sharedDate.substring(0, 7) + '-01') : new Date().toISOString().split('T')[0],
+    updateWaktu: false,
+    waktuMulai: '08:00',
+    waktuSelesai: '16:00',
+  });
+
+  const monthEntries = useMemo(() => {
+    return entries.filter(e => e.tanggal && e.tanggal.startsWith(`${selectedMonth}-`));
+  }, [entries, selectedMonth]);
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [selectedMonth]);
+
+  useEffect(() => {
+    if (showBulkEditModal) {
+      setBulkEditForm(p => ({ ...p, tanggal: selectedMonth + '-01' }));
+    }
+  }, [showBulkEditModal, selectedMonth]);
+
+  const handleToggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === monthEntries.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(monthEntries.map(e => e.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    setShowBulkActionDeleteConfirm(false);
+    const count = selectedIds.size;
+    try {
+      await Promise.all(Array.from(selectedIds).map(id => deleteDocument(id)));
+      setSelectedIds(new Set());
+      showAlert(`Berhasil menghapus ${count} kegiatan terpilih!`, 'success');
+    } catch (err) {
+      showAlert('Gagal menghapus beberapa kegiatan: ' + err.message);
+    }
+  };
+
+  const handleBulkEditSubmit = async (e) => {
+    e.preventDefault();
+    const updates = {};
+    if (bulkEditForm.updateSkp) updates.skpId = Number(bulkEditForm.skpId) || null;
+    if (bulkEditForm.updateTimKerja) updates.timKerja = bulkEditForm.timKerja;
+    if (bulkEditForm.updateSatuan) updates.satuan = bulkEditForm.satuan;
+    if (bulkEditForm.updateTanggal) updates.tanggal = bulkEditForm.tanggal;
+    if (bulkEditForm.updateWaktu) {
+      updates.waktuMulai = bulkEditForm.waktuMulai;
+      updates.waktuSelesai = bulkEditForm.waktuSelesai;
+      updates.durasi = calcDurationMinutes(bulkEditForm.waktuMulai, bulkEditForm.waktuSelesai);
+    }
+
+    if (Object.keys(updates).length === 0) {
+      showAlert('Silakan pilih minimal satu field yang ingin diubah.');
+      return;
+    }
+
+    const count = selectedIds.size;
+    try {
+      await Promise.all(Array.from(selectedIds).map(id => updateDocument(id, updates)));
+      setSelectedIds(new Set());
+      setShowBulkEditModal(false);
+      // Reset form options
+      setBulkEditForm({
+        updateSkp: false,
+        skpId: '',
+        updateTimKerja: false,
+        timKerja: TIM_KERJA_OPTIONS[0],
+        updateSatuan: false,
+        satuan: 'Kegiatan',
+        updateTanggal: false,
+        tanggal: selectedMonth + '-01',
+        updateWaktu: false,
+        waktuMulai: '08:00',
+        waktuSelesai: '16:00',
+      });
+      showAlert(`Berhasil memperbarui ${count} kegiatan terpilih!`, 'success');
+    } catch (err) {
+      showAlert('Gagal memperbarui beberapa kegiatan: ' + err.message);
+    }
+  };
 
   useEffect(() => {
     if (sharedDate) {
@@ -3833,6 +3956,27 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
         )}
 
         <h4 className={styles.timeVizTitle} style={{ marginTop: '32px', marginBottom: '16px' }}>Tabel Rincian Data Harian (Preview Ekspor)</h4>
+        {selectedIds.size > 0 && (
+          <div className={styles.bulkActionBar} style={{ marginBottom: '16px' }}>
+            <span className={styles.selectedCountText}>{selectedIds.size} terpilih</span>
+            <div className={styles.bulkActionButtons}>
+              <button 
+                type="button"
+                onClick={() => setShowBulkEditModal(true)} 
+                className={styles.bulkEditBtn}
+              >
+                <Edit3 size={14} /> Edit Massal
+              </button>
+              <button 
+                type="button"
+                onClick={() => setShowBulkActionDeleteConfirm(true)} 
+                className={styles.bulkDeleteBtn}
+              >
+                <Trash2 size={14} /> Hapus Massal
+              </button>
+            </div>
+          </div>
+        )}
         {getMonthEntries().length === 0 ? (
           <div className={styles.emptyState}>
             <p>Belum ada rincian data untuk bulan ini.</p>
@@ -3842,6 +3986,14 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
             <table className={styles.table}>
               <thead>
                 <tr>
+                  <th style={{ width: '40px', textAlign: 'center' }}>
+                    <input 
+                      type="checkbox"
+                      checked={selectedIds.size === getMonthEntries().length && getMonthEntries().length > 0}
+                      onChange={handleSelectAll}
+                      style={{ cursor: 'pointer', accentColor: '#38bdf8' }}
+                    />
+                  </th>
                   <th>Tanggal</th>
                   <th>Waktu</th>
                   <th>Kegiatan</th>
@@ -3857,6 +4009,14 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
                   return (a.waktuMulai || '').localeCompare(b.waktuMulai || '');
                 }).map((row) => (
                   <tr key={row.id}>
+                    <td style={{ textAlign: 'center' }}>
+                      <input 
+                        type="checkbox"
+                        checked={selectedIds.has(row.id)}
+                        onChange={() => handleToggleSelect(row.id)}
+                        style={{ cursor: 'pointer', accentColor: '#38bdf8' }}
+                      />
+                    </td>
                     <td>{row.tanggal}</td>
                     <td>{row.waktuMulai} - {row.waktuSelesai}</td>
                     <td style={{ maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={row.rincian}>{row.rincian}</td>
@@ -3945,6 +4105,172 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
                 <Check size={16} /> Ya, Sesuaikan Otomatis
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialog 
+        isOpen={showBulkActionDeleteConfirm} 
+        onConfirm={handleBulkDelete} 
+        onCancel={() => setShowBulkActionDeleteConfirm(false)} 
+        title="Hapus Massal Kegiatan" 
+        message={`Apakah Anda yakin ingin menghapus ${selectedIds.size} kegiatan terpilih secara permanen? Tindakan ini tidak dapat dibatalkan.`} 
+        confirmText="Hapus Semua" 
+        cancelText="Batal"
+        variant="danger" 
+      />
+
+      {showBulkEditModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent} style={{ maxWidth: '500px' }}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>Edit Massal ({selectedIds.size} Kegiatan)</h3>
+              <button type="button" onClick={() => setShowBulkEditModal(false)} className={styles.modalCloseBtn}>
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleBulkEditSubmit} className={styles.bulkEditForm}>
+              <p style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '16px' }}>
+                Centang kolom yang ingin diubah untuk seluruh kegiatan terpilih.
+              </p>
+              
+              {/* SKP */}
+              <div className={styles.bulkFormRow}>
+                <label className={styles.bulkFormCheckLabel}>
+                  <input 
+                    type="checkbox" 
+                    checked={bulkEditForm.updateSkp}
+                    onChange={e => setBulkEditForm(p => ({ ...p, updateSkp: e.target.checked }))}
+                    className={styles.bulkFormCheckbox}
+                  />
+                  <span>Ubah Butir SKP</span>
+                </label>
+                {bulkEditForm.updateSkp && (
+                  <select 
+                    value={bulkEditForm.skpId} 
+                    onChange={e => setBulkEditForm(p => ({ ...p, skpId: e.target.value }))}
+                    className={styles.bulkSelect}
+                    required
+                  >
+                    <option value="">— Pilih SKP —</option>
+                    {skpData.map(s => (
+                      <option key={s.id} value={s.id}>{s.id}. {s.nama}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* Tim Kerja */}
+              <div className={styles.bulkFormRow}>
+                <label className={styles.bulkFormCheckLabel}>
+                  <input 
+                    type="checkbox" 
+                    checked={bulkEditForm.updateTimKerja}
+                    onChange={e => setBulkEditForm(p => ({ ...p, updateTimKerja: e.target.checked }))}
+                    className={styles.bulkFormCheckbox}
+                  />
+                  <span>Ubah Tim Kerja</span>
+                </label>
+                {bulkEditForm.updateTimKerja && (
+                  <select 
+                    value={bulkEditForm.timKerja} 
+                    onChange={e => setBulkEditForm(p => ({ ...p, timKerja: e.target.value }))}
+                    className={styles.bulkSelect}
+                    required
+                  >
+                    {TIM_KERJA_OPTIONS.map(tim => (
+                      <option key={tim} value={tim}>{tim}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* Satuan */}
+              <div className={styles.bulkFormRow}>
+                <label className={styles.bulkFormCheckLabel}>
+                  <input 
+                    type="checkbox" 
+                    checked={bulkEditForm.updateSatuan}
+                    onChange={e => setBulkEditForm(p => ({ ...p, updateSatuan: e.target.checked }))}
+                    className={styles.bulkFormCheckbox}
+                  />
+                  <span>Ubah Satuan</span>
+                </label>
+                {bulkEditForm.updateSatuan && (
+                  <input 
+                    type="text" 
+                    value={bulkEditForm.satuan} 
+                    onChange={e => setBulkEditForm(p => ({ ...p, satuan: e.target.value }))}
+                    className={styles.bulkInput}
+                    required
+                  />
+                )}
+              </div>
+
+              {/* Tanggal */}
+              <div className={styles.bulkFormRow}>
+                <label className={styles.bulkFormCheckLabel}>
+                  <input 
+                    type="checkbox" 
+                    checked={bulkEditForm.updateTanggal}
+                    onChange={e => setBulkEditForm(p => ({ ...p, updateTanggal: e.target.checked }))}
+                    className={styles.bulkFormCheckbox}
+                  />
+                  <span>Pindahkan Tanggal</span>
+                </label>
+                {bulkEditForm.updateTanggal && (
+                  <input 
+                    type="date" 
+                    value={bulkEditForm.tanggal} 
+                    onChange={e => setBulkEditForm(p => ({ ...p, tanggal: e.target.value }))}
+                    className={styles.bulkInput}
+                    required
+                  />
+                )}
+              </div>
+
+              {/* Waktu */}
+              <div className={styles.bulkFormRow} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                <label className={styles.bulkFormCheckLabel} style={{ marginBottom: bulkEditForm.updateWaktu ? '8px' : 0 }}>
+                  <input 
+                    type="checkbox" 
+                    checked={bulkEditForm.updateWaktu}
+                    onChange={e => setBulkEditForm(p => ({ ...p, updateWaktu: e.target.checked }))}
+                    className={styles.bulkFormCheckbox}
+                  />
+                  <span>Ubah Jam Kerja</span>
+                </label>
+                {bulkEditForm.updateWaktu && (
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input 
+                      type="time" 
+                      value={bulkEditForm.waktuMulai} 
+                      onChange={e => setBulkEditForm(p => ({ ...p, waktuMulai: e.target.value }))}
+                      className={styles.bulkInput}
+                      style={{ flex: 1 }}
+                      required
+                    />
+                    <input 
+                      type="time" 
+                      value={bulkEditForm.waktuSelesai} 
+                      onChange={e => setBulkEditForm(p => ({ ...p, waktuSelesai: e.target.value }))}
+                      className={styles.bulkInput}
+                      style={{ flex: 1 }}
+                      required
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.bulkFormActions}>
+                <button type="button" onClick={() => setShowBulkEditModal(false)} className={styles.bulkCancelBtn}>
+                  Batal
+                </button>
+                <button type="submit" className={styles.bulkSubmitBtn}>
+                  Terapkan Perubahan
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -4444,21 +4770,76 @@ function CKPPageInner() {
     try {
       if (mode === 'all') {
         const groupEntries = entries.filter(e => e.groupId === bulkEditGroupId);
-        for (const entry of groupEntries) {
-          const updateData = {
-            ...bulkEditData,
-            tanggal: entry.tanggal, // Preserve original date
-          };
-          if (entry.keteranganHari) {
-            updateData.keteranganHari = entry.keteranganHari; // Preserve weekend label
+        
+        // If it is a multi-day range update (i.e. updated using isMultiHari)
+        if (bulkEditData.isMultiHari && bulkEditData.tanggal && bulkEditData.tanggalAkhir && bulkEditData.tanggalAkhir >= bulkEditData.tanggal) {
+          // 1. Delete all old entries in the group
+          for (const entry of groupEntries) {
+            await deleteDocument(entry.id);
           }
-          await updateDocument(entry.id, updateData);
+          
+          // 2. Recreate entries for the new range
+          const start = new Date(bulkEditData.tanggal + 'T00:00:00');
+          const end = new Date(bulkEditData.tanggalAkhir + 'T00:00:00');
+          const multiData = { ...bulkEditData };
+          delete multiData.isMultiHari;
+          delete multiData.tanggalAkhir;
+          delete multiData.skipHoliday;
+          multiData.groupId = bulkEditGroupId; // Keep the same groupId
+          
+          let cursor = new Date(start);
+          while (cursor <= end) {
+            const dateStr = cursor.toISOString().split('T')[0];
+            const dow = cursor.getDay();
+            
+            let skip = false;
+            if (bulkEditData.skipHoliday) {
+              if (dow === 0 || dow === 6) skip = true;
+              else if (checkHoliday && checkHoliday(dateStr)) skip = true;
+            }
+
+            if (!skip) {
+              let keteranganHari = '';
+              if (checkHoliday && checkHoliday(dateStr)) {
+                keteranganHari = 'Libur Nasional / Cuti';
+              } else if (dow === 0 || dow === 6) {
+                keteranganHari = 'Akhir Pekan (Libur)';
+              }
+              
+              const dayEntry = { 
+                ...multiData, 
+                tanggal: dateStr,
+                ...(keteranganHari ? { keteranganHari } : {}),
+              };
+              await addDocument(dayEntry);
+            }
+
+            cursor.setDate(cursor.getDate() + 1);
+          }
+        } else {
+          // Standard bulk update (keep original dates)
+          for (const entry of groupEntries) {
+            const updateData = {
+              ...bulkEditData,
+              tanggal: entry.tanggal, // Preserve original date
+            };
+            if (entry.keteranganHari) {
+              updateData.keteranganHari = entry.keteranganHari; // Preserve weekend label
+            }
+            delete updateData.isMultiHari;
+            delete updateData.tanggalAkhir;
+            delete updateData.skipHoliday;
+            await updateDocument(entry.id, updateData);
+          }
         }
       } else if (mode === 'single') {
         const updateData = {
           ...bulkEditData,
           groupId: null // Decouple
         };
+        delete updateData.isMultiHari;
+        delete updateData.tanggalAkhir;
+        delete updateData.skipHoliday;
         await updateDocument(bulkEditId, updateData);
       }
       setToastVisible(true);
@@ -4846,6 +5227,8 @@ function CKPPageInner() {
                 onStretchClick={setStretchConfirmDate}
                 onEdit={handleEdit}
                 onDelete={handleDelete}
+                deleteDocument={deleteDocument}
+                updateDocument={updateDocument}
                 onCreateEmptyFolder={handleCreateEmptyFolder}
                 creatingFolderId={creatingFolderId}
                 accessToken={accessToken}
