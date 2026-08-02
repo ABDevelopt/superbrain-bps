@@ -272,6 +272,36 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
     timKerja: TIM_KERJA_OPTIONS[0],
   });
 
+  // 1. Reset form and attachment states to empty when initialData becomes null (canceled edit or finished edit)
+  useEffect(() => {
+    if (!initialData) {
+      setForm({
+        tanggal: sharedDate || getTodayStr(),
+        isFullday: false,
+        isMultiHari: false,
+        tanggalAkhir: '',
+        skipHoliday: true,
+        waktuMulai: '',
+        waktuSelesai: '',
+        skpId: '',
+        rincian: '',
+        kuantitas: '',
+        satuan: 'Kegiatan',
+        timKerja: TIM_KERJA_OPTIONS[0],
+      });
+      setSkpSearch('');
+      setFiles([]);
+      setPreviewImage(null);
+      setCurrentBuktiDukungDriveLink('');
+      setBuktiLink('');
+      setCurrentBuktiPresensiDriveLink('');
+      setPresensiFile(null);
+      setPresensiLink('');
+      setPresensiPreviewImage(null);
+    }
+  }, [initialData]);
+
+  // 2. Prefill form fields when initialData (editing entry) is provided
   useEffect(() => {
     if (initialData) {
       setForm({
@@ -318,11 +348,15 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         setCurrentBuktiPresensiDriveLink('');
         setPresensiLink('');
       }
+    }
+  }, [initialData]);
 
-    } else {
+  // 3. Keep form date in sync when sharedDate is changed by the user (only for new entries)
+  useEffect(() => {
+    if (!initialData && sharedDate) {
       setForm(prev => ({ ...prev, tanggal: sharedDate }));
     }
-  }, [initialData, sharedDate]);
+  }, [sharedDate, initialData]);
 
   const handleShortenLinkInline = async () => {
     if (!buktiLink) return;
