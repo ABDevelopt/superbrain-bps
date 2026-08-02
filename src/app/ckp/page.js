@@ -285,7 +285,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         await makeFileOrFolderPublic(subfolderId, accessToken);
         
         for (let i = 0; i < filesToUpload.length; i++) {
-          const fileName = `${form.tanggal} - ${cleanKegiatan} - ${i + 1}_${filesToUpload[i].name}`;
+          const fileName = filesToUpload[i].name;
           await uploadFileToDrive(filesToUpload[i], accessToken, subfolderId, fileName);
         }
         driveUrl = `https://drive.google.com/drive/folders/${subfolderId}`;
@@ -1083,7 +1083,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
               
               // Upload all files into subfolder
               for (let i = 0; i < files.length; i++) {
-                const fileName = `${form.tanggal} - ${cleanKegiatan} - ${i + 1}_${files[i].name}`;
+                const fileName = files[i].name;
                 await uploadFileToDrive(files[i], accessToken, subfolderId, fileName);
               }
               finalBuktiDukung = `https://drive.google.com/drive/folders/${subfolderId}`;
@@ -1094,7 +1094,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
             needsOfflineSave = true;
             offlineFiles = files.map((f, idx) => ({
               file: f,
-              customFileName: `${form.tanggal} - ${cleanKegiatan} - ${files.length > 1 ? (idx + 1) + '_' : ''}${f.name}`
+              customFileName: files.length > 1 ? f.name : `${form.tanggal} - ${cleanKegiatan} - ${f.name}`
             }));
             offlineErrorMsg = err.message && err.message.includes('401') 
               ? 'Sesi Google Drive kedaluwarsa. File disimpan sementara secara lokal.'
@@ -1104,7 +1104,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
           needsOfflineSave = true;
           offlineFiles = files.map((f, idx) => ({
             file: f,
-            customFileName: `${form.tanggal} - ${cleanKegiatan} - ${files.length > 1 ? (idx + 1) + '_' : ''}${f.name}`
+            customFileName: files.length > 1 ? f.name : `${form.tanggal} - ${cleanKegiatan} - ${f.name}`
           }));
           offlineErrorMsg = 'Anda belum terhubung ke Google Drive. File disimpan sementara secara lokal.';
         }
