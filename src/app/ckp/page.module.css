@@ -2427,6 +2427,45 @@
   color: #fff;
 }
 
+/* Orange/Warm Badge for Empty GDrive Folders */
+.buktiLinkKosong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  color: #fdba74;
+  font-size: 13px;
+  text-decoration: none;
+  background: rgba(251, 146, 60, 0.1);
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition: background 0.25s;
+  border: 1px dashed rgba(251, 146, 60, 0.35);
+}
+
+.buktiLinkKosong:hover {
+  background: rgba(251, 146, 60, 0.2);
+}
+
+.buktiLinkKosongTable {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #fdba74;
+  font-size: 11.5px;
+  text-decoration: none;
+  background: rgba(251, 146, 60, 0.08);
+  padding: 2px 8px;
+  border-radius: 4px;
+  transition: background 0.25s;
+  border: 1px dashed rgba(251, 146, 60, 0.25);
+}
+
+.buktiLinkKosongTable:hover {
+  background: rgba(251, 146, 60, 0.18);
+}
+
+
 
 
 

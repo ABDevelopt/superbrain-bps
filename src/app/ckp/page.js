@@ -901,6 +901,8 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
 
     try {
       // 1. Process Bukti Dukung
+      let buktiDukungStatus = initialData ? (initialData.buktiDukungStatus || null) : null;
+
       if (files.length > 0) {
         if (accessToken) {
           try {
@@ -910,6 +912,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
             if (files.length === 1) {
               const fileName = `${form.tanggal} - ${cleanKegiatan} - ${files[0].name}`;
               finalBuktiDukung = await uploadFileToDrive(files[0], accessToken, mainFolderId, fileName);
+              buktiDukungStatus = 'file';
             } else {
               // Create subfolder
               const subfolderName = `${form.tanggal} - ${cleanKegiatan}`;
@@ -922,6 +925,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
                 await uploadFileToDrive(files[i], accessToken, subfolderId, fileName);
               }
               finalBuktiDukung = `https://drive.google.com/drive/folders/${subfolderId}`;
+              buktiDukungStatus = 'folder';
             }
           } catch (err) {
             console.error("Upload bukti dukung error:", err);
@@ -944,8 +948,31 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         }
       } else if (buktiLink) {
         finalBuktiDukung = buktiLink;
+        buktiDukungStatus = buktiLink.includes('folders/') ? 'folder' : 'file';
       } else if (currentBuktiDukungDriveLink) {
         finalBuktiDukung = currentBuktiDukungDriveLink;
+        buktiDukungStatus = currentBuktiDukungDriveLink.includes('folders/') ? (initialData?.buktiDukungStatus || 'folder') : 'file';
+      } else {
+        // DEFAULT: Auto-create empty folder if user is connected
+        if (accessToken) {
+          try {
+            const parentFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
+            const mainFolderId = await getOrCreateFolder(accessToken, 'Bukti Dukung CKP', parentFolderId);
+            const subfolderName = `${form.tanggal} - ${cleanKegiatan}`;
+            const subfolderId = await getOrCreateFolder(accessToken, subfolderName, mainFolderId);
+            await makeFileOrFolderPublic(subfolderId, accessToken);
+            
+            finalBuktiDukung = `https://drive.google.com/drive/folders/${subfolderId}`;
+            buktiDukungStatus = 'kosong';
+          } catch (err) {
+            console.error("Auto create empty folder error:", err);
+            finalBuktiDukung = null;
+            buktiDukungStatus = null;
+          }
+        } else {
+          finalBuktiDukung = null;
+          buktiDukungStatus = null;
+        }
       }
 
       // 2. Process Bukti Presensi
@@ -1024,6 +1051,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         kuantitas: Number(form.kuantitas) || 1,
         durasi: duration,
         buktiDukung: finalBuktiDukung || (initialData ? initialData.buktiDukung : null) || null,
+        buktiDukungStatus: buktiDukungStatus || (initialData ? initialData.buktiDukungStatus : null) || null,
         buktiPresensi: finalBuktiPresensi || (initialData ? initialData.buktiPresensi : null) || null,
         fromScheduleEventId: form._fromScheduleEventId || (initialData ? initialData.fromScheduleEventId : null) || null,
         sumber: form._sumber || (initialData ? initialData.sumber : 'manual') || 'manual',
@@ -2728,9 +2756,20 @@ function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDa
                   <div className={styles.timelineRincian}>{entry.rincian}</div>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
                     {entry.buktiDukung ? (
-                      <a href={entry.buktiDukung} target="_blank" rel="noopener noreferrer" className={styles.buktiLink} style={{ margin: 0 }}>
-                        <Paperclip size={14} /> Lihat Bukti Dukung
-                      </a>
+                      entry.buktiDukungStatus === 'kosong' ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <a href={entry.buktiDukung} target="_blank" rel="noopener noreferrer" className={styles.buktiLinkKosong} style={{ margin: 0 }}>
+                            <FolderOpen size={14} /> Folder Bukti (Masih Kosong)
+                          </a>
+                          <span style={{ color: '#fb923c', fontSize: '12px', fontWeight: '500', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            ⚠️ Belum diisi file
+                          </span>
+                        </div>
+                      ) : (
+                        <a href={entry.buktiDukung} target="_blank" rel="noopener noreferrer" className={styles.buktiLink} style={{ margin: 0 }}>
+                          <Paperclip size={14} /> Lihat Bukti Dukung
+                        </a>
+                      )
                     ) : pendingUploads.some(item => item.id === entry.id) ? (
                       <span className={styles.buktiLink} style={{ color: '#ef4444', border: '1px dashed rgba(239,68,68,0.3)', cursor: 'default', background: 'rgba(239,68,68,0.05)', display: 'inline-flex', alignItems: 'center', gap: '4px', margin: 0 }}>
                         <CloudOff size={14} /> Bukti Dukung (Offline)
@@ -3251,9 +3290,18 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
                     </td>
                     <td>
                       {row.buktiDukung ? (
-                        <a href={row.buktiDukung} target="_blank" rel="noopener noreferrer" className={styles.buktiLinkTable}>
-                          <Paperclip size={12} style={{ marginRight: '4px' }} /> Lihat Bukti
-                        </a>
+                        row.buktiDukungStatus === 'kosong' ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <a href={row.buktiDukung} target="_blank" rel="noopener noreferrer" className={styles.buktiLinkKosongTable}>
+                              <FolderOpen size={12} /> Folder Kosong
+                            </a>
+                            <span style={{ color: '#fb923c', fontSize: '10px' }} title="Belum diisi file">⚠️</span>
+                          </div>
+                        ) : (
+                          <a href={row.buktiDukung} target="_blank" rel="noopener noreferrer" className={styles.buktiLinkTable}>
+                            <Paperclip size={12} style={{ marginRight: '4px' }} /> Lihat Bukti
+                          </a>
+                        )
                       ) : (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <span className={styles.warningBadgeTable}>⚠️ Belum Upload</span>
