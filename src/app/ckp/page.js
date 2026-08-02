@@ -3698,6 +3698,7 @@ function stretchMonthEntries(originalEntries, checkHoliday, checkDl) {
 // TAB 3: Rekap Bulanan
 function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday, checkDl, onToggleDl, onStretchClick, onEdit, onDelete, deleteDocument, updateDocument, onCreateEmptyFolder, creatingFolderId, accessToken, skpData }) {
   const { showAlert } = useAlert();
+  const { user } = useAuth();
   const [selectedMonth, setSelectedMonth] = useState(sharedDate ? sharedDate.substring(0, 7) : getCurrentMonthStr());
   
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -3730,6 +3731,261 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
       setBulkEditForm(p => ({ ...p, tanggal: selectedMonth + '-01' }));
     }
   }, [showBulkEditModal, selectedMonth]);
+
+  const getSignatureDate = () => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const lastDay = new Date(year, month, 0).getDate();
+    return `${lastDay} ${getMonthName(month - 1)} ${year}`;
+  };
+
+  const handlePrintPDF = () => {
+    const monthEntries = getMonthEntries();
+    if (monthEntries.length === 0) {
+      showAlert('Tidak ada data kegiatan di bulan ini.');
+      return;
+    }
+
+    const sortedData = [...monthEntries].sort((a, b) => {
+      if (a.tanggal !== b.tanggal) return a.tanggal.localeCompare(b.tanggal);
+      return (a.waktuMulai || '').localeCompare(b.waktuMulai || '');
+    });
+
+    const rowsHtml = sortedData.map((e, idx) => {
+      const formattedDate = e.tanggal ? e.tanggal.split('-').reverse().join('/') : '';
+      return `
+        <tr>
+          <td class="center">${idx + 1}</td>
+          <td class="center">${formattedDate}</td>
+          <td class="center">${e.waktuMulai || ''} - ${e.waktuSelesai || ''}</td>
+          <td>${e.rincian || ''}</td>
+          <td class="center">${e.kuantitas || 1}</td>
+          <td class="center">${e.satuan || 'kegiatan'}</td>
+          <td class="center">${e.skpId ? '#' + e.skpId : '-'}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const [yearStr, monthStr] = selectedMonth.split('-');
+    const monthIndex = Number(monthStr) - 1;
+    const periodStr = `${getMonthName(monthIndex)}`;
+    const yearVal = yearStr;
+    const employeeName = user?.displayName || 'Yahya Abdurrohman';
+    const sigDate = getSignatureDate();
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      showAlert('Gagal membuka jendela cetak. Pastikan pop-up tidak diblokir oleh browser.');
+      return;
+    }
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Cetak CKP Harian - ${employeeName}</title>
+        <style>
+          @media print {
+            @page {
+              size: A4 portrait;
+              margin: 15mm 12mm 15mm 12mm;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+              background: #fff;
+              color: #000;
+              font-family: 'Arial', sans-serif;
+              font-size: 10.5pt;
+            }
+            .no-print {
+              display: none !important;
+            }
+            .print-card {
+              max-width: 100% !important;
+              box-shadow: none !important;
+              padding: 0 !important;
+              border-radius: 0 !important;
+            }
+          }
+          body {
+            background: #f1f5f9;
+            margin: 20px;
+            font-family: 'Arial', sans-serif;
+            font-size: 11pt;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+          }
+          .print-card {
+            background: #fff;
+            width: 100%;
+            max-width: 800px;
+            padding: 30px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            border-radius: 8px;
+            box-sizing: border-box;
+          }
+          .no-print-bar {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-bottom: 15px;
+          }
+          .print-btn {
+            background: #ef4444;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+          }
+          .print-btn:hover {
+            background: #dc2626;
+          }
+          .close-btn {
+            background: #64748b;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+          }
+          .close-btn:hover {
+            background: #475569;
+          }
+          .title {
+            text-align: center;
+            font-size: 13pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 8px;
+          }
+          .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+          }
+          .info-table td {
+            border: none;
+            padding: 4px;
+            font-size: 10pt;
+          }
+          .main-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+          }
+          .main-table th, .main-table td {
+            border: 1px solid #000;
+            padding: 6px 8px;
+            text-align: left;
+            font-size: 9pt;
+            word-break: break-word;
+          }
+          .main-table th {
+            background-color: #f3f4f6;
+            font-weight: bold;
+            text-align: center;
+          }
+          .main-table td.center {
+            text-align: center;
+          }
+          .signature-section {
+            width: 100%;
+            margin-top: 35px;
+            page-break-inside: avoid;
+          }
+          .signature-table {
+            width: 100%;
+            border-collapse: collapse;
+          }
+          .signature-table td {
+            border: none;
+            width: 50%;
+            text-align: center;
+            padding-top: 10px;
+            font-size: 10pt;
+          }
+          .signature-space {
+            height: 65px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="no-print no-print-bar">
+          <button class="close-btn" onclick="window.close()">Tutup</button>
+          <button class="print-btn" onclick="window.print()">Cetak PDF</button>
+        </div>
+        <div class="print-card">
+          <div class="title">LAPORAN CAPAIAN KINERJA HARIAN PEGAWAI</div>
+          
+          <table class="info-table">
+            <tr>
+              <td style="width: 18%"><strong>Nama Pegawai</strong></td>
+              <td style="width: 35%">: ${employeeName}</td>
+              <td style="width: 15%"><strong>Bulan</strong></td>
+              <td style="width: 32%">: ${periodStr}</td>
+            </tr>
+            <tr>
+              <td><strong>Satuan Organisasi</strong></td>
+              <td>: Badan Pusat Statistik</td>
+              <td><strong>Tahun</strong></td>
+              <td>: ${yearVal}</td>
+            </tr>
+          </table>
+
+          <table class="main-table">
+            <thead>
+              <tr>
+                <th style="width: 5%">No</th>
+                <th style="width: 12%">Tanggal</th>
+                <th style="width: 15%">Waktu Kerja</th>
+                <th style="width: 43%">Rincian Kegiatan</th>
+                <th style="width: 8%">Volume</th>
+                <th style="width: 10%">Satuan</th>
+                <th style="width: 7%">SKP</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+
+          <div class="signature-section">
+            <table class="signature-table">
+              <tr>
+                <td>
+                  Mengetahui,<br>
+                  Pejabat Penilai
+                  <div class="signature-space"></div>
+                  <strong>(......................................................)</strong><br>
+                  NIP.
+                </td>
+                <td>
+                  Kabupaten/Kota, ${sigDate}<br>
+                  Pegawai yang bersangkutan,
+                  <div class="signature-space"></div>
+                  <strong>${employeeName}</strong><br>
+                  NIP.
+                </td>
+              </tr>
+            </table>
+          </div>
+        </div>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   const handleToggleSelect = (id) => {
     setSelectedIds(prev => {
@@ -4034,6 +4290,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
           </div>
         </div>
         <div className={styles.exportGroup}>
+          <button className={styles.exportBtnMini} style={{ backgroundColor: '#ef4444', color: '#fff', border: '1px solid #ef4444' }} onClick={handlePrintPDF} title="Cetak / Simpan sebagai PDF">PDF</button>
           <button className={styles.exportBtnMini} onClick={handleExportDaily} title="Export CKP Daily">Daily</button>
           <button className={styles.exportBtnMini} onClick={handleExportCKPT} title="Export CKP-T (Target)">CKP-T</button>
           <button className={styles.exportBtnMini} onClick={handleExportCKPR} title="Export CKP-R (Realisasi)">CKP-R</button>
