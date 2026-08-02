@@ -2496,24 +2496,30 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, on
                   onClick={() => onEdit && onEdit(b.entry)}
                 >
                   <div className={styles.monthlyVizTooltip}>
-                    <strong>{b.entry.waktuMulai} — {b.entry.waktuSelesai}</strong>
-                    <p>{b.entry.rincian}</p>
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }} onClick={e => e.stopPropagation()}>
-                      <button
-                        type="button"
-                        onClick={() => onEdit && onEdit(b.entry)}
-                        className={styles.tooltipBtnEdit}
-                      >
-                        <Edit3 size={11} /> Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onDelete && onDelete(b.entry.id)}
-                        className={styles.tooltipBtnDelete}
-                      >
-                        <Trash2 size={11} /> Hapus
-                      </button>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', gap: '8px' }}>
+                      <strong style={{ margin: 0, color: '#38bdf8' }}>{b.entry.waktuMulai} — {b.entry.waktuSelesai}</strong>
+                      <div style={{ display: 'flex', gap: '6px' }} onClick={e => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={() => onEdit && onEdit(b.entry)}
+                          className={styles.tooltipBtnEdit}
+                          title="Edit"
+                          style={{ padding: '2px 5px' }}
+                        >
+                          <Edit3 size={10} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onDelete && onDelete(b.entry.id)}
+                          className={styles.tooltipBtnDelete}
+                          title="Hapus"
+                          style={{ padding: '2px 5px' }}
+                        >
+                          <Trash2 size={10} />
+                        </button>
+                      </div>
                     </div>
+                    <p style={{ margin: 0 }}>{b.entry.rincian}</p>
                   </div>
                 </div>
               ))}
