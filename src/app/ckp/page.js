@@ -4,7 +4,7 @@ import { useState, useMemo, useCallback, useEffect, useRef, Suspense } from 'rea
 import { useSearchParams } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { useAlert } from '@/contexts/AlertContext';
-import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Clock, Link as LinkIcon, CloudOff, FolderOpen, AlertTriangle, Sparkles } from 'lucide-react';
+import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Clock, Link as LinkIcon, CloudOff, FolderOpen, AlertTriangle, Sparkles, FolderPlus, ExternalLink } from 'lucide-react';
 import { useSkps } from '@/hooks/useSkps';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
@@ -207,6 +207,54 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
   const [backgroundUploadedStatus, setBackgroundUploadedStatus] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isDraggingPresensi, setIsDraggingPresensi] = useState(false);
+  const [isCreatingExplicitFolder, setIsCreatingExplicitFolder] = useState(false);
+
+  const handleCreateExplicitFolder = async () => {
+    if (!accessToken) {
+      showAlert('Silakan hubungkan Google Drive Anda terlebih dahulu.');
+      try {
+        await loginWithGoogle();
+      } catch (err) {
+        console.error(err);
+      }
+      return;
+    }
+
+    if (!form.rincian.trim()) {
+      showAlert('Silakan isi Rincian Kegiatan terlebih dahulu sebagai nama folder.');
+      return;
+    }
+
+    setIsCreatingExplicitFolder(true);
+    try {
+      const cleanKegiatan = form.rincian.substring(0, 30).replace(/[^a-zA-Z0-9 -]/g, '').trim() || 'Kegiatan';
+      const parentFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
+      const mainFolderId = await getOrCreateFolder(accessToken, 'Bukti Dukung CKP', parentFolderId);
+      
+      let folderName = '';
+      if (form.isMultiHari && form.tanggalAkhir && form.tanggalAkhir >= form.tanggal) {
+        folderName = `${form.tanggal} s.d ${form.tanggalAkhir} - ${cleanKegiatan}`;
+      } else {
+        folderName = `${form.tanggal} - ${cleanKegiatan}`;
+      }
+      
+      const subfolderId = await getOrCreateFolder(accessToken, folderName, mainFolderId);
+      await makeFileOrFolderPublic(subfolderId, accessToken);
+      
+      const driveUrl = `https://drive.google.com/drive/folders/${subfolderId}`;
+      setCurrentBuktiDukungDriveLink(driveUrl);
+      showAlert('Berhasil membuat folder bukti dukung di Google Drive!', 'success');
+    } catch (err) {
+      console.error(err);
+      if (err.message && err.message.includes('401')) {
+        showAlert('Sesi Google Drive kedaluwarsa. Silakan hubungkan ulang.');
+      } else {
+        showAlert('Gagal membuat folder Google Drive: ' + err.message);
+      }
+    } finally {
+      setIsCreatingExplicitFolder(false);
+    }
+  };
 
   const triggerBackgroundUpload = async (filesToUpload) => {
     if (!filesToUpload || filesToUpload.length === 0) {
@@ -1941,6 +1989,28 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
                 </button>
                 <button
                   type="button"
+                  className={styles.uploadActionButton}
+                  style={{ background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.2)', color: '#38bdf8' }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCreateExplicitFolder();
+                  }}
+                  disabled={isCreatingExplicitFolder}
+                >
+                  {isCreatingExplicitFolder ? (
+                    <>
+                      <div className={styles.spinnerTiny} style={{ marginRight: '6px' }} />
+                      Membuat...
+                    </>
+                  ) : (
+                    <>
+                      <FolderPlus size={12} style={{ marginRight: '4px' }} />
+                      Buat Folder Drive
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
                   className={`${styles.uploadActionButton} ${styles.cameraActionButton}`}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -1953,38 +2023,48 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
             </div>
           </div>
 
-          {/* Drive Link Badge (for Edit Mode) */}
+          {/* Drive Link Badge (for Edit Mode or explicitly created folders) */}
           {currentBuktiDukungDriveLink && (
             <div className={styles.currentDriveLinkBadge} style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              background: 'rgba(52, 211, 153, 0.1)',
-              border: '1px solid rgba(52, 211, 153, 0.2)',
+              background: 'rgba(56, 189, 248, 0.1)',
+              border: '1px solid rgba(56, 189, 248, 0.2)',
               borderRadius: '8px',
-              padding: '8px 12px',
-              color: '#34d399',
-              fontSize: '13px'
+              padding: '10px 14px',
+              color: '#38bdf8',
+              fontSize: '13px',
+              marginTop: '12px'
             }}>
-              <a 
-                href={currentBuktiDukungDriveLink} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                style={{ color: '#34d399', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}
-              >
-                <FolderOpen size={14} style={{ flexShrink: 0 }} />
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  Berkas terunggah di Drive
-                </span>
-              </a>
-              <button
-                type="button"
-                onClick={() => setCurrentBuktiDukungDriveLink('')}
-                style={{ background: 'transparent', border: 'none', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px' }}
-                title="Hapus berkas terunggah ini"
-              >
-                <X size={14} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, overflow: 'hidden' }}>
+                <FolderOpen size={16} style={{ color: '#38bdf8', flexShrink: 0 }} />
+                <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                  <span style={{ fontWeight: '600', color: '#fff', fontSize: '12px' }}>Folder Google Drive Aktif</span>
+                  <span style={{ fontSize: '11px', color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {currentBuktiDukungDriveLink}
+                  </span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <button
+                  type="button"
+                  onClick={() => window.open(currentBuktiDukungDriveLink, '_blank')}
+                  className={styles.uploadActionButton}
+                  style={{ background: 'rgba(56, 189, 248, 0.2)', border: 'none', color: '#38bdf8', padding: '4px 8px', fontSize: '11px', height: 'auto', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  title="Buka Folder & Isi Berkas Bukti Dukung"
+                >
+                  <ExternalLink size={12} /> Buka Folder
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentBuktiDukungDriveLink('')}
+                  style={{ background: 'transparent', border: 'none', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '2px' }}
+                  title="Hapus / Putuskan hubungan folder"
+                >
+                  <X size={16} />
+                </button>
+              </div>
             </div>
           )}
 
