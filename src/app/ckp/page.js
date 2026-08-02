@@ -2407,7 +2407,7 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, on
   const END_HOUR = 18;
   const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60;
   
-  const [hoveredEntry, setHoveredEntry] = useState(null);
+  const [selectedEntry, setSelectedEntry] = useState(null);
 
   const daysInMonth = new Date(year, month, 0).getDate();
   const days = [];
@@ -2521,11 +2521,12 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, on
               {d.blocks.map(b => (
                 <div 
                   key={b.id} 
-                  className={styles.monthlyVizBlock} 
+                  className={`${styles.monthlyVizBlock} ${selectedEntry && selectedEntry.id === b.entry.id ? styles.monthlyVizBlockSelected : ''}`}
                   style={{ left: b.left, width: b.width, backgroundColor: b.color }}
-                  onClick={() => onEdit && onEdit(b.entry)}
-                  onMouseEnter={() => setHoveredEntry(b.entry)}
-                  onMouseLeave={() => setHoveredEntry(null)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedEntry(b.entry);
+                  }}
                 >
                   <div className={styles.monthlyVizTooltip}>
                     <strong>{b.entry.waktuMulai} — {b.entry.waktuSelesai}</strong>
@@ -2537,17 +2538,16 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, on
             <div className={styles.monthlyVizDurasi} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span>{d.totalJamStr}</span>
               
-              {/* Jika baris ini memiliki block yang sedang di-hover, tampilkan tombol Edit & Hapus untuk entry tersebut */}
-              {hoveredEntry && d.blocks.some(b => b.entry.id === hoveredEntry.id) ? (
+              {selectedEntry && d.blocks.some(b => b.entry.id === selectedEntry.id) ? (
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }} onClick={e => e.stopPropagation()}>
                   {d.blocks.length > 1 && (
                     <span style={{ fontSize: '10px', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.1)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>
-                      {hoveredEntry.waktuMulai}
+                      {selectedEntry.waktuMulai}
                     </span>
                   )}
                   <button
                     type="button"
-                    onClick={() => onEdit && onEdit(hoveredEntry)}
+                    onClick={() => onEdit && onEdit(selectedEntry)}
                     className={styles.tooltipBtnEdit}
                     title="Edit"
                     style={{ padding: '2px 5px' }}
@@ -2556,7 +2556,7 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, on
                   </button>
                   <button
                     type="button"
-                    onClick={() => onDelete && onDelete(hoveredEntry.id)}
+                    onClick={() => onDelete && onDelete(selectedEntry.id)}
                     className={styles.tooltipBtnDelete}
                     title="Hapus"
                     style={{ padding: '2px 5px' }}
@@ -2565,7 +2565,6 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, on
                   </button>
                 </div>
               ) : (
-                /* Fallback: Jika tidak ada block yang dihover tapi hari tersebut hanya memiliki tepat 1 kegiatan, tampilkan tombol aksinya */
                 d.blocks.length === 1 && (
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }} onClick={e => e.stopPropagation()}>
                     <button

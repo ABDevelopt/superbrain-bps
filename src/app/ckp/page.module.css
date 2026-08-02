@@ -1453,6 +1453,12 @@
   z-index: 10;
 }
 
+.monthlyVizBlockSelected {
+  box-shadow: 0 0 0 2px #fff, 0 0 8px rgba(56, 189, 248, 0.9);
+  transform: scaleY(1.2);
+  z-index: 12 !important;
+}
+
 .monthlyVizDurasi {
   width: 220px;
   font-size: 11px;
