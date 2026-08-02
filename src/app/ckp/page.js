@@ -3814,21 +3814,59 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
     const employeeName = user?.displayName || 'Yahya Abdurrohman';
     const sigDate = getSignatureDate();
 
-    let titleText = 'LAPORAN CAPAIAN KINERJA HARIAN PEGAWAI';
+    let titleHtml = '';
+    let infoHtml = '';
     let tableHeaderHtml = '';
     let rowsHtml = '';
+    let tableClass = 'main-table';
 
     if (type === 'daily') {
-      titleText = 'LAPORAN CAPAIAN KINERJA HARIAN PEGAWAI (CKP-DAILY)';
+      titleHtml = `
+        <div style="width: 100%; display: flex; flex-direction: column; align-items: center; margin-bottom: 20px;">
+          <div style="font-size: 13pt; font-weight: bold; text-transform: uppercase; text-align: center; border-bottom: 1.5px solid #000; padding-bottom: 2px;">
+            REKAPITULASI KEGIATAN BULANAN PEGAWAI
+          </div>
+        </div>
+      `;
+
+      infoHtml = `
+        <table class="info-table">
+          <tr>
+            <td style="width: 3%"></td>
+            <td style="width: 15%"><strong>Nama Pegawai</strong></td>
+            <td style="width: 42%">: ${employeeName}</td>
+            <td style="width: 10%"><strong>Periode</strong></td>
+            <td style="width: 30%">: ${periodStr} ${yearVal}</td>
+          </tr>
+          <tr>
+            <td></td>
+            <td><strong>Jabatan</strong></td>
+            <td>: Staf Tim IPJKD & DLS</td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td></td>
+            <td><strong>Satker</strong></td>
+            <td>: BPS Kabupaten Penajam Paser Utara</td>
+            <td></td>
+            <td></td>
+          </tr>
+        </table>
+      `;
+
       tableHeaderHtml = `
         <tr>
+          <th style="width: 3%; border-top: none; border-bottom: none; border-left: none; background: transparent;"></th>
           <th style="width: 5%">No</th>
           <th style="width: 12%">Tanggal</th>
-          <th style="width: 15%">Waktu Kerja</th>
-          <th style="width: 43%">Rincian Kegiatan</th>
-          <th style="width: 8%">Volume</th>
-          <th style="width: 10%">Satuan</th>
-          <th style="width: 7%">SKP</th>
+          <th style="width: 12%">Waktu</th>
+          <th style="width: 38%">Rincian Kegiatan</th>
+          <th style="width: 7%">Kuantitas</th>
+          <th style="width: 8%">Satuan</th>
+          <th style="width: 8%">Kategori</th>
+          <th style="width: 10%">Bukti Kegiatan</th>
+          <th style="width: 10%">Keterangan</th>
         </tr>
       `;
 
@@ -3839,50 +3877,76 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
 
       rowsHtml = sortedData.map((e, idx) => {
         const formattedDate = e.tanggal ? e.tanggal.split('-').reverse().join('/') : '';
+        const skpItem = skpData.find(s => s.id === e.skpId);
+        const categoryStr = skpItem ? (skpItem.kategori === 'utama' ? 'Utama' : 'Tambahan') : '';
+        const buktiLinkText = e.buktiDukung ? `<a href="${e.buktiDukung}" target="_blank" style="color: #4f46e5; text-decoration: underline;">Link</a>` : '';
+        const presensiLinkText = e.buktiPresensi ? `<a href="${e.buktiPresensi}" target="_blank" style="color: #4f46e5; text-decoration: underline;">Presensi</a>` : '';
         return `
           <tr>
+            <td style="border: none; background: transparent;"></td>
             <td class="center">${idx + 1}</td>
             <td class="center">${formattedDate}</td>
             <td class="center">${e.waktuMulai || ''} - ${e.waktuSelesai || ''}</td>
             <td>${e.rincian || ''}</td>
             <td class="center">${e.kuantitas || 1}</td>
             <td class="center">${e.satuan || 'kegiatan'}</td>
-            <td class="center">${e.skpId ? '#' + e.skpId : '-'}</td>
+            <td class="center">${categoryStr}</td>
+            <td class="center">${buktiLinkText}</td>
+            <td class="center">${presensiLinkText}</td>
           </tr>
         `;
       }).join('');
 
-    } else if (type === 'ckpt' || type === 'ckpr') {
-      titleText = type === 'ckpt' 
-        ? 'TARGET SASARAN KINERJA PEGAWAI (CKP-T)'
-        : 'REALISASI SASARAN KINERJA PEGAWAI (CKP-R)';
+    } else if (type === 'ckpt') {
+      titleHtml = `
+        <div style="width: 100%; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+          <div style="width: 20%"></div>
+          <div style="font-size: 13pt; font-weight: bold; text-transform: uppercase; text-align: center; margin-top: 15px;">
+            CAPAIAN KINERJA PEGAWAI ${yearVal}
+          </div>
+          <div style="border: 1px solid #000; padding: 4px 10px; font-size: 10pt; font-weight: bold;">CKP-T</div>
+        </div>
+      `;
 
-      if (type === 'ckpt') {
-        tableHeaderHtml = `
+      infoHtml = `
+        <table class="info-table">
           <tr>
-            <th style="width: 5%">No</th>
-            <th style="width: 55%">Kegiatan / Tugas (Butir SKP)</th>
-            <th style="width: 15%">Satuan</th>
-            <th style="width: 12%">Target Kuantitas</th>
-            <th style="width: 13%">Keterangan</th>
+            <td style="width: 15%"><strong>Nama Pegawai</strong></td>
+            <td style="width: 35%">: ${employeeName}, S.Tr.Stat</td>
+            <td style="width: 15%"><strong>Satker</strong></td>
+            <td style="width: 35%">: BPS Kabupaten Penajam Paser Utara</td>
           </tr>
-        `;
-      } else {
-        tableHeaderHtml = `
           <tr>
-            <th style="width: 5%">No</th>
-            <th style="width: 45%">Kegiatan / Tugas (Butir SKP)</th>
-            <th style="width: 12%">Satuan</th>
-            <th style="width: 10%">Target</th>
-            <th style="width: 10%">Realisasi</th>
-            <th style="width: 9%">Capaian (%)</th>
-            <th style="width: 9%">Kualitas (%)</th>
-            <th style="width: 10%">Keterangan</th>
+            <td><strong>Jabatan</strong></td>
+            <td>: Staf Tim IPJKD & DLS</td>
+            <td><strong>Periode</strong></td>
+            <td>: ${periodStr} ${yearVal}</td>
           </tr>
-        `;
-      }
+        </table>
+      `;
 
-      // Aggregate data by skpId
+      tableHeaderHtml = `
+        <tr>
+          <th rowspan="2" style="width: 5%">No</th>
+          <th rowspan="2" style="width: 45%">Kegiatan</th>
+          <th rowspan="2" style="width: 12%">Satuan</th>
+          <th rowspan="2" style="width: 12%">Target Kuantitas</th>
+          <th rowspan="2" style="width: 10%">Kode Butir<br>Kegiatan</th>
+          <th rowspan="2" style="width: 8%">Angka<br>Kredit</th>
+          <th rowspan="2" style="width: 8%">Keterangan</th>
+        </tr>
+        <tr></tr>
+        <tr class="header-indices center">
+          <td>(1)</td>
+          <td>(2)</td>
+          <td>(3)</td>
+          <td>(4)</td>
+          <td>(5)</td>
+          <td>(6)</td>
+          <td>(7)</td>
+        </tr>
+      `;
+
       const sortedData = [...monthEntries].sort((a, b) => {
         if (a.tanggal !== b.tanggal) return a.tanggal.localeCompare(b.tanggal);
         return (a.waktuMulai || '').localeCompare(b.waktuMulai || '');
@@ -3897,37 +3961,167 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
         aggregated[skpKey].kuantitas += (e.kuantitas || 1);
       });
 
+      let sumTarget = 0;
       rowsHtml = Object.keys(aggregated).map((skpIdStr, idx) => {
         const skpItem = skpData.find(s => String(s.id) === skpIdStr);
         const skpName = skpItem ? skpItem.nama : (skpIdStr === 'none' ? 'Kegiatan Tanpa SKP' : `SKP #${skpIdStr}`);
         const qty = aggregated[skpIdStr].kuantitas;
         const unit = aggregated[skpIdStr].satuan;
+        sumTarget += qty;
 
-        if (type === 'ckpt') {
-          return `
-            <tr>
-              <td class="center">${idx + 1}</td>
-              <td>${skpName}</td>
-              <td class="center">${unit}</td>
-              <td class="center">${qty}</td>
-              <td></td>
-            </tr>
-          `;
-        } else {
-          return `
-            <tr>
-              <td class="center">${idx + 1}</td>
-              <td>${skpName}</td>
-              <td class="center">${unit}</td>
-              <td class="center">${qty}</td>
-              <td class="center">${qty}</td>
-              <td class="center">100%</td>
-              <td class="center">100%</td>
-              <td></td>
-            </tr>
-          `;
-        }
+        return `
+          <tr>
+            <td class="center">${idx + 1}</td>
+            <td>${skpName}</td>
+            <td class="center">${unit}</td>
+            <td class="center">${qty}</td>
+            <td class="center"></td>
+            <td class="center"></td>
+            <td></td>
+          </tr>
+        `;
       }).join('');
+
+      rowsHtml += `
+        <tr class="summary-row">
+          <td colspan="3" class="center"><strong>JUMLAH</strong></td>
+          <td class="center"><strong>${sumTarget}</strong></td>
+          <td class="center"></td>
+          <td class="center"></td>
+          <td></td>
+        </tr>
+        <tr class="summary-row">
+          <td colspan="3" class="center"><strong>RATA-RATA</strong></td>
+          <td class="center"></td>
+          <td class="center"></td>
+          <td class="center"></td>
+          <td></td>
+        </tr>
+      `;
+
+    } else if (type === 'ckpr') {
+      titleHtml = `
+        <div style="width: 100%; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+          <div style="width: 20%"></div>
+          <div style="font-size: 13pt; font-weight: bold; text-transform: uppercase; text-align: center; margin-top: 15px;">
+            CAPAIAN KINERJA PEGAWAI ${yearVal}
+          </div>
+          <div style="border: 1px solid #000; padding: 4px 10px; font-size: 10pt; font-weight: bold;">CKP-R</div>
+        </div>
+      `;
+
+      infoHtml = `
+        <table class="info-table">
+          <tr>
+            <td style="width: 15%"><strong>Nama Pegawai</strong></td>
+            <td style="width: 35%">: ${employeeName}, S.Tr.Stat</td>
+            <td style="width: 15%"><strong>Satker</strong></td>
+            <td style="width: 35%">: BPS Kabupaten Penajam Paser Utara</td>
+          </tr>
+          <tr>
+            <td><strong>Jabatan</strong></td>
+            <td>: Staf</td>
+            <td><strong>Periode</strong></td>
+            <td>: ${periodStr} ${yearVal}</td>
+          </tr>
+        </table>
+      `;
+
+      tableHeaderHtml = `
+        <tr>
+          <th rowspan="2" style="width: 4%">No</th>
+          <th rowspan="2" style="width: 38%">Kegiatan</th>
+          <th rowspan="2" style="width: 10%">Satuan</th>
+          <th colspan="3" style="width: 24%">Kuantitas</th>
+          <th rowspan="2" style="width: 8%">Tingkat<br>Kualitas (%)</th>
+          <th rowspan="2" style="width: 8%">Kode Butir<br>Kegiatan</th>
+          <th rowspan="2" style="width: 4%">Angka<br>Kredit</th>
+          <th rowspan="2" style="width: 4%">Keterangan</th>
+        </tr>
+        <tr>
+          <th style="width: 8%">Target</th>
+          <th style="width: 8%">Realisasi</th>
+          <th style="width: 8%">%</th>
+        </tr>
+        <tr class="header-indices center">
+          <td>(1)</td>
+          <td>(2)</td>
+          <td>(3)</td>
+          <td>(4)</td>
+          <td>(5)</td>
+          <td>(6)</td>
+          <td>(7)</td>
+          <td>(8)</td>
+          <td>(9)</td>
+          <td>(10)</td>
+        </tr>
+      `;
+
+      const sortedData = [...monthEntries].sort((a, b) => {
+        if (a.tanggal !== b.tanggal) return a.tanggal.localeCompare(b.tanggal);
+        return (a.waktuMulai || '').localeCompare(b.waktuMulai || '');
+      });
+
+      const aggregated = {};
+      sortedData.forEach(e => {
+        const skpKey = e.skpId || 'none';
+        if (!aggregated[skpKey]) {
+          aggregated[skpKey] = { kuantitas: 0, satuan: e.satuan || 'kegiatan' };
+        }
+        aggregated[skpKey].kuantitas += (e.kuantitas || 1);
+      });
+
+      let sumTarget = 0;
+      let sumRealisasi = 0;
+      let countItems = 0;
+
+      rowsHtml = Object.keys(aggregated).map((skpIdStr, idx) => {
+        const skpItem = skpData.find(s => String(s.id) === skpIdStr);
+        const skpName = skpItem ? skpItem.nama : (skpIdStr === 'none' ? 'Kegiatan Tanpa SKP' : `SKP #${skpIdStr}`);
+        const qty = aggregated[skpIdStr].kuantitas;
+        const unit = aggregated[skpIdStr].satuan;
+        sumTarget += qty;
+        sumRealisasi += qty;
+        countItems++;
+
+        return `
+          <tr>
+            <td class="center">${idx + 1}</td>
+            <td>${skpName}</td>
+            <td class="center">${unit}</td>
+            <td class="center">${qty}</td>
+            <td class="center">${qty}</td>
+            <td class="center">100</td>
+            <td class="center">100</td>
+            <td class="center"></td>
+            <td class="center"></td>
+            <td></td>
+          </tr>
+        `;
+      }).join('');
+
+      rowsHtml += `
+        <tr class="summary-row">
+          <td colspan="3" class="center"><strong>JUMLAH</strong></td>
+          <td class="center"><strong>${sumTarget}</strong></td>
+          <td class="center"><strong>${sumRealisasi}</strong></td>
+          <td class="center"></td>
+          <td class="center"></td>
+          <td class="center"></td>
+          <td class="center"></td>
+          <td></td>
+        </tr>
+        <tr class="summary-row">
+          <td colspan="3" class="center"><strong>RATA-RATA</strong></td>
+          <td class="center"></td>
+          <td class="center"></td>
+          <td class="center"><strong>${countItems > 0 ? 100 : ''}</strong></td>
+          <td class="center"><strong>${countItems > 0 ? 100 : ''}</strong></td>
+          <td class="center"></td>
+          <td class="center"></td>
+          <td></td>
+        </tr>
+      `;
     }
 
     const printWindow = window.open('', '_blank');
@@ -3945,7 +4139,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
           @media print {
             @page {
               size: A4 portrait;
-              margin: 15mm 12mm 15mm 12mm;
+              margin: 15mm 10mm 15mm 10mm;
             }
             body {
               margin: 0;
@@ -3953,7 +4147,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
               background: #fff;
               color: #000;
               font-family: 'Arial', sans-serif;
-              font-size: 10.5pt;
+              font-size: 9.5pt;
             }
             .no-print {
               display: none !important;
@@ -3969,7 +4163,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
             background: #f1f5f9;
             margin: 20px;
             font-family: 'Arial', sans-serif;
-            font-size: 11pt;
+            font-size: 10pt;
             color: #333;
             display: flex;
             flex-direction: column;
@@ -3978,15 +4172,15 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
           .print-card {
             background: #fff;
             width: 100%;
-            max-width: 800px;
-            padding: 30px;
+            max-width: 850px;
+            padding: 35px;
             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
             border-radius: 8px;
             box-sizing: border-box;
           }
           .no-print-bar {
             width: 100%;
-            max-width: 800px;
+            max-width: 850px;
             display: flex;
             justify-content: flex-end;
             gap: 10px;
@@ -4018,15 +4212,6 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
           .close-btn:hover {
             background: #475569;
           }
-          .title {
-            text-align: center;
-            font-size: 13pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            margin-bottom: 25px;
-            border-bottom: 2px solid #000;
-            padding-bottom: 8px;
-          }
           .info-table {
             width: 100%;
             border-collapse: collapse;
@@ -4034,7 +4219,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
           }
           .info-table td {
             border: none;
-            padding: 4px;
+            padding: 3px 0;
             font-size: 10pt;
           }
           .main-table {
@@ -4044,18 +4229,28 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
           }
           .main-table th, .main-table td {
             border: 1px solid #000;
-            padding: 6px 8px;
+            padding: 5px 6px;
             text-align: left;
-            font-size: 9pt;
+            font-size: 8.5pt;
             word-break: break-word;
           }
           .main-table th {
-            background-color: #f3f4f6;
+            background-color: #e5e7eb;
             font-weight: bold;
             text-align: center;
           }
           .main-table td.center {
             text-align: center;
+          }
+          .header-indices td {
+            background-color: #f3f4f6;
+            font-size: 8pt;
+            border: 1px solid #000;
+            padding: 3px;
+            font-weight: bold;
+          }
+          .summary-row td {
+            background-color: #f9fafb;
           }
           .signature-section {
             width: 100%;
@@ -4071,10 +4266,10 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
             width: 50%;
             text-align: center;
             padding-top: 10px;
-            font-size: 10pt;
+            font-size: 9.5pt;
           }
           .signature-space {
-            height: 65px;
+            height: 60px;
           }
         </style>
       </head>
@@ -4084,24 +4279,10 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
           <button class="print-btn" onclick="window.print()">Cetak PDF</button>
         </div>
         <div class="print-card">
-          <div class="title">${titleText}</div>
-          
-          <table class="info-table">
-            <tr>
-              <td style="width: 18%"><strong>Nama Pegawai</strong></td>
-              <td style="width: 35%">: ${employeeName}</td>
-              <td style="width: 15%"><strong>Bulan</strong></td>
-              <td style="width: 32%">: ${periodStr}</td>
-            </tr>
-            <tr>
-              <td><strong>Satuan Organisasi</strong></td>
-              <td>: Badan Pusat Statistik</td>
-              <td><strong>Tahun</strong></td>
-              <td>: ${yearVal}</td>
-            </tr>
-          </table>
+          ${titleHtml}
+          ${infoHtml}
 
-          <table class="main-table">
+          <table class="${tableClass}">
             <thead>
               ${tableHeaderHtml}
             </thead>
@@ -4121,10 +4302,10 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
                   NIP.
                 </td>
                 <td>
-                  Kabupaten/Kota, ${sigDate}<br>
-                  Pegawai yang bersangkutan,
+                  Penajam Paser Utara, ${sigDate}<br>
+                  Pegawai,<br>
                   <div class="signature-space"></div>
-                  <strong>${employeeName}</strong><br>
+                  <strong>( ${employeeName} )</strong><br>
                   NIP.
                 </td>
               </tr>
