@@ -60,6 +60,7 @@ export function AuthProvider({ children }) {
         if (typeof window !== 'undefined') {
           localStorage.setItem('sb_google_access_token', credential.accessToken);
         }
+        return credential.accessToken;
       }
     } catch (error) {
       console.error("Error signing in with Google:", error);

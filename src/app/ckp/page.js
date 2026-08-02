@@ -317,7 +317,32 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
     } catch (err) {
       console.error(err);
       if (err.message && err.message.includes('401')) {
-        showAlert('Sesi Google Drive kedaluwarsa. Silakan hubungkan ulang.');
+        showAlert('Sesi Google Drive kedaluwarsa. Mencoba menghubungkan ulang...', 'info');
+        try {
+          const newToken = await loginWithGoogle();
+          if (newToken) {
+            const cleanKegiatan = form.rincian.substring(0, 30).replace(/[^a-zA-Z0-9 -]/g, '').trim() || 'Kegiatan';
+            const parentFolderId = await getOrCreateFolder(newToken, 'SuperBrain BPS');
+            const mainFolderId = await getOrCreateFolder(newToken, 'Bukti Dukung CKP', parentFolderId);
+            
+            let folderName = '';
+            if (form.isMultiHari && form.tanggalAkhir && form.tanggalAkhir >= form.tanggal) {
+              folderName = `${form.tanggal} s.d ${form.tanggalAkhir} - ${cleanKegiatan}`;
+            } else {
+              folderName = `${form.tanggal} - ${cleanKegiatan}`;
+            }
+            
+            const subfolderId = await getOrCreateFolder(newToken, folderName, mainFolderId);
+            await makeFileOrFolderPublic(subfolderId, newToken);
+            
+            const driveUrl = `https://drive.google.com/drive/folders/${subfolderId}`;
+            setCurrentBuktiDukungDriveLink(driveUrl);
+            showAlert('Sesi berhasil diperbarui dan folder bukti dukung telah dibuat!', 'success');
+          }
+        } catch (reloginErr) {
+          console.error("Auto relogin failed:", reloginErr);
+          showAlert('Sesi kedaluwarsa. Gagal menghubungkan ulang Google Drive: ' + reloginErr.message);
+        }
       } else {
         showAlert('Gagal membuat folder Google Drive: ' + err.message);
       }
@@ -1163,14 +1188,51 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
             }
           } catch (err) {
             console.error("Upload bukti dukung error:", err);
-            needsOfflineSave = true;
-            offlineFiles = files.map((f, idx) => ({
-              file: f,
-              customFileName: files.length > 1 ? f.name : `${form.tanggal} - ${cleanKegiatan} - ${f.name}`
-            }));
-            offlineErrorMsg = err.message && err.message.includes('401') 
-              ? 'Sesi Google Drive kedaluwarsa. File disimpan sementara secara lokal.'
-              : 'Gagal mengunggah bukti dukung ke Google Drive. File disimpan secara lokal.';
+            if (err.message && err.message.includes('401')) {
+              showAlert('Sesi Google Drive kedaluwarsa. Mencoba menghubungkan ulang...', 'info');
+              try {
+                const newToken = await loginWithGoogle();
+                if (newToken) {
+                  const parentFolderId = await getOrCreateFolder(newToken, 'SuperBrain BPS');
+                  const mainFolderId = await getOrCreateFolder(newToken, 'Bukti Dukung CKP', parentFolderId);
+                  
+                  if (files.length === 1) {
+                    const fileName = `${form.tanggal} - ${cleanKegiatan} - ${files[0].name}`;
+                    finalBuktiDukung = await uploadFileToDrive(files[0], newToken, mainFolderId, fileName);
+                    buktiDukungStatus = 'file';
+                  } else {
+                    const subfolderName = `${form.tanggal} - ${cleanKegiatan}`;
+                    const subfolderId = await getOrCreateFolder(newToken, subfolderName, mainFolderId);
+                    await makeFileOrFolderPublic(subfolderId, newToken);
+                    
+                    for (let i = 0; i < files.length; i++) {
+                      const fileName = files[i].name;
+                      await uploadFileToDrive(files[i], newToken, subfolderId, fileName);
+                    }
+                    finalBuktiDukung = `https://drive.google.com/drive/folders/${subfolderId}`;
+                    buktiDukungStatus = 'folder';
+                  }
+                  showAlert('Sesi berhasil diperbarui dan berkas diunggah!', 'success');
+                } else {
+                  throw new Error('Gagal mendapatkan token baru.');
+                }
+              } catch (reloginErr) {
+                console.error("Auto relogin during submit failed:", reloginErr);
+                needsOfflineSave = true;
+                offlineFiles = files.map((f, idx) => ({
+                  file: f,
+                  customFileName: files.length > 1 ? f.name : `${form.tanggal} - ${cleanKegiatan} - ${f.name}`
+                }));
+                offlineErrorMsg = 'Sesi Google Drive kedaluwarsa. File disimpan sementara secara lokal.';
+              }
+            } else {
+              needsOfflineSave = true;
+              offlineFiles = files.map((f, idx) => ({
+                file: f,
+                customFileName: files.length > 1 ? f.name : `${form.tanggal} - ${cleanKegiatan} - ${f.name}`
+              }));
+              offlineErrorMsg = 'Gagal mengunggah bukti dukung ke Google Drive. File disimpan secara lokal.';
+            }
           }
         } else {
           needsOfflineSave = true;
@@ -4931,7 +4993,26 @@ function CKPPageInner() {
     } catch (err) {
       console.error(err);
       if (err.message && err.message.includes('401')) {
-        showAlert('Sesi Google Drive kedaluwarsa. Silakan hubungkan ulang.');
+        showAlert('Sesi Google Drive kedaluwarsa. Mencoba menghubungkan ulang...', 'info');
+        try {
+          const newToken = await loginWithGoogle();
+          if (newToken) {
+            const cleanKegiatan = (rincian || 'Kegiatan').substring(0, 30).replace(/[^a-zA-Z0-9 -]/g, '').trim();
+            const parentFolderId = await getOrCreateFolder(newToken, 'SuperBrain BPS');
+            const mainFolderId = await getOrCreateFolder(newToken, 'Bukti Dukung CKP', parentFolderId);
+            
+            const subfolderName = `${tanggal} - ${cleanKegiatan}`;
+            const subfolderId = await getOrCreateFolder(newToken, subfolderName, mainFolderId);
+            await makeFileOrFolderPublic(subfolderId, newToken);
+            
+            const driveUrl = `https://drive.google.com/drive/folders/${subfolderId}`;
+            await updateDocument(entryId, { buktiDukung: driveUrl });
+            showAlert('Sesi berhasil diperbarui dan folder bukti dukung telah dibuat!', 'success');
+          }
+        } catch (reloginErr) {
+          console.error("Auto relogin failed:", reloginErr);
+          showAlert('Sesi kedaluwarsa. Gagal menghubungkan ulang Google Drive: ' + reloginErr.message);
+        }
       } else {
         showAlert('Gagal membuat folder Google Drive: ' + err.message);
       }
@@ -4957,11 +5038,21 @@ function CKPPageInner() {
     } catch (err) {
       console.error(err);
       if (err.message && err.message.includes('401')) {
-        showAlert('Sesi Google Drive kedaluwarsa. Menghubungkan ulang...');
+        showAlert('Sesi Google Drive kedaluwarsa. Mencoba menghubungkan ulang...', 'info');
         try {
-          await loginWithGoogle();
+          const newToken = await loginWithGoogle();
+          if (newToken) {
+            const parentFolderId = await getOrCreateFolder(newToken, 'SuperBrain BPS');
+            const folderId = await getOrCreateFolder(newToken, 'Bukti Dukung CKP', parentFolderId);
+            if (folderId) {
+              window.open(`https://drive.google.com/drive/folders/${folderId}`, '_blank');
+            } else {
+              throw new Error('Folder ID tidak ditemukan.');
+            }
+          }
         } catch (loginErr) {
           console.error("Login failed:", loginErr);
+          showAlert('Sesi kedaluwarsa. Gagal menghubungkan ulang Google Drive: ' + loginErr.message);
         }
       } else {
         showAlert('Gagal mengakses Google Drive: ' + err.message);
@@ -5340,9 +5431,10 @@ function CKPPageInner() {
   }, [fetchPendingUploads, activeTab]);
 
   const handleSyncOfflineFiles = async () => {
-    if (!accessToken) {
+    let currentToken = accessToken;
+    if (!currentToken) {
       try {
-        await loginWithGoogle();
+        currentToken = await loginWithGoogle();
       } catch (err) {
         showAlert('Gagal menghubungkan ke Google Drive.');
         return;
@@ -5354,12 +5446,16 @@ function CKPPageInner() {
     try {
       const list = await getPendingUploads();
       const ckpList = list.filter(item => !item.type || item.type === 'ckp');
-      if (!ckpList || ckpList.length === 0) return;
+      if (!ckpList || ckpList.length === 0) {
+        setIsSyncing(false);
+        return;
+      }
       
-      const parentFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
-      const folderId = await getOrCreateFolder(accessToken, 'Bukti Dukung CKP', parentFolderId);
+      let parentFolderId = await getOrCreateFolder(currentToken, 'SuperBrain BPS');
+      let folderId = await getOrCreateFolder(currentToken, 'Bukti Dukung CKP', parentFolderId);
       
-      for (const item of ckpList) {
+      for (let k = 0; k < ckpList.length; k++) {
+        const item = ckpList[k];
         try {
           let updatedFields = {};
           let hasUploadedAnything = false;
@@ -5367,7 +5463,7 @@ function CKPPageInner() {
           // 1. Process files (bukti dukung)
           if (item.files && item.files.length > 0) {
             if (item.files.length === 1) {
-              const driveUrl = await uploadFileToDrive(item.files[0].file, accessToken, folderId, item.files[0].customFileName);
+              const driveUrl = await uploadFileToDrive(item.files[0].file, currentToken, folderId, item.files[0].customFileName);
               updatedFields.buktiDukung = driveUrl;
               updatedFields.buktiDukungStatus = 'file';
               hasUploadedAnything = true;
@@ -5376,11 +5472,11 @@ function CKPPageInner() {
               const cleanKegiatan = entry?.rincian ? entry.rincian.substring(0, 30).replace(/[^a-zA-Z0-9 -]/g, '').trim() : 'Kegiatan';
               const dateStr = entry?.tanggal || new Date().toISOString().split('T')[0];
               const subfolderName = `${dateStr} - ${cleanKegiatan}`;
-              const subfolderId = await getOrCreateFolder(accessToken, subfolderName, folderId);
-              await makeFileOrFolderPublic(subfolderId, accessToken);
+              const subfolderId = await getOrCreateFolder(currentToken, subfolderName, folderId);
+              await makeFileOrFolderPublic(subfolderId, currentToken);
               
               for (const fObj of item.files) {
-                await uploadFileToDrive(fObj.file, accessToken, subfolderId, fObj.customFileName);
+                await uploadFileToDrive(fObj.file, currentToken, subfolderId, fObj.customFileName);
               }
               const driveUrl = `https://drive.google.com/drive/folders/${subfolderId}`;
               updatedFields.buktiDukung = driveUrl;
@@ -5389,7 +5485,7 @@ function CKPPageInner() {
             }
           } else if (item.file) {
             // Fallback for single file if saved under old format
-            const driveUrl = await uploadFileToDrive(item.file, accessToken, folderId, item.customFileName);
+            const driveUrl = await uploadFileToDrive(item.file, currentToken, folderId, item.customFileName);
             updatedFields.buktiDukung = driveUrl;
             updatedFields.buktiDukungStatus = 'file';
             hasUploadedAnything = true;
@@ -5397,8 +5493,8 @@ function CKPPageInner() {
 
           // 2. Process presensiFile (bukti presensi)
           if (item.presensiFile) {
-            const presensiFolderId = await getOrCreateFolder(accessToken, 'Bukti Presensi CKP', parentFolderId);
-            const driveUrl = await uploadFileToDrive(item.presensiFile.file, accessToken, presensiFolderId, item.presensiFile.customFileName);
+            const presensiFolderId = await getOrCreateFolder(currentToken, 'Bukti Presensi CKP', parentFolderId);
+            const driveUrl = await uploadFileToDrive(item.presensiFile.file, currentToken, presensiFolderId, item.presensiFile.customFileName);
             updatedFields.buktiPresensi = driveUrl;
             hasUploadedAnything = true;
           }
@@ -5419,9 +5515,20 @@ function CKPPageInner() {
         } catch (err) {
           console.error("Sync error for item", item.id, err);
           if (err.message && err.message.includes('401')) {
-            showAlert('Sesi Google Drive kedaluwarsa. Halaman akan dimuat ulang untuk relogin.');
-            setTimeout(() => window.location.reload(), 1500);
-            break;
+            showAlert('Sesi Google Drive kedaluwarsa. Mencoba menghubungkan ulang...', 'info');
+            try {
+              const newToken = await loginWithGoogle();
+              if (newToken) {
+                currentToken = newToken;
+                parentFolderId = await getOrCreateFolder(currentToken, 'SuperBrain BPS');
+                folderId = await getOrCreateFolder(currentToken, 'Bukti Dukung CKP', parentFolderId);
+                k--; // Retry current item
+              }
+            } catch (reloginErr) {
+              console.error("Auto relogin failed:", reloginErr);
+              showAlert('Sesi kedaluwarsa. Gagal menghubungkan ulang Google Drive.');
+              break;
+            }
           }
         }
       }
@@ -5433,8 +5540,12 @@ function CKPPageInner() {
     } catch (err) {
       console.error(err);
       if (err.message && err.message.includes('401')) {
-        showAlert('Sesi Google Drive kedaluwarsa. Halaman akan dimuat ulang untuk relogin.');
-        setTimeout(() => window.location.reload(), 1500);
+        showAlert('Sesi Google Drive kedaluwarsa. Mencoba menghubungkan ulang...', 'info');
+        try {
+          await loginWithGoogle();
+        } catch (reloginErr) {
+          console.error("Auto relogin failed in main block:", reloginErr);
+        }
       } else {
         showAlert('Gagal mengakses penyimpanan lokal.');
       }
