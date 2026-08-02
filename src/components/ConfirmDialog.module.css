@@ -126,3 +126,21 @@
 .confirmPrimaryBtn:hover {
   background: #0ea5e9;
 }
+
+.thirdBtn {
+  flex: 1;
+  padding: 10px 16px;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 8px;
+  color: #38bdf8;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.thirdBtn:hover {
+  background: rgba(56, 189, 248, 0.2);
+}
+

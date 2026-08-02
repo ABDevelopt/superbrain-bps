@@ -16,6 +16,7 @@ export default function SettingsPage() {
   const [savedChatId, setSavedChatId] = useState('');
   const [mounted, setMounted] = useState(false);
   const [isBackingUp, setIsBackingUp] = useState(false);
+  const [isDeletingJuly, setIsDeletingJuly] = useState(false);
   const [lastCloudBackup, setLastCloudBackup] = useState('Belum pernah');
 
   useEffect(() => {
@@ -179,6 +180,47 @@ export default function SettingsPage() {
     }
   };
 
+  const handleDeleteJulyData = async () => {
+    if (!user) {
+      showAlert('Gagal: Anda tidak terautentikasi.');
+      return;
+    }
+
+    if (!confirm('Peringatan: Tindakan ini akan menghapus seluruh data CKP Anda di bulan Juli 2026 secara permanen. Apakah Anda yakin?')) {
+      return;
+    }
+
+    setIsDeletingJuly(true);
+    try {
+      const q = query(
+        collection(db, 'ckp'),
+        where('userId', '==', user.uid),
+        where('tanggal', '>=', '2026-07-01'),
+        where('tanggal', '<=', '2026-07-31')
+      );
+      const snap = await getDocs(q);
+      
+      if (snap.empty) {
+        showAlert('Tidak ditemukan data CKP untuk bulan Juli 2026.');
+        setIsDeletingJuly(false);
+        return;
+      }
+
+      let count = 0;
+      for (const d of snap.docs) {
+        await deleteDoc(doc(db, 'ckp', d.id));
+        count++;
+      }
+
+      showAlert(`Berhasil menghapus ${count} entri CKP untuk bulan Juli 2026!`, 'success');
+    } catch (err) {
+      console.error("Gagal menghapus data CKP Juli:", err);
+      showAlert('Gagal menghapus data: ' + err.message);
+    } finally {
+      setIsDeletingJuly(false);
+    }
+  };
+
   if (!mounted) return null;
 
   return (
@@ -329,6 +371,30 @@ export default function SettingsPage() {
                 </button>
                 <button onClick={handleRestoreCloud} disabled={isBackingUp} className={`${styles.btn} ${styles.btnWarning}`}>
                   Pulihkan dari Cloud
+                </button>
+              </div>
+            </div>
+
+            {/* Pemeliharaan Data */}
+            <div className={styles.integrationItem} style={{ marginTop: '24px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '24px' }}>
+              <div className={styles.integrationHeader}>
+                <div className={styles.integrationIconWrap} style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+                  <Shield size={24} />
+                </div>
+                <div className={styles.integrationTexts}>
+                  <h3 className={styles.integrationTitle}>Pemeliharaan Data</h3>
+                  <p className={styles.integrationDesc}>
+                    Hapus seluruh data kegiatan CKP Anda khusus untuk bulan Juli 2026 secara permanen.
+                  </p>
+                </div>
+              </div>
+              <div className={styles.backupControls} style={{ marginLeft: '64px' }}>
+                <button 
+                  onClick={handleDeleteJulyData} 
+                  disabled={isDeletingJuly} 
+                  className={`${styles.btn} ${styles.btnDanger}`}
+                >
+                  {isDeletingJuly ? 'Menghapus...' : 'Hapus CKP Juli 2026'}
                 </button>
               </div>
             </div>

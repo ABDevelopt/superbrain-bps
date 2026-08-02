@@ -11,8 +11,10 @@ export default function ConfirmDialog({
   message = "Apakah Anda yakin?", 
   confirmText = "Ya", 
   cancelText = "Batal", 
+  thirdText = null,
   onConfirm, 
   onCancel,
+  onThird,
   variant = "danger" // "danger" or "primary"
 }) {
   const [mounted, setMounted] = useState(false);
@@ -35,6 +37,11 @@ export default function ConfirmDialog({
           <button className={styles.cancelBtn} onClick={onCancel}>
             {cancelText}
           </button>
+          {thirdText && onThird && (
+            <button className={styles.thirdBtn} onClick={onThird}>
+              {thirdText}
+            </button>
+          )}
           <button 
             className={variant === 'danger' ? styles.confirmDangerBtn : styles.confirmPrimaryBtn} 
             onClick={onConfirm}

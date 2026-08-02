@@ -40,7 +40,10 @@ const TIM_KERJA_OPTIONS = [
 
 function getTodayStr() {
   const d = new Date();
-  return d.toISOString().split('T')[0];
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const date = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${date}`;
 }
 
 function getCurrentMonthStr() {
@@ -163,7 +166,7 @@ function Toast({ message, visible, onClose }) {
 
 // TAB 1: Input Kegiatan
 function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit, entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday, checkDl, onToggleDl, onPendingChange, skpData }) {
-  const { accessToken, user } = useAuth();
+  const { accessToken, user, loginWithGoogle } = useAuth();
   const { showAlert } = useAlert();
   const [mounted, setMounted] = useState(false);
   const [showSchedulePicker, setShowSchedulePicker] = useState(false);
@@ -199,8 +202,56 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
   const [autoShorten, setAutoShorten] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingBackground, setIsUploadingBackground] = useState(false);
+  const [backgroundUploadedUrl, setBackgroundUploadedUrl] = useState(null);
+  const [backgroundUploadedStatus, setBackgroundUploadedStatus] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isDraggingPresensi, setIsDraggingPresensi] = useState(false);
+
+  const triggerBackgroundUpload = async (filesToUpload) => {
+    if (!filesToUpload || filesToUpload.length === 0) {
+      setBackgroundUploadedUrl(null);
+      setBackgroundUploadedStatus(null);
+      return;
+    }
+    if (!accessToken) return;
+
+    setBackgroundUploadedUrl(null);
+    setBackgroundUploadedStatus(null);
+    setIsUploadingBackground(true);
+    try {
+      const cleanKegiatan = (form.rincian || '').substring(0, 30).replace(/[^a-zA-Z0-9 -]/g, '').trim() || 'Kegiatan';
+      const parentFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
+      const mainFolderId = await getOrCreateFolder(accessToken, 'Bukti Dukung CKP', parentFolderId);
+      
+      let driveUrl = null;
+      let statusVal = null;
+
+      if (filesToUpload.length === 1) {
+        const fileName = `${form.tanggal} - ${cleanKegiatan} - ${filesToUpload[0].name}`;
+        driveUrl = await uploadFileToDrive(filesToUpload[0], accessToken, mainFolderId, fileName);
+        statusVal = 'file';
+      } else {
+        const subfolderName = `${form.tanggal} - ${cleanKegiatan}`;
+        const subfolderId = await getOrCreateFolder(accessToken, subfolderName, mainFolderId);
+        await makeFileOrFolderPublic(subfolderId, accessToken);
+        
+        for (let i = 0; i < filesToUpload.length; i++) {
+          const fileName = `${form.tanggal} - ${cleanKegiatan} - ${i + 1}_${filesToUpload[i].name}`;
+          await uploadFileToDrive(filesToUpload[i], accessToken, subfolderId, fileName);
+        }
+        driveUrl = `https://drive.google.com/drive/folders/${subfolderId}`;
+        statusVal = 'folder';
+      }
+
+      setBackgroundUploadedUrl(driveUrl);
+      setBackgroundUploadedStatus(statusVal);
+    } catch (err) {
+      console.error("Background upload failed:", err);
+    } finally {
+      setIsUploadingBackground(false);
+    }
+  };
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -217,7 +268,9 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const droppedFiles = Array.from(e.dataTransfer.files);
-      setFiles((prev) => [...prev, ...droppedFiles]);
+      const updated = [...files, ...droppedFiles];
+      setFiles(updated);
+      triggerBackgroundUpload(updated);
     }
   };
 
@@ -292,6 +345,8 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
       setSkpSearch('');
       setFiles([]);
       setPreviewImage(null);
+      setBackgroundUploadedUrl(null);
+      setBackgroundUploadedStatus(null);
       setCurrentBuktiDukungDriveLink('');
       setBuktiLink('');
       setCurrentBuktiPresensiDriveLink('');
@@ -321,6 +376,8 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
       setSkpSearch(initialData.skpId ? (skpData.find(s => s.id === initialData.skpId)?.nama || '') : '');
       setPreviewImage(null);
       setFiles([]);
+      setBackgroundUploadedUrl(null);
+      setBackgroundUploadedStatus(null);
       if (initialData.buktiDukung) {
         if (initialData.buktiDukung.includes('drive.google.com')) {
           setCurrentBuktiDukungDriveLink(initialData.buktiDukung);
@@ -621,8 +678,10 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
 
         canvas.toBlob((blob) => {
           const newFile = new File([blob], `Geotag_${Date.now()}.jpg`, { type: 'image/jpeg' });
-          setFiles(prev => [...prev, newFile]);
+          const updated = [...files, newFile];
+          setFiles(updated);
           setPreviewImage(URL.createObjectURL(newFile));
+          triggerBackgroundUpload(updated);
         }, 'image/jpeg', 0.8);
       };
       img.src = e.target.result;
@@ -938,7 +997,11 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
       let buktiDukungStatus = initialData ? (initialData.buktiDukungStatus || null) : null;
 
       if (files.length > 0) {
-        if (accessToken) {
+        // Use pre-uploaded URL from background upload if available
+        if (backgroundUploadedUrl && !isUploadingBackground) {
+          finalBuktiDukung = backgroundUploadedUrl;
+          buktiDukungStatus = backgroundUploadedStatus || (backgroundUploadedUrl.includes('folders/') ? 'folder' : 'file');
+        } else if (accessToken) {
           try {
             const parentFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
             const mainFolderId = await getOrCreateFolder(accessToken, 'Bukti Dukung CKP', parentFolderId);
@@ -1109,6 +1172,10 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         delete multiData.tanggalAkhir;
         delete multiData.skipHoliday;
 
+        // Generate shared groupId for all entries in this multi-day range
+        const sharedGroupId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+        multiData.groupId = sharedGroupId;
+
         const DOW_NAMES = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
         let cursor = new Date(start);
@@ -1192,8 +1259,8 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         delete gapData.isFullday;
 
         if (initialData && initialData.id && onUpdate) {
-          const eid = await onUpdate(initialData.id, gapData);
-          if (eid) savedEntryIds.push(eid);
+          await onUpdate(initialData.id, gapData);
+          savedEntryIds.push(initialData.id);
         } else {
           const eid = await onSubmit(gapData);
           if (eid) savedEntryIds.push(eid);
@@ -1205,8 +1272,8 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         delete dataToSave.skipWeekend;
         delete dataToSave.skipHoliday;
         if (initialData && initialData.id && onUpdate) {
-          const eid = await onUpdate(initialData.id, dataToSave);
-          if (eid) savedEntryIds.push(eid);
+          await onUpdate(initialData.id, dataToSave);
+          savedEntryIds.push(initialData.id);
         } else {
           const eid = await onSubmit(dataToSave);
           if (eid) savedEntryIds.push(eid);
@@ -1238,6 +1305,8 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
       setSkpSearch('');
       setFiles([]);
       setPreviewImage(null);
+      setBackgroundUploadedUrl(null);
+      setBackgroundUploadedStatus(null);
       setCurrentBuktiDukungDriveLink('');
       setBuktiLink('');
       setCurrentBuktiPresensiDriveLink('');
@@ -1391,6 +1460,14 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
 
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
+      {initialData && initialData.groupId && (
+        <div className={styles.multiDayEditAlert}>
+          <CalendarClock size={16} />
+          <span>
+            <strong>Peringatan Edit Massal:</strong> Anda sedang mengedit kegiatan <strong>Multi-Hari</strong>. Setelah menekan tombol Simpan, perubahan ini dapat diterapkan ke seluruh hari dalam rangkaian kegiatan ini secara otomatis.
+          </span>
+        </div>
+      )}
       {todayScheduleEvents.length > 0 && (
         <div style={{ marginBottom: '16px' }}>
           <button
@@ -1777,7 +1854,25 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
       </div>
 
       <div className={styles.formGroup}>
-        <label className={styles.label}>Bukti Dukung (Opsional - Bisa Banyak File)</label>
+        <label className={styles.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>Bukti Dukung (Opsional - Bisa Banyak File)</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {accessToken ? (
+              <span className={styles.driveStatusConnected}>
+                🟢 Drive Terhubung
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={loginWithGoogle}
+                className={styles.driveStatusConnectBtn}
+                title="Hubungkan ke Google Drive"
+              >
+                🔴 Hubungkan Drive
+              </button>
+            )}
+          </div>
+        </label>
         
         <div className={styles.uploadCard}>
           {/* Dropzone Area */}
@@ -1800,7 +1895,9 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
               onChange={(e) => {
                 if (e.target.files) {
                   const selected = Array.from(e.target.files);
-                  setFiles(prev => [...prev, ...selected]);
+                  const updated = [...files, ...selected];
+                  setFiles(updated);
+                  triggerBackgroundUpload(updated);
                 }
               }}
               style={{ display: 'none' }}
@@ -1901,7 +1998,9 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
                       if (fileToRemove.name.startsWith('Geotag_')) {
                         setPreviewImage(null);
                       }
-                      setFiles(prev => prev.filter((_, i) => i !== idx));
+                      const updated = files.filter((_, i) => i !== idx);
+                      setFiles(updated);
+                      triggerBackgroundUpload(updated);
                     }}
                     style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                     title="Hapus file ini"
@@ -1913,6 +2012,26 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
             </div>
           )}
           
+          {/* Background Upload Status Indicator */}
+          {files.length > 0 && (isUploadingBackground || backgroundUploadedUrl) && (
+            <div className={`${styles.bgUploadIndicator} ${backgroundUploadedUrl && !isUploadingBackground ? styles.bgUploadIndicatorSuccess : ''}`}>
+              {isUploadingBackground ? (
+                <>
+                  <div className={styles.bgUploadSpinner} />
+                  <span>Mengunggah ke Google Drive di latar belakang...</span>
+                </>
+              ) : backgroundUploadedUrl ? (
+                <>
+                  <Check size={12} />
+                  <span>Berhasil diunggah: </span>
+                  <a href={backgroundUploadedUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#34d399', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }}>
+                    Lihat di Drive ↗
+                  </a>
+                </>
+              ) : null}
+            </div>
+          )}
+
           {/* Geotag Photo Preview */}
           {previewImage && (
             <div className={styles.cameraPreviewContainer} style={{ position: 'relative', marginTop: '4px' }}>
@@ -1922,7 +2041,9 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
                 className={styles.cameraPreviewRetake}
                 onClick={() => {
                   setPreviewImage(null);
-                  setFiles(prev => prev.filter(f => !f.name.startsWith('Geotag_')));
+                  const updated = files.filter(f => !f.name.startsWith('Geotag_'));
+                  setFiles(updated);
+                  triggerBackgroundUpload(updated);
                 }}
                 style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0, 0, 0, 0.6)', color: '#fff', border: 'none', borderRadius: '4px', padding: '4px 8px', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
               >
@@ -2462,6 +2583,7 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, on
     let coreEnd = dow === 5 ? 16 * 60 + 30 : 16 * 60;
     
     const dayEntries = entries.filter(e => e.tanggal === dateStr);
+    const conflictingIds = detectConflicts(dayEntries);
     const blocks = dayEntries.map(e => {
       const startMin = getMinutes(e.waktuMulai);
       const endMin = getMinutes(e.waktuSelesai);
@@ -2474,7 +2596,8 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, on
         width: `${((clampedEnd - clampedStart) / TOTAL_MINUTES) * 100}%`,
         title: `${e.waktuMulai} - ${e.waktuSelesai}`,
         color: getColorForSkp(e.skpId),
-        entry: e
+        entry: e,
+        isConflicting: conflictingIds.has(e.id)
       };
     }).filter(Boolean);
     
@@ -2485,14 +2608,6 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, on
     if (!isHolidayDate && !isDlDate && dayEntries.length > 0) {
       const stretchRes = stretchDayEntries(dayEntries, dateStr, checkHoliday, checkDl);
       hasGaps = stretchRes.hasGaps;
-      
-      console.log(`[DEBUG] MonthlyTimeVisualizer row ${dateStr}:`, {
-        dayEntriesLength: dayEntries.length,
-        isHolidayDate,
-        isDlDate,
-        hasGaps,
-        onStretchClick: !!onStretchClick
-      });
     }
 
     days.push({
@@ -2555,7 +2670,7 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, on
               {d.blocks.map(b => (
                 <div 
                   key={b.id} 
-                  className={`${styles.monthlyVizBlock} ${selectedEntry && selectedEntry.id === b.entry.id ? styles.monthlyVizBlockSelected : ''}`}
+                  className={`${styles.monthlyVizBlock} ${selectedEntry && selectedEntry.id === b.entry.id ? styles.monthlyVizBlockSelected : ''} ${b.isConflicting ? styles.monthlyVizBlockConflict : ''}`}
                   style={{ left: b.left, width: b.width, backgroundColor: b.color }}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -2563,7 +2678,10 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, on
                   }}
                 >
                   <div className={styles.monthlyVizTooltip}>
-                    <strong>{b.entry.waktuMulai} — {b.entry.waktuSelesai}</strong>
+                    <strong>
+                      {b.entry.waktuMulai} — {b.entry.waktuSelesai}
+                      {b.isConflicting && <span style={{ color: '#f87171', marginLeft: '6px' }}>⚠️ Bentrok</span>}
+                    </strong>
                     <p style={{ margin: 0 }}>{b.entry.rincian}</p>
                   </div>
                 </div>
@@ -2641,13 +2759,33 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, on
 }
 
 // TAB 2: Rekap Harian
-function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDate, checkHoliday, onToggleHoliday, checkDl, onToggleDl, pendingUploads = [], onStretchClick, skpData, onCreateEmptyFolder, creatingFolderId, accessToken }) {
+function TabRekapHarian({ entries, onEdit, onDelete, deleteDocument, updateDocument, selectedDate, setSelectedDate, checkHoliday, onToggleHoliday, checkDl, onToggleDl, pendingUploads = [], onStretchClick, skpData, onCreateEmptyFolder, creatingFolderId, accessToken }) {
+  const { showAlert } = useAlert();
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [showBulkActionDeleteConfirm, setShowBulkActionDeleteConfirm] = useState(false);
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
+  const [bulkEditForm, setBulkEditForm] = useState({
+    updateSkp: false,
+    skpId: '',
+    updateTimKerja: false,
+    timKerja: TIM_KERJA_OPTIONS[0],
+    updateSatuan: false,
+    satuan: 'Kegiatan',
+    updateTanggal: false,
+    tanggal: selectedDate,
+    updateWaktu: false,
+    waktuMulai: '08:00',
+    waktuSelesai: '16:00',
+  });
+
   const dayEntries = useMemo(
     () => entries
       .filter((e) => e.tanggal === selectedDate)
       .sort((a, b) => a.waktuMulai.localeCompare(b.waktuMulai)),
     [entries, selectedDate]
   );
+
+  const conflictingIds = useMemo(() => detectConflicts(dayEntries), [dayEntries]);
 
   const stretchResult = useMemo(
     () => stretchDayEntries(dayEntries, selectedDate, checkHoliday, checkDl),
@@ -2668,6 +2806,91 @@ function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDa
     () => dayEntries.reduce((sum, e) => sum + e.durasi, 0),
     [dayEntries]
   );
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [selectedDate]);
+
+  useEffect(() => {
+    if (showBulkEditModal) {
+      setBulkEditForm(p => ({ ...p, tanggal: selectedDate }));
+    }
+  }, [showBulkEditModal, selectedDate]);
+
+  const handleToggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === dayEntries.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(dayEntries.map(e => e.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    setShowBulkActionDeleteConfirm(false);
+    const count = selectedIds.size;
+    try {
+      await Promise.all(Array.from(selectedIds).map(id => deleteDocument(id)));
+      setSelectedIds(new Set());
+      showAlert(`Berhasil menghapus ${count} kegiatan terpilih!`, 'success');
+    } catch (err) {
+      showAlert('Gagal menghapus beberapa kegiatan: ' + err.message);
+    }
+  };
+
+  const handleBulkEditSubmit = async (e) => {
+    e.preventDefault();
+    const updates = {};
+    if (bulkEditForm.updateSkp) updates.skpId = Number(bulkEditForm.skpId) || null;
+    if (bulkEditForm.updateTimKerja) updates.timKerja = bulkEditForm.timKerja;
+    if (bulkEditForm.updateSatuan) updates.satuan = bulkEditForm.satuan;
+    if (bulkEditForm.updateTanggal) updates.tanggal = bulkEditForm.tanggal;
+    if (bulkEditForm.updateWaktu) {
+      updates.waktuMulai = bulkEditForm.waktuMulai;
+      updates.waktuSelesai = bulkEditForm.waktuSelesai;
+      updates.durasi = calcDurationMinutes(bulkEditForm.waktuMulai, bulkEditForm.waktuSelesai);
+    }
+
+    if (Object.keys(updates).length === 0) {
+      showAlert('Silakan pilih minimal satu field yang ingin diubah.');
+      return;
+    }
+
+    const count = selectedIds.size;
+    try {
+      await Promise.all(Array.from(selectedIds).map(id => updateDocument(id, updates)));
+      setSelectedIds(new Set());
+      setShowBulkEditModal(false);
+      // Reset form options
+      setBulkEditForm({
+        updateSkp: false,
+        skpId: '',
+        updateTimKerja: false,
+        timKerja: TIM_KERJA_OPTIONS[0],
+        updateSatuan: false,
+        satuan: 'Kegiatan',
+        updateTanggal: false,
+        tanggal: selectedDate,
+        updateWaktu: false,
+        waktuMulai: '08:00',
+        waktuSelesai: '16:00',
+      });
+      showAlert(`Berhasil memperbarui ${count} kegiatan terpilih!`, 'success');
+    } catch (err) {
+      showAlert('Gagal memperbarui beberapa kegiatan: ' + err.message);
+    }
+  };
 
   const getSkpName = (skpId) => {
     const item = skpData.find((s) => s.id === skpId);
@@ -2799,21 +3022,71 @@ function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDa
 
           <DailyTimeVisualizer entries={dayEntries} date={selectedDate} />
 
+          <div className={styles.bulkActionBar}>
+            <label className={styles.selectAllLabel}>
+              <input 
+                type="checkbox"
+                checked={selectedIds.size === dayEntries.length && dayEntries.length > 0}
+                onChange={handleSelectAll}
+                className={styles.checkboxInput}
+              />
+              <span>Pilih Semua ({dayEntries.length})</span>
+            </label>
+
+            {selectedIds.size > 0 && (
+              <div className={styles.bulkActionButtons}>
+                <span className={styles.selectedCountText}>{selectedIds.size} terpilih</span>
+                <button 
+                  type="button"
+                  onClick={() => setShowBulkEditModal(true)} 
+                  className={styles.bulkEditBtn}
+                >
+                  <Edit3 size={14} /> Edit Massal
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => setShowBulkActionDeleteConfirm(true)} 
+                  className={styles.bulkDeleteBtn}
+                >
+                  <Trash2 size={14} /> Hapus Massal
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className={styles.timeline}>
-            {dayEntries.map((entry) => (
-              <div key={entry.id} className={styles.timelineItem}>
-                <div className={styles.timelineDot} />
-                <div className={styles.timelineCard}>
-                  <div className={styles.timelineTime} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <div>
-                      {entry.waktuMulai} — {entry.waktuSelesai}
-                      <span className={styles.timelineDuration}>{formatDuration(entry.durasi)}</span>
+            {dayEntries.map((entry) => {
+              const isConflicting = conflictingIds.has(entry.id);
+              return (
+                <div key={entry.id} className={`${styles.timelineItem} ${isConflicting ? styles.conflictItem : ''}`}>
+                  <div className={styles.timelineDot} />
+                  <div className={styles.timelineCard}>
+                    <div className={styles.timelineTime} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <input 
+                          type="checkbox"
+                          checked={selectedIds.has(entry.id)}
+                          onChange={() => handleToggleSelect(entry.id)}
+                          style={{ cursor: 'pointer', accentColor: '#38bdf8' }}
+                        />
+                        <span>{entry.waktuMulai} — {entry.waktuSelesai}</span>
+                        <span className={styles.timelineDuration}>{formatDuration(entry.durasi)}</span>
+                        {isConflicting && (
+                          <span className={styles.conflictBadge}>
+                            ⚠️ Bentrok
+                          </span>
+                        )}
+                        {entry.groupId && (
+                          <span className={styles.multiDayBadge} title="Rangkaian kegiatan multi-hari">
+                            🔁 Multi-Hari
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button onClick={() => onEdit(entry)} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer' }} title="Edit"><Edit3 size={16} /></button>
+                        <button onClick={() => onDelete(entry.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }} title="Hapus"><Trash2 size={16} /></button>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button onClick={() => onEdit(entry)} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer' }} title="Edit"><Edit3 size={16} /></button>
-                      <button onClick={() => onDelete(entry.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }} title="Hapus"><Trash2 size={16} /></button>
-                    </div>
-                  </div>
                   <div className={styles.timelineSkp}>
                     SKP #{entry.skpId}: {getSkpName(entry.skpId)}
                   </div>
@@ -2879,9 +3152,176 @@ function TabRekapHarian({ entries, onEdit, onDelete, selectedDate, setSelectedDa
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </>
+      )}
+
+      <ConfirmDialog 
+        isOpen={showBulkActionDeleteConfirm} 
+        onConfirm={handleBulkDelete} 
+        onCancel={() => setShowBulkActionDeleteConfirm(false)} 
+        title="Hapus Massal Kegiatan" 
+        message={`Apakah Anda yakin ingin menghapus ${selectedIds.size} kegiatan terpilih secara permanen? Tindakan ini tidak dapat dibatalkan.`} 
+        confirmText="Hapus Semua" 
+        cancelText="Batal"
+        variant="danger" 
+      />
+
+      {showBulkEditModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent} style={{ maxWidth: '500px' }}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>Edit Massal ({selectedIds.size} Kegiatan)</h3>
+              <button type="button" onClick={() => setShowBulkEditModal(false)} className={styles.modalCloseBtn}>
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleBulkEditSubmit} className={styles.bulkEditForm}>
+              <p style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '16px' }}>
+                Centang kolom yang ingin diubah untuk seluruh kegiatan terpilih.
+              </p>
+              
+              {/* SKP */}
+              <div className={styles.bulkFormRow}>
+                <label className={styles.bulkFormCheckLabel}>
+                  <input 
+                    type="checkbox" 
+                    checked={bulkEditForm.updateSkp}
+                    onChange={e => setBulkEditForm(p => ({ ...p, updateSkp: e.target.checked }))}
+                    className={styles.bulkFormCheckbox}
+                  />
+                  <span>Ubah Butir SKP</span>
+                </label>
+                {bulkEditForm.updateSkp && (
+                  <select 
+                    value={bulkEditForm.skpId} 
+                    onChange={e => setBulkEditForm(p => ({ ...p, skpId: e.target.value }))}
+                    className={styles.bulkSelect}
+                    required
+                  >
+                    <option value="">— Pilih SKP —</option>
+                    {skpData.map(s => (
+                      <option key={s.id} value={s.id}>{s.id}. {s.nama}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* Tim Kerja */}
+              <div className={styles.bulkFormRow}>
+                <label className={styles.bulkFormCheckLabel}>
+                  <input 
+                    type="checkbox" 
+                    checked={bulkEditForm.updateTimKerja}
+                    onChange={e => setBulkEditForm(p => ({ ...p, updateTimKerja: e.target.checked }))}
+                    className={styles.bulkFormCheckbox}
+                  />
+                  <span>Ubah Tim Kerja</span>
+                </label>
+                {bulkEditForm.updateTimKerja && (
+                  <select 
+                    value={bulkEditForm.timKerja} 
+                    onChange={e => setBulkEditForm(p => ({ ...p, timKerja: e.target.value }))}
+                    className={styles.bulkSelect}
+                    required
+                  >
+                    {TIM_KERJA_OPTIONS.map(tim => (
+                      <option key={tim} value={tim}>{tim}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* Satuan */}
+              <div className={styles.bulkFormRow}>
+                <label className={styles.bulkFormCheckLabel}>
+                  <input 
+                    type="checkbox" 
+                    checked={bulkEditForm.updateSatuan}
+                    onChange={e => setBulkEditForm(p => ({ ...p, updateSatuan: e.target.checked }))}
+                    className={styles.bulkFormCheckbox}
+                  />
+                  <span>Ubah Satuan</span>
+                </label>
+                {bulkEditForm.updateSatuan && (
+                  <input 
+                    type="text" 
+                    value={bulkEditForm.satuan} 
+                    onChange={e => setBulkEditForm(p => ({ ...p, satuan: e.target.value }))}
+                    className={styles.bulkInput}
+                    required
+                  />
+                )}
+              </div>
+
+              {/* Tanggal */}
+              <div className={styles.bulkFormRow}>
+                <label className={styles.bulkFormCheckLabel}>
+                  <input 
+                    type="checkbox" 
+                    checked={bulkEditForm.updateTanggal}
+                    onChange={e => setBulkEditForm(p => ({ ...p, updateTanggal: e.target.checked }))}
+                    className={styles.bulkFormCheckbox}
+                  />
+                  <span>Pindahkan Tanggal</span>
+                </label>
+                {bulkEditForm.updateTanggal && (
+                  <input 
+                    type="date" 
+                    value={bulkEditForm.tanggal} 
+                    onChange={e => setBulkEditForm(p => ({ ...p, tanggal: e.target.value }))}
+                    className={styles.bulkInput}
+                    required
+                  />
+                )}
+              </div>
+
+              {/* Waktu */}
+              <div className={styles.bulkFormRow} style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                <label className={styles.bulkFormCheckLabel} style={{ marginBottom: bulkEditForm.updateWaktu ? '8px' : 0 }}>
+                  <input 
+                    type="checkbox" 
+                    checked={bulkEditForm.updateWaktu}
+                    onChange={e => setBulkEditForm(p => ({ ...p, updateWaktu: e.target.checked }))}
+                    className={styles.bulkFormCheckbox}
+                  />
+                  <span>Ubah Jam Kerja</span>
+                </label>
+                {bulkEditForm.updateWaktu && (
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input 
+                      type="time" 
+                      value={bulkEditForm.waktuMulai} 
+                      onChange={e => setBulkEditForm(p => ({ ...p, waktuMulai: e.target.value }))}
+                      className={styles.bulkInput}
+                      style={{ flex: 1 }}
+                      required
+                    />
+                    <input 
+                      type="time" 
+                      value={bulkEditForm.waktuSelesai} 
+                      onChange={e => setBulkEditForm(p => ({ ...p, waktuSelesai: e.target.value }))}
+                      className={styles.bulkInput}
+                      style={{ flex: 1 }}
+                      required
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.bulkFormActions}>
+                <button type="button" onClick={() => setShowBulkEditModal(false)} className={styles.bulkCancelBtn}>
+                  Batal
+                </button>
+                <button type="submit" className={styles.bulkSubmitBtn}>
+                  Terapkan Perubahan
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -2899,6 +3339,25 @@ const getMinutes = (timeStr) => {
   return h * 60 + m;
 };
 
+function detectConflicts(dayEntries) {
+  if (!dayEntries || dayEntries.length <= 1) return new Set();
+  const sorted = [...dayEntries].sort((a, b) => (a.waktuMulai || '').localeCompare(b.waktuMulai || ''));
+  const conflictingIds = new Set();
+  
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1];
+    const curr = sorted[i];
+    if (!prev.waktuMulai || !prev.waktuSelesai || !curr.waktuMulai || !curr.waktuSelesai) continue;
+    const prevEnd = prev.waktuSelesai;
+    const currStart = curr.waktuMulai;
+    if (currStart < prevEnd) {
+      conflictingIds.add(prev.id);
+      conflictingIds.add(curr.id);
+    }
+  }
+  return conflictingIds;
+}
+
 function stretchDayEntries(dayEntries, dateStr, checkHoliday, checkDl) {
   if (!dayEntries || dayEntries.length === 0) {
     return { hasGaps: false, isApelOnly: false, updates: [] };
@@ -2914,7 +3373,7 @@ function stretchDayEntries(dayEntries, dateStr, checkHoliday, checkDl) {
   const START_MIN = 7 * 60 + 30; // 07:30
   const END_MIN = dow === 5 ? 16 * 60 + 30 : 16 * 60; // Jumat 16:30, Senin-Kamis 16:00
 
-  const sorted = [...dayEntries].sort((a, b) => a.waktuMulai.localeCompare(b.waktuMulai));
+  const sorted = [...dayEntries].sort((a, b) => (a.waktuMulai || '').localeCompare(b.waktuMulai || ''));
   const isApelOnly = sorted.every(e => e.rincian && (e.rincian.toLowerCase().includes('apel') || e.rincian.toLowerCase().includes('upacara')));
 
   if (isApelOnly) {
@@ -3008,7 +3467,7 @@ function stretchMonthEntries(originalEntries, checkHoliday, checkDl) {
     const START_MIN = 7 * 60 + 30;
     const END_MIN = dow === 5 ? 16 * 60 + 30 : 16 * 60;
     
-    const sorted = dayEvents.sort((a,b) => a.waktuMulai.localeCompare(b.waktuMulai));
+    const sorted = dayEvents.sort((a,b) => (a.waktuMulai || '').localeCompare(b.waktuMulai || ''));
     
     const isApelOnly = sorted.every(e => e.rincian && (e.rincian.toLowerCase().includes('apel') || e.rincian.toLowerCase().includes('upacara')));
     
@@ -3027,31 +3486,36 @@ function stretchMonthEntries(originalEntries, checkHoliday, checkDl) {
        if (isApelOnly) {
          hasApelOnly = true;
        } else {
+         const tempSorted = sorted.map(e => ({ ...e }));
          let prevEnd = START_MIN;
-         for (let i = 0; i < sorted.length; i++) {
-            const e = sorted[i];
+         for (let i = 0; i < tempSorted.length; i++) {
+            const e = tempSorted[i];
             let s = getMinutes(e.waktuMulai);
             let en = getMinutes(e.waktuSelesai);
             
             if (i === 0 && s > START_MIN) {
                s = START_MIN;
             } else if (s > prevEnd) {
-               const prevE = sorted[i-1];
-               const prevIndex = newEntries.findIndex(ne => ne.id === prevE.id);
-               if (prevIndex !== -1) {
-                  newEntries[prevIndex] = { ...newEntries[prevIndex], waktuSelesai: formatTimeStr(s), durasi: s - getMinutes(prevE.waktuMulai) };
-               }
+               const prevE = tempSorted[i-1];
+               prevE.waktuSelesai = formatTimeStr(s);
+               prevE.durasi = s - getMinutes(prevE.waktuMulai);
             }
             
-            if (i === sorted.length - 1 && en < END_MIN) {
+            if (i === tempSorted.length - 1 && en < END_MIN) {
                en = END_MIN;
             }
             
-            const newIndex = newEntries.findIndex(ne => ne.id === e.id);
-            if (newIndex !== -1) {
-               newEntries[newIndex] = { ...newEntries[newIndex], waktuMulai: formatTimeStr(s), waktuSelesai: formatTimeStr(en), durasi: en - s };
-            }
+            e.waktuMulai = formatTimeStr(s);
+            e.waktuSelesai = formatTimeStr(en);
+            e.durasi = en - s;
             prevEnd = Math.max(prevEnd, en);
+         }
+
+         for (const updatedEvent of tempSorted) {
+            const idx = newEntries.findIndex(ne => ne.id === updatedEvent.id);
+            if (idx !== -1) {
+               newEntries[idx] = updatedEvent;
+            }
          }
        }
     }
@@ -3073,6 +3537,32 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
       }
     }
   }, [sharedDate]);
+
+  const handlePrevMonth = () => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    let prevYear = year;
+    let prevMonth = month - 1;
+    if (prevMonth === 0) {
+      prevMonth = 12;
+      prevYear -= 1;
+    }
+    const newMonthStr = `${prevYear}-${String(prevMonth).padStart(2, '0')}`;
+    setSelectedMonth(newMonthStr);
+    if (setSharedDate) setSharedDate(newMonthStr + '-01');
+  };
+
+  const handleNextMonth = () => {
+    const [year, month] = selectedMonth.split('-').map(Number);
+    let nextYear = year;
+    let nextMonth = month + 1;
+    if (nextMonth === 13) {
+      nextMonth = 1;
+      nextYear += 1;
+    }
+    const newMonthStr = `${nextYear}-${String(nextMonth).padStart(2, '0')}`;
+    setSelectedMonth(newMonthStr);
+    if (setSharedDate) setSharedDate(newMonthStr + '-01');
+  };
 
   const [showStretchDialog, setShowStretchDialog] = useState(false);
   const [pendingExportType, setPendingExportType] = useState(null);
@@ -3237,15 +3727,34 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
       <div className={styles.headerRow}>
         <div className={styles.datePickerGroup}>
           <label className={styles.label}>Pilih Bulan:</label>
-          <input
-            type="month"
-            className={styles.input}
-            value={selectedMonth}
-            onChange={(e) => {
-              setSelectedMonth(e.target.value);
-              if (setSharedDate) setSharedDate(e.target.value + '-01');
-            }}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '220px' }}>
+            <button 
+              type="button" 
+              className={styles.dateNavBtn}
+              onClick={handlePrevMonth}
+              title="Bulan Sebelumnya"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <input
+              type="month"
+              className={styles.input}
+              value={selectedMonth}
+              onChange={(e) => {
+                setSelectedMonth(e.target.value);
+                if (setSharedDate) setSharedDate(e.target.value + '-01');
+              }}
+              style={{ flex: 1 }}
+            />
+            <button 
+              type="button" 
+              className={styles.dateNavBtn}
+              onClick={handleNextMonth}
+              title="Bulan Berikutnya"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
         </div>
         <div className={styles.exportGroup}>
           <button className={styles.exportBtnMini} onClick={handleExportDaily} title="Export CKP Daily">Daily</button>
@@ -3736,12 +4245,28 @@ function CKPPageInner() {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [stretchConfirmDate, setStretchConfirmDate] = useState(null);
 
+  // Bulk Edit / Delete States
+  const [bulkEditId, setBulkEditId] = useState(null);
+  const [bulkEditData, setBulkEditData] = useState(null);
+  const [bulkEditGroupId, setBulkEditGroupId] = useState(null);
+  const [showBulkEditDialog, setShowBulkEditDialog] = useState(false);
+
+  const [bulkDeleteId, setBulkDeleteId] = useState(null);
+  const [bulkDeleteGroupId, setBulkDeleteGroupId] = useState(null);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+
   const handleAICreateCKP = useCallback(async (data) => {
     try {
-      await addDocument({
+      const formattedData = {
         ...data,
+        kuantitas: Number(data.kuantitas || data.outputKuantitas) || 1,
+        timKerja: data.timKerja || data.tim || 'Subbagian Umum',
         createdAt: new Date(),
-      });
+      };
+      delete formattedData.outputKuantitas;
+      delete formattedData.tim;
+
+      await addDocument(formattedData);
       setToastVisible(true);
       setTimeout(() => setToastVisible(false), 3000);
     } catch (err) {
@@ -3755,7 +4280,10 @@ function CKPPageInner() {
     try {
       const updates = {};
       if (data.rincian) updates.rincian = data.rincian;
-      if (data.outputKuantitas) updates.outputKuantitas = Number(data.outputKuantitas);
+      if (data.outputKuantitas !== undefined) updates.kuantitas = Number(data.outputKuantitas);
+      if (data.kuantitas !== undefined) updates.kuantitas = Number(data.kuantitas);
+      if (data.timKerja) updates.timKerja = data.timKerja;
+      if (data.tim) updates.timKerja = data.tim;
       await updateDocument(data.id, updates);
       showAlert('Laporan CKP berhasil diperbarui oleh AI!', 'success');
     } catch(e) { console.error(e); }
@@ -3850,6 +4378,13 @@ function CKPPageInner() {
   };
 
   const handleDelete = (id) => {
+    const originalEntry = entries.find(e => e.id === id);
+    if (originalEntry && originalEntry.groupId) {
+      setBulkDeleteId(id);
+      setBulkDeleteGroupId(originalEntry.groupId);
+      setShowBulkDeleteDialog(true);
+      return;
+    }
     setConfirmDeleteId(id);
   };
 
@@ -3863,7 +4398,36 @@ function CKPPageInner() {
     }
   };
 
+  const executeBulkDelete = async (mode) => {
+    setShowBulkDeleteDialog(false);
+    if (!bulkDeleteId || !bulkDeleteGroupId) return;
+    try {
+      if (mode === 'all') {
+        const groupEntries = entries.filter(e => e.groupId === bulkDeleteGroupId);
+        for (const entry of groupEntries) {
+          await deleteDocument(entry.id);
+        }
+      } else if (mode === 'single') {
+        await deleteDocument(bulkDeleteId);
+      }
+    } catch (e) {
+      showAlert('Gagal menghapus kegiatan: ' + e.message);
+    } finally {
+      setBulkDeleteId(null);
+      setBulkDeleteGroupId(null);
+    }
+  };
+
   const handleUpdate = async (id, formData) => {
+    const originalEntry = entries.find(e => e.id === id);
+    if (originalEntry && originalEntry.groupId) {
+      setBulkEditId(id);
+      setBulkEditData(formData);
+      setBulkEditGroupId(originalEntry.groupId);
+      setShowBulkEditDialog(true);
+      return;
+    }
+
     try {
       await updateDocument(id, formData);
       setToastVisible(true);
@@ -3874,9 +4438,44 @@ function CKPPageInner() {
     }
   };
 
+  const executeBulkUpdate = async (mode) => {
+    setShowBulkEditDialog(false);
+    if (!bulkEditId || !bulkEditData || !bulkEditGroupId) return;
+    try {
+      if (mode === 'all') {
+        const groupEntries = entries.filter(e => e.groupId === bulkEditGroupId);
+        for (const entry of groupEntries) {
+          const updateData = {
+            ...bulkEditData,
+            tanggal: entry.tanggal, // Preserve original date
+          };
+          if (entry.keteranganHari) {
+            updateData.keteranganHari = entry.keteranganHari; // Preserve weekend label
+          }
+          await updateDocument(entry.id, updateData);
+        }
+      } else if (mode === 'single') {
+        const updateData = {
+          ...bulkEditData,
+          groupId: null // Decouple
+        };
+        await updateDocument(bulkEditId, updateData);
+      }
+      setToastVisible(true);
+      setEditingEntry(null);
+      setActiveTab(1);
+    } catch (e) {
+      showAlert('Gagal memperbarui kegiatan: ' + e.message);
+    } finally {
+      setBulkEditId(null);
+      setBulkEditData(null);
+      setBulkEditGroupId(null);
+    }
+  };
+
   const handleStretchDaily = useCallback(async (dateStr) => {
     const dayEntries = entries.filter(e => e.tanggal === dateStr);
-    const { hasGaps, updates } = stretchDayEntries(dayEntries, dateStr, checkHoliday);
+    const { hasGaps, updates } = stretchDayEntries(dayEntries, dateStr, checkHoliday, checkDl);
     if (!hasGaps || updates.length === 0) {
       showAlert('Tidak ada celah waktu kosong yang perlu diregangkan pada tanggal ini.', 'info');
       return;
@@ -3895,10 +4494,10 @@ function CKPPageInner() {
       console.error('Failed to stretch daily entries:', err);
       showAlert('Gagal merenggangkan waktu kegiatan: ' + err.message);
     }
-  }, [entries, checkHoliday, updateDocument, showAlert]);
+  }, [entries, checkHoliday, checkDl, updateDocument, showAlert]);
 
   const handleSubmit = useCallback(async (formData) => {
-    await addDocument(formData);
+    const docRef = await addDocument(formData);
 
     const scheduleId = formData.sourceScheduleId || formData.fromScheduleEventId;
     if (scheduleId) {
@@ -3927,7 +4526,9 @@ function CKPPageInner() {
         console.error('Failed to send telegram notification:', e);
       }
     }
-  }, [addDocument]);
+
+    return docRef?.id;
+  }, [addDocument, skpData]);
 
   const hideToast = useCallback(() => setToastVisible(false), []);
 
@@ -3968,10 +4569,61 @@ function CKPPageInner() {
       
       for (const item of ckpList) {
         try {
-          const driveUrl = await uploadFileToDrive(item.file, accessToken, folderId, item.customFileName);
-          await updateDocument(item.id, { buktiDukung: driveUrl });
-          await removePendingUpload(item.id);
-          successCount++;
+          let updatedFields = {};
+          let hasUploadedAnything = false;
+
+          // 1. Process files (bukti dukung)
+          if (item.files && item.files.length > 0) {
+            if (item.files.length === 1) {
+              const driveUrl = await uploadFileToDrive(item.files[0].file, accessToken, folderId, item.files[0].customFileName);
+              updatedFields.buktiDukung = driveUrl;
+              updatedFields.buktiDukungStatus = 'file';
+              hasUploadedAnything = true;
+            } else {
+              const entry = entries.find(e => e.id === item.id);
+              const cleanKegiatan = entry?.rincian ? entry.rincian.substring(0, 30).replace(/[^a-zA-Z0-9 -]/g, '').trim() : 'Kegiatan';
+              const dateStr = entry?.tanggal || new Date().toISOString().split('T')[0];
+              const subfolderName = `${dateStr} - ${cleanKegiatan}`;
+              const subfolderId = await getOrCreateFolder(accessToken, subfolderName, folderId);
+              await makeFileOrFolderPublic(subfolderId, accessToken);
+              
+              for (const fObj of item.files) {
+                await uploadFileToDrive(fObj.file, accessToken, subfolderId, fObj.customFileName);
+              }
+              const driveUrl = `https://drive.google.com/drive/folders/${subfolderId}`;
+              updatedFields.buktiDukung = driveUrl;
+              updatedFields.buktiDukungStatus = 'folder';
+              hasUploadedAnything = true;
+            }
+          } else if (item.file) {
+            // Fallback for single file if saved under old format
+            const driveUrl = await uploadFileToDrive(item.file, accessToken, folderId, item.customFileName);
+            updatedFields.buktiDukung = driveUrl;
+            updatedFields.buktiDukungStatus = 'file';
+            hasUploadedAnything = true;
+          }
+
+          // 2. Process presensiFile (bukti presensi)
+          if (item.presensiFile) {
+            const presensiFolderId = await getOrCreateFolder(accessToken, 'Bukti Presensi CKP', parentFolderId);
+            const driveUrl = await uploadFileToDrive(item.presensiFile.file, accessToken, presensiFolderId, item.presensiFile.customFileName);
+            updatedFields.buktiPresensi = driveUrl;
+            hasUploadedAnything = true;
+          }
+
+          if (hasUploadedAnything) {
+            const entry = entries.find(e => e.id === item.id);
+            if (entry && entry.groupId) {
+              const groupEntries = entries.filter(e => e.groupId === entry.groupId);
+              for (const gEntry of groupEntries) {
+                await updateDocument(gEntry.id, { ...updatedFields });
+              }
+            } else {
+              await updateDocument(item.id, updatedFields);
+            }
+            await removePendingUpload(item.id);
+            successCount++;
+          }
         } catch (err) {
           console.error("Sync error for item", item.id, err);
           if (err.message && err.message.includes('401')) {
@@ -4166,6 +4818,8 @@ function CKPPageInner() {
                 entries={entries} 
                 onEdit={handleEdit} 
                 onDelete={handleDelete} 
+                deleteDocument={deleteDocument}
+                updateDocument={updateDocument}
                 selectedDate={sharedSelectedDate}
                 setSelectedDate={setSharedSelectedDate}
                 checkHoliday={checkHoliday}
@@ -4224,6 +4878,32 @@ function CKPPageInner() {
         title="Regangkan Jam Kegiatan" 
         message={`Apakah Anda yakin ingin merenggangkan jam kegiatan pada tanggal ${stretchConfirmDate ? formatDate(stretchConfirmDate) : ''}? Tindakan ini akan menyesuaikan jam mulai dan selesai setiap kegiatan agar menutupi seluruh jam kerja (07:30 s.d. selesai) tanpa ada waktu kosong dan menyimpannya langsung ke database.`}
         confirmText="Regangkan" 
+        variant="primary" 
+      />
+
+      <ConfirmDialog 
+        isOpen={showBulkDeleteDialog} 
+        onConfirm={() => executeBulkDelete('all')} 
+        onThird={() => executeBulkDelete('single')}
+        onCancel={() => setShowBulkDeleteDialog(false)} 
+        title="Hapus Kegiatan Multi-Hari" 
+        message="Kegiatan ini tercatat sebagai rangkaian kegiatan multi-hari. Apakah Anda yakin ingin menghapus seluruh rangkaian hari atau hanya hari ini saja?" 
+        confirmText="Hapus Semua Hari" 
+        thirdText="Hapus Hari Ini Saja"
+        cancelText="Batal"
+        variant="danger" 
+      />
+
+      <ConfirmDialog 
+        isOpen={showBulkEditDialog} 
+        onConfirm={() => executeBulkUpdate('all')} 
+        onThird={() => executeBulkUpdate('single')}
+        onCancel={() => setShowBulkEditDialog(false)} 
+        title="Simpan Perubahan Multi-Hari" 
+        message="Kegiatan ini tercatat sebagai rangkaian kegiatan multi-hari. Apakah Anda ingin menerapkan perubahan ini ke seluruh rangkaian hari atau hanya hari ini saja?" 
+        confirmText="Terapkan Semua" 
+        thirdText="Terapkan Hari Ini Saja"
+        cancelText="Batal"
         variant="primary" 
       />
 

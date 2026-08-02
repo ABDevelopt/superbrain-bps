@@ -91,8 +91,7 @@ const responseSchema = {
         urgensi: { type: 'STRING' },
         peran: { type: 'STRING' },
         status: { type: 'STRING' },
-      },
-      required: ['lokasi', 'skpId']
+      }
     }
   },
   required: ['type', 'data']

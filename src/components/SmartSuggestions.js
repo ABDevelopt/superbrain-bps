@@ -106,10 +106,17 @@ KEMBALIKAN HANYA SEBUAH OBJEK JSON DENGAN FORMAT BERIKUT (TANPA MARKDOWN BLOCKS)
   const handleExecute = async (sugg) => {
     try {
       if (sugg.type === 'CREATE_CKP') {
-        await addCkp({
+        const formattedData = {
           ...sugg.actionData,
           tanggal: sugg.actionData.tanggal || new Date().toISOString().split('T')[0],
-        });
+          kuantitas: Number(sugg.actionData.kuantitas || sugg.actionData.outputKuantitas) || 1,
+          timKerja: sugg.actionData.timKerja || sugg.actionData.tim || 'Subbagian Umum',
+          createdAt: new Date(),
+        };
+        delete formattedData.outputKuantitas;
+        delete formattedData.tim;
+
+        await addCkp(formattedData);
       } else if (sugg.type === 'CREATE_TASK') {
         await addTask({
           ...sugg.actionData,

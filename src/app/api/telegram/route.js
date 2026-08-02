@@ -78,6 +78,16 @@ async function handleTelegramWebhook(token, body) {
         if (document) {
           fileId = document.file_id;
           mimeType = document.mime_type;
+
+          // Fallback if mimeType is generic or missing
+          if (!mimeType || mimeType === 'application/octet-stream') {
+            const fileName = document.file_name || '';
+            if (fileName.endsWith('.pdf')) mimeType = 'application/pdf';
+            else if (fileName.endsWith('.png')) mimeType = 'image/png';
+            else if (fileName.endsWith('.jpg') || fileName.endsWith('.jpeg')) mimeType = 'image/jpeg';
+            else if (fileName.endsWith('.webp')) mimeType = 'image/webp';
+            else if (fileName.endsWith('.txt')) mimeType = 'text/plain';
+          }
         } else {
           const largestPhoto = photo[photo.length - 1];
           fileId = largestPhoto.file_id;
