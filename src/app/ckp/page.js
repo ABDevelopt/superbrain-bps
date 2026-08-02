@@ -2407,6 +2407,8 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, on
   const END_HOUR = 18;
   const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60;
   
+  const [hoveredEntry, setHoveredEntry] = useState(null);
+
   const daysInMonth = new Date(year, month, 0).getDate();
   const days = [];
   
@@ -2522,31 +2524,11 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, on
                   className={styles.monthlyVizBlock} 
                   style={{ left: b.left, width: b.width, backgroundColor: b.color }}
                   onClick={() => onEdit && onEdit(b.entry)}
+                  onMouseEnter={() => setHoveredEntry(b.entry)}
+                  onMouseLeave={() => setHoveredEntry(null)}
                 >
                   <div className={styles.monthlyVizTooltip}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', gap: '8px' }}>
-                      <strong style={{ margin: 0, color: '#38bdf8' }}>{b.entry.waktuMulai} — {b.entry.waktuSelesai}</strong>
-                      <div style={{ display: 'flex', gap: '6px' }} onClick={e => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          onClick={() => onEdit && onEdit(b.entry)}
-                          className={styles.tooltipBtnEdit}
-                          title="Edit"
-                          style={{ padding: '2px 5px' }}
-                        >
-                          <Edit3 size={10} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onDelete && onDelete(b.entry.id)}
-                          className={styles.tooltipBtnDelete}
-                          title="Hapus"
-                          style={{ padding: '2px 5px' }}
-                        >
-                          <Trash2 size={10} />
-                        </button>
-                      </div>
-                    </div>
+                    <strong>{b.entry.waktuMulai} — {b.entry.waktuSelesai}</strong>
                     <p style={{ margin: 0 }}>{b.entry.rincian}</p>
                   </div>
                 </div>
@@ -2554,6 +2536,60 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, on
             </div>
             <div className={styles.monthlyVizDurasi} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span>{d.totalJamStr}</span>
+              
+              {/* Jika baris ini memiliki block yang sedang di-hover, tampilkan tombol Edit & Hapus untuk entry tersebut */}
+              {hoveredEntry && d.blocks.some(b => b.entry.id === hoveredEntry.id) ? (
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }} onClick={e => e.stopPropagation()}>
+                  {d.blocks.length > 1 && (
+                    <span style={{ fontSize: '10px', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.1)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>
+                      {hoveredEntry.waktuMulai}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => onEdit && onEdit(hoveredEntry)}
+                    className={styles.tooltipBtnEdit}
+                    title="Edit"
+                    style={{ padding: '2px 5px' }}
+                  >
+                    <Edit3 size={11} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDelete && onDelete(hoveredEntry.id)}
+                    className={styles.tooltipBtnDelete}
+                    title="Hapus"
+                    style={{ padding: '2px 5px' }}
+                  >
+                    <Trash2 size={11} />
+                  </button>
+                </div>
+              ) : (
+                /* Fallback: Jika tidak ada block yang dihover tapi hari tersebut hanya memiliki tepat 1 kegiatan, tampilkan tombol aksinya */
+                d.blocks.length === 1 && (
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }} onClick={e => e.stopPropagation()}>
+                    <button
+                      type="button"
+                      onClick={() => onEdit && onEdit(d.blocks[0].entry)}
+                      className={styles.tooltipBtnEdit}
+                      title="Edit"
+                      style={{ padding: '2px 5px' }}
+                    >
+                      <Edit3 size={11} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDelete && onDelete(d.blocks[0].entry.id)}
+                      className={styles.tooltipBtnDelete}
+                      title="Hapus"
+                      style={{ padding: '2px 5px' }}
+                    >
+                      <Trash2 size={11} />
+                    </button>
+                  </div>
+                )
+              )}
+
               {!d.isHoliday && d.hasGaps && onStretchClick && (
                 <button 
                   onClick={() => onStretchClick(d.dateStr)}
