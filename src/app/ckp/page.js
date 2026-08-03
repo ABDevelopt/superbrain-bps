@@ -3814,11 +3814,18 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
     const employeeName = user?.displayName || 'Yahya Abdurrohman';
     const sigDate = getSignatureDate();
 
+    // Default template names and NIPs
+    const targetEmpName = 'Yahya Abdurrohman, S.Tr.Stat.';
+    const targetEmpNip = '200211062026031003';
+    const targetPejName = 'Suko Haryono, SST, M.Si';
+    const targetPejNip = '198405062008011006';
+
     let titleHtml = '';
     let infoHtml = '';
     let tableHeaderHtml = '';
     let rowsHtml = '';
     let tableClass = 'main-table';
+    let signatureHtml = '';
 
     if (type === 'daily') {
       titleHtml = `
@@ -3857,16 +3864,16 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
 
       tableHeaderHtml = `
         <tr>
-          <th style="width: 3%; border-top: none; border-bottom: none; border-left: none; background: transparent;"></th>
-          <th style="width: 5%">No</th>
-          <th style="width: 12%">Tanggal</th>
-          <th style="width: 12%">Waktu</th>
-          <th style="width: 38%">Rincian Kegiatan</th>
-          <th style="width: 7%">Kuantitas</th>
-          <th style="width: 8%">Satuan</th>
-          <th style="width: 8%">Kategori</th>
-          <th style="width: 10%">Bukti Kegiatan</th>
-          <th style="width: 10%">Keterangan</th>
+          <th style="width: 2%; border-top: none; border-bottom: none; border-left: none; background: transparent;"></th>
+          <th style="width: 3%">No</th>
+          <th style="width: 8%">Tanggal</th>
+          <th style="width: 8%">Waktu</th>
+          <th style="width: 27%">Rincian Kegiatan</th>
+          <th style="width: 5%">Kuantitas</th>
+          <th style="width: 5%">Satuan</th>
+          <th style="width: 6%">Kategori</th>
+          <th style="width: 18%">Bukti Kegiatan</th>
+          <th style="width: 18%">Keterangan</th>
         </tr>
       `;
 
@@ -3879,8 +3886,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
         const formattedDate = e.tanggal ? e.tanggal.split('-').reverse().join('/') : '';
         const skpItem = skpData.find(s => s.id === e.skpId);
         const categoryStr = skpItem ? (skpItem.kategori === 'utama' ? 'Utama' : 'Tambahan') : '';
-        const buktiLinkText = e.buktiDukung ? `<a href="${e.buktiDukung}" target="_blank" style="color: #4f46e5; text-decoration: underline;">Link</a>` : '';
-        const presensiLinkText = e.buktiPresensi ? `<a href="${e.buktiPresensi}" target="_blank" style="color: #4f46e5; text-decoration: underline;">Presensi</a>` : '';
+        const buktiLinkText = e.buktiDukung ? `<a href="${e.buktiDukung}" target="_blank" style="color: #4f46e5; text-decoration: underline; word-break: break-all; font-size: 7.5pt;">${e.buktiDukung}</a>` : '';
         return `
           <tr>
             <td style="border: none; background: transparent;"></td>
@@ -3891,51 +3897,75 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
             <td class="center">${e.kuantitas || 1}</td>
             <td class="center">${e.satuan || 'kegiatan'}</td>
             <td class="center">${categoryStr}</td>
-            <td class="center">${buktiLinkText}</td>
-            <td class="center">${presensiLinkText}</td>
+            <td>${buktiLinkText}</td>
+            <td></td>
           </tr>
         `;
       }).join('');
+
+      signatureHtml = `
+        <table class="signature-table">
+          <tr>
+            <td>
+              Mengetahui,<br>
+              Pejabat Penilai
+              <div class="signature-space"></div>
+              <strong>( ${targetPejName} )</strong><br>
+              NIP. ${targetPejNip}
+            </td>
+            <td>
+              Penajam Paser Utara, ${sigDate}<br>
+              Pegawai,<br>
+              <div class="signature-space"></div>
+              <strong>( ${employeeName} )</strong><br>
+              NIP. ${employeeName.includes('Yahya') ? targetEmpNip : '......................................................'}
+            </td>
+          </tr>
+        </table>
+      `;
 
     } else if (type === 'ckpt') {
       titleHtml = `
         <div style="width: 100%; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
           <div style="width: 20%"></div>
-          <div style="font-size: 13pt; font-weight: bold; text-transform: uppercase; text-align: center; margin-top: 15px;">
-            CAPAIAN KINERJA PEGAWAI ${yearVal}
+          <div style="font-size: 11pt; font-weight: bold; text-transform: uppercase; text-align: center; margin-top: 15px; flex-grow: 1; letter-spacing: 0.5px;">
+            TARGET KINERJA PEGAWAI TAHUN ${yearVal}
           </div>
-          <div style="border: 1px solid #000; padding: 4px 10px; font-size: 10pt; font-weight: bold;">CKP-T</div>
+          <div style="border: 1px solid #000; padding: 4px 10px; font-size: 9pt; font-weight: bold; min-width: 60px; text-align: center;">CKP-T</div>
         </div>
       `;
 
       infoHtml = `
-        <table class="info-table">
+        <table class="info-table" style="width: 100%; margin-bottom: 15px;">
           <tr>
-            <td style="width: 15%"><strong>Nama Pegawai</strong></td>
-            <td style="width: 35%">: ${employeeName}, S.Tr.Stat</td>
-            <td style="width: 15%"><strong>Satker</strong></td>
-            <td style="width: 35%">: BPS Kabupaten Penajam Paser Utara</td>
+            <td style="width: 18%; font-size: 9pt; padding: 2px 0; vertical-align: top;">Satuan Organisasi</td>
+            <td style="width: 82%; font-size: 9pt; padding: 2px 0;">: BPS Kabupaten Penajam Paser Utara</td>
           </tr>
           <tr>
-            <td><strong>Jabatan</strong></td>
-            <td>: Staf Tim IPJKD & DLS</td>
-            <td><strong>Periode</strong></td>
-            <td>: ${periodStr} ${yearVal}</td>
+            <td style="font-size: 9pt; padding: 2px 0; vertical-align: top;">Nama</td>
+            <td style="font-size: 9pt; padding: 2px 0;">: ${targetEmpName}</td>
+          </tr>
+          <tr>
+            <td style="font-size: 9pt; padding: 2px 0; vertical-align: top;">Jabatan</td>
+            <td style="font-size: 9pt; padding: 2px 0;">: Staf</td>
+          </tr>
+          <tr>
+            <td style="font-size: 9pt; padding: 2px 0; vertical-align: top;">Periode</td>
+            <td style="font-size: 9pt; padding: 2px 0;">: ${periodStr} ${yearVal}</td>
           </tr>
         </table>
       `;
 
       tableHeaderHtml = `
         <tr>
-          <th rowspan="2" style="width: 5%">No</th>
-          <th rowspan="2" style="width: 45%">Kegiatan</th>
-          <th rowspan="2" style="width: 12%">Satuan</th>
-          <th rowspan="2" style="width: 12%">Target Kuantitas</th>
-          <th rowspan="2" style="width: 10%">Kode Butir<br>Kegiatan</th>
-          <th rowspan="2" style="width: 8%">Angka<br>Kredit</th>
-          <th rowspan="2" style="width: 8%">Keterangan</th>
+          <th style="width: 5%; font-size: 8.5pt;">No</th>
+          <th style="width: 53%; font-size: 8.5pt;">Uraian Kegiatan</th>
+          <th style="width: 12%; font-size: 8.5pt;">Satuan</th>
+          <th style="width: 10%; font-size: 8.5pt;">Target Kuantitas</th>
+          <th style="width: 10%; font-size: 8.5pt;">Kode Butir Kegiatan</th>
+          <th style="width: 5%; font-size: 8.5pt;">Angka Kredit</th>
+          <th style="width: 5%; font-size: 8.5pt;">Keterangan</th>
         </tr>
-        <tr></tr>
         <tr class="header-indices center">
           <td>(1)</td>
           <td>(2)</td>
@@ -3947,101 +3977,217 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
         </tr>
       `;
 
+      const aggregated = {};
       const sortedData = [...monthEntries].sort((a, b) => {
         if (a.tanggal !== b.tanggal) return a.tanggal.localeCompare(b.tanggal);
         return (a.waktuMulai || '').localeCompare(b.waktuMulai || '');
       });
 
-      const aggregated = {};
       sortedData.forEach(e => {
         const skpKey = e.skpId || 'none';
         if (!aggregated[skpKey]) {
-          aggregated[skpKey] = { kuantitas: 0, satuan: e.satuan || 'kegiatan' };
+          const skpItem = skpData.find(s => String(s.id) === String(skpKey));
+          const kategori = skpItem ? skpItem.kategori : 'utama';
+          aggregated[skpKey] = {
+            kuantitas: 0,
+            satuan: e.satuan || 'kegiatan',
+            kategori: kategori,
+            nama: skpItem ? skpItem.nama : (skpKey === 'none' ? 'Kegiatan Tanpa SKP' : `SKP #${skpKey}`)
+          };
         }
         aggregated[skpKey].kuantitas += (e.kuantitas || 1);
       });
 
+      const utamaKeys = Object.keys(aggregated).filter(k => aggregated[k].kategori === 'utama');
+      const tambahanKeys = Object.keys(aggregated).filter(k => aggregated[k].kategori === 'tambahan');
+
       let sumTarget = 0;
-      rowsHtml = Object.keys(aggregated).map((skpIdStr, idx) => {
-        const skpItem = skpData.find(s => String(s.id) === skpIdStr);
-        const skpName = skpItem ? skpItem.nama : (skpIdStr === 'none' ? 'Kegiatan Tanpa SKP' : `SKP #${skpIdStr}`);
-        const qty = aggregated[skpIdStr].kuantitas;
-        const unit = aggregated[skpIdStr].satuan;
-        sumTarget += qty;
+      let rowsList = [];
 
-        return `
+      // UTAMA Section
+      rowsList.push(`
+        <tr style="font-weight: bold; background-color: #f3f4f6;">
+          <td class="center" style="font-size: 8.5pt;"></td>
+          <td style="text-align: left; padding-left: 6px; font-size: 8.5pt;">UTAMA</td>
+          <td class="center" style="font-size: 8.5pt;"></td>
+          <td class="center" style="font-size: 8.5pt;"></td>
+          <td class="center" style="font-size: 8.5pt;"></td>
+          <td class="center" style="font-size: 8.5pt;"></td>
+          <td style="font-size: 8.5pt;"></td>
+        </tr>
+      `);
+
+      if (utamaKeys.length > 0) {
+        utamaKeys.forEach((key, idx) => {
+          const item = aggregated[key];
+          sumTarget += item.kuantitas;
+          rowsList.push(`
+            <tr>
+              <td class="center" style="font-size: 8.5pt;">${idx + 1}</td>
+              <td style="font-size: 8.5pt; text-align: left;">${item.nama}</td>
+              <td class="center" style="font-size: 8.5pt;">${item.satuan}</td>
+              <td class="center" style="font-size: 8.5pt;">${item.kuantitas}</td>
+              <td class="center" style="font-size: 8.5pt;"></td>
+              <td class="center" style="font-size: 8.5pt;"></td>
+              <td style="font-size: 8.5pt;"></td>
+            </tr>
+          `);
+        });
+      } else {
+        rowsList.push(`
           <tr>
-            <td class="center">${idx + 1}</td>
-            <td>${skpName}</td>
-            <td class="center">${unit}</td>
-            <td class="center">${qty}</td>
-            <td class="center"></td>
-            <td class="center"></td>
-            <td></td>
+            <td class="center" style="font-size: 8.5pt;">1</td>
+            <td style="font-size: 8.5pt; text-align: left;">&nbsp;</td>
+            <td class="center" style="font-size: 8.5pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8.5pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8.5pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8.5pt;">&nbsp;</td>
+            <td style="font-size: 8.5pt;">&nbsp;</td>
           </tr>
-        `;
-      }).join('');
+        `);
+      }
 
-      rowsHtml += `
-        <tr class="summary-row">
-          <td colspan="3" class="center"><strong>JUMLAH</strong></td>
-          <td class="center"><strong>${sumTarget}</strong></td>
-          <td class="center"></td>
-          <td class="center"></td>
-          <td></td>
+      // TAMBAHAN Section
+      rowsList.push(`
+        <tr style="font-weight: bold; background-color: #f3f4f6;">
+          <td class="center" style="font-size: 8.5pt;"></td>
+          <td style="text-align: left; padding-left: 6px; font-size: 8.5pt;">TAMBAHAN</td>
+          <td class="center" style="font-size: 8.5pt;"></td>
+          <td class="center" style="font-size: 8.5pt;"></td>
+          <td class="center" style="font-size: 8.5pt;"></td>
+          <td class="center" style="font-size: 8.5pt;"></td>
+          <td style="font-size: 8.5pt;"></td>
         </tr>
-        <tr class="summary-row">
-          <td colspan="3" class="center"><strong>RATA-RATA</strong></td>
-          <td class="center"></td>
-          <td class="center"></td>
-          <td class="center"></td>
-          <td></td>
+      `);
+
+      if (tambahanKeys.length > 0) {
+        tambahanKeys.forEach((key, idx) => {
+          const item = aggregated[key];
+          sumTarget += item.kuantitas;
+          rowsList.push(`
+            <tr>
+              <td class="center" style="font-size: 8.5pt;">${idx + 1}</td>
+              <td style="font-size: 8.5pt; text-align: left;">${item.nama}</td>
+              <td class="center" style="font-size: 8.5pt;">${item.satuan}</td>
+              <td class="center" style="font-size: 8.5pt;">${item.kuantitas}</td>
+              <td class="center" style="font-size: 8.5pt;"></td>
+              <td class="center" style="font-size: 8.5pt;"></td>
+              <td style="font-size: 8.5pt;"></td>
+            </tr>
+          `);
+        });
+      } else {
+        rowsList.push(`
+          <tr>
+            <td class="center" style="font-size: 8.5pt;">1</td>
+            <td style="font-size: 8.5pt; text-align: left;">&nbsp;</td>
+            <td class="center" style="font-size: 8.5pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8.5pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8.5pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8.5pt;">&nbsp;</td>
+            <td style="font-size: 8.5pt;">&nbsp;</td>
+          </tr>
+          <tr>
+            <td class="center" style="font-size: 8.5pt;">2</td>
+            <td style="font-size: 8.5pt; text-align: left;">&nbsp;</td>
+            <td class="center" style="font-size: 8.5pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8.5pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8.5pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8.5pt;">&nbsp;</td>
+            <td style="font-size: 8.5pt;">&nbsp;</td>
+          </tr>
+        `);
+      }
+
+      // Summary row
+      rowsList.push(`
+        <tr class="summary-row" style="font-weight: bold; background-color: #f9fafb;">
+          <td colspan="3" class="center" style="font-size: 8.5pt;">JUMLAH</td>
+          <td class="center" style="font-size: 8.5pt;">${sumTarget}</td>
+          <td class="center" style="font-size: 8.5pt;"></td>
+          <td class="center" style="font-size: 8.5pt;">0</td>
+          <td style="font-size: 8.5pt;"></td>
         </tr>
+      `);
+
+      rowsHtml = rowsList.join('');
+
+      signatureHtml = `
+        <table class="signature-table" style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="width: 50%; text-align: center; vertical-align: top; font-size: 9pt; padding: 2px 0;">
+              Kesepakatan Target
+            </td>
+            <td style="width: 50%; text-align: center; vertical-align: top; font-size: 9pt; padding: 2px 0;">
+              &nbsp;
+            </td>
+          </tr>
+          <tr>
+            <td style="text-align: center; vertical-align: top; font-size: 9pt; padding: 2px 0;">
+              Tanggal : ${sigDate}<br>
+              Pegawai Yang Dinilai,
+              <div class="signature-space" style="height: 50px;"></div>
+              <strong>( ${targetEmpName} )</strong><br>
+              NIP. ${targetEmpNip}
+            </td>
+            <td style="text-align: center; vertical-align: top; font-size: 9pt; padding: 2px 0;">
+              <br>
+              Pejabat Penilai,
+              <div class="signature-space" style="height: 50px;"></div>
+              <strong>( ${targetPejName} )</strong><br>
+              NIP. ${targetPejNip}
+            </td>
+          </tr>
+        </table>
       `;
 
     } else if (type === 'ckpr') {
       titleHtml = `
         <div style="width: 100%; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
           <div style="width: 20%"></div>
-          <div style="font-size: 13pt; font-weight: bold; text-transform: uppercase; text-align: center; margin-top: 15px;">
-            CAPAIAN KINERJA PEGAWAI ${yearVal}
+          <div style="font-size: 11pt; font-weight: bold; text-transform: uppercase; text-align: center; margin-top: 15px; flex-grow: 1; letter-spacing: 0.5px;">
+            CAPAIAN KINERJA PEGAWAI TAHUN ${yearVal}
           </div>
-          <div style="border: 1px solid #000; padding: 4px 10px; font-size: 10pt; font-weight: bold;">CKP-R</div>
+          <div style="border: 1px solid #000; padding: 4px 10px; font-size: 9pt; font-weight: bold; min-width: 60px; text-align: center;">CKP-R</div>
         </div>
       `;
 
       infoHtml = `
-        <table class="info-table">
+        <table class="info-table" style="width: 100%; margin-bottom: 15px;">
           <tr>
-            <td style="width: 15%"><strong>Nama Pegawai</strong></td>
-            <td style="width: 35%">: ${employeeName}, S.Tr.Stat</td>
-            <td style="width: 15%"><strong>Satker</strong></td>
-            <td style="width: 35%">: BPS Kabupaten Penajam Paser Utara</td>
+            <td style="width: 18%; font-size: 9pt; padding: 2px 0; vertical-align: top;">Satuan Organisasi</td>
+            <td style="width: 82%; font-size: 9pt; padding: 2px 0;">: BPS Kabupaten Penajam Paser Utara</td>
           </tr>
           <tr>
-            <td><strong>Jabatan</strong></td>
-            <td>: Staf</td>
-            <td><strong>Periode</strong></td>
-            <td>: ${periodStr} ${yearVal}</td>
+            <td style="font-size: 9pt; padding: 2px 0; vertical-align: top;">Nama</td>
+            <td style="font-size: 9pt; padding: 2px 0;">: ${targetEmpName}</td>
+          </tr>
+          <tr>
+            <td style="font-size: 9pt; padding: 2px 0; vertical-align: top;">Jabatan</td>
+            <td style="font-size: 9pt; padding: 2px 0;">: Staf</td>
+          </tr>
+          <tr>
+            <td style="font-size: 9pt; padding: 2px 0; vertical-align: top;">Periode</td>
+            <td style="font-size: 9pt; padding: 2px 0;">: ${periodStr} ${yearVal}</td>
           </tr>
         </table>
       `;
 
       tableHeaderHtml = `
         <tr>
-          <th rowspan="2" style="width: 4%">No</th>
-          <th rowspan="2" style="width: 38%">Kegiatan</th>
-          <th rowspan="2" style="width: 10%">Satuan</th>
-          <th colspan="3" style="width: 24%">Kuantitas</th>
-          <th rowspan="2" style="width: 8%">Tingkat<br>Kualitas (%)</th>
-          <th rowspan="2" style="width: 8%">Kode Butir<br>Kegiatan</th>
-          <th rowspan="2" style="width: 4%">Angka<br>Kredit</th>
-          <th rowspan="2" style="width: 4%">Keterangan</th>
+          <th rowspan="2" style="width: 4%; font-size: 8pt;">No</th>
+          <th rowspan="2" style="width: 40%; font-size: 8pt;">Uraian Kegiatan</th>
+          <th rowspan="2" style="width: 8%; font-size: 8pt;">Satuan</th>
+          <th colspan="3" style="width: 21%; font-size: 8pt;">Kuantitas</th>
+          <th rowspan="2" style="width: 8%; font-size: 8pt;">Tingkat<br>Kualitas (%)</th>
+          <th rowspan="2" style="width: 8%; font-size: 8pt;">Kode Butir<br>Kegiatan</th>
+          <th rowspan="2" style="width: 6%; font-size: 8pt;">Angka<br>Kredit</th>
+          <th rowspan="2" style="width: 5%; font-size: 8pt;">Keterangan</th>
         </tr>
         <tr>
-          <th style="width: 8%">Target</th>
-          <th style="width: 8%">Realisasi</th>
-          <th style="width: 8%">%</th>
+          <th style="width: 7%; font-size: 8pt;">Target</th>
+          <th style="width: 7%; font-size: 8pt;">Realisasi</th>
+          <th style="width: 7%; font-size: 8pt;">%</th>
         </tr>
         <tr class="header-indices center">
           <td>(1)</td>
@@ -4057,70 +4203,215 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
         </tr>
       `;
 
+      const aggregated = {};
       const sortedData = [...monthEntries].sort((a, b) => {
         if (a.tanggal !== b.tanggal) return a.tanggal.localeCompare(b.tanggal);
         return (a.waktuMulai || '').localeCompare(b.waktuMulai || '');
       });
 
-      const aggregated = {};
       sortedData.forEach(e => {
         const skpKey = e.skpId || 'none';
         if (!aggregated[skpKey]) {
-          aggregated[skpKey] = { kuantitas: 0, satuan: e.satuan || 'kegiatan' };
+          const skpItem = skpData.find(s => String(s.id) === String(skpKey));
+          const kategori = skpItem ? skpItem.kategori : 'utama';
+          aggregated[skpKey] = {
+            kuantitas: 0,
+            satuan: e.satuan || 'kegiatan',
+            kategori: kategori,
+            nama: skpItem ? skpItem.nama : (skpKey === 'none' ? 'Kegiatan Tanpa SKP' : `SKP #${skpKey}`)
+          };
         }
         aggregated[skpKey].kuantitas += (e.kuantitas || 1);
       });
 
+      const utamaKeys = Object.keys(aggregated).filter(k => aggregated[k].kategori === 'utama');
+      const tambahanKeys = Object.keys(aggregated).filter(k => aggregated[k].kategori === 'tambahan');
+
       let sumTarget = 0;
       let sumRealisasi = 0;
       let countItems = 0;
+      let rowsList = [];
 
-      rowsHtml = Object.keys(aggregated).map((skpIdStr, idx) => {
-        const skpItem = skpData.find(s => String(s.id) === skpIdStr);
-        const skpName = skpItem ? skpItem.nama : (skpIdStr === 'none' ? 'Kegiatan Tanpa SKP' : `SKP #${skpIdStr}`);
-        const qty = aggregated[skpIdStr].kuantitas;
-        const unit = aggregated[skpIdStr].satuan;
-        sumTarget += qty;
-        sumRealisasi += qty;
-        countItems++;
+      // UTAMA Section
+      rowsList.push(`
+        <tr style="font-weight: bold; background-color: #f3f4f6;">
+          <td class="center" style="font-size: 8pt;"></td>
+          <td style="text-align: left; padding-left: 6px; font-size: 8pt;">UTAMA</td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td style="font-size: 8pt;"></td>
+        </tr>
+      `);
 
-        return `
+      if (utamaKeys.length > 0) {
+        utamaKeys.forEach((key, idx) => {
+          const item = aggregated[key];
+          sumTarget += item.kuantitas;
+          sumRealisasi += item.kuantitas;
+          countItems++;
+          rowsList.push(`
+            <tr>
+              <td class="center" style="font-size: 8pt;">${idx + 1}</td>
+              <td style="font-size: 8pt; text-align: left;">${item.nama}</td>
+              <td class="center" style="font-size: 8pt;">${item.satuan}</td>
+              <td class="center" style="font-size: 8pt;">${item.kuantitas}</td>
+              <td class="center" style="font-size: 8pt;">${item.kuantitas}</td>
+              <td class="center" style="font-size: 8pt;">100</td>
+              <td class="center" style="font-size: 8pt;">100</td>
+              <td class="center" style="font-size: 8pt;"></td>
+              <td class="center" style="font-size: 8pt;"></td>
+              <td style="font-size: 8pt;"></td>
+            </tr>
+          `);
+        });
+      } else {
+        rowsList.push(`
           <tr>
-            <td class="center">${idx + 1}</td>
-            <td>${skpName}</td>
-            <td class="center">${unit}</td>
-            <td class="center">${qty}</td>
-            <td class="center">${qty}</td>
-            <td class="center">100</td>
-            <td class="center">100</td>
-            <td class="center"></td>
-            <td class="center"></td>
-            <td></td>
+            <td class="center" style="font-size: 8pt;">1</td>
+            <td style="font-size: 8pt; text-align: left;">&nbsp;</td>
+            <td class="center" style="font-size: 8pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8pt;">&nbsp;</td>
+            <td style="font-size: 8pt;">&nbsp;</td>
           </tr>
-        `;
-      }).join('');
+        `);
+      }
 
-      rowsHtml += `
-        <tr class="summary-row">
-          <td colspan="3" class="center"><strong>JUMLAH</strong></td>
-          <td class="center"><strong>${sumTarget}</strong></td>
-          <td class="center"><strong>${sumRealisasi}</strong></td>
-          <td class="center"></td>
-          <td class="center"></td>
-          <td class="center"></td>
-          <td class="center"></td>
-          <td></td>
+      // TAMBAHAN Section
+      rowsList.push(`
+        <tr style="font-weight: bold; background-color: #f3f4f6;">
+          <td class="center" style="font-size: 8pt;"></td>
+          <td style="text-align: left; padding-left: 6px; font-size: 8pt;">TAMBAHAN</td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td style="font-size: 8pt;"></td>
         </tr>
-        <tr class="summary-row">
-          <td colspan="3" class="center"><strong>RATA-RATA</strong></td>
-          <td class="center"></td>
-          <td class="center"></td>
-          <td class="center"><strong>${countItems > 0 ? 100 : ''}</strong></td>
-          <td class="center"><strong>${countItems > 0 ? 100 : ''}</strong></td>
-          <td class="center"></td>
-          <td class="center"></td>
-          <td></td>
+      `);
+
+      if (tambahanKeys.length > 0) {
+        tambahanKeys.forEach((key, idx) => {
+          const item = aggregated[key];
+          sumTarget += item.kuantitas;
+          sumRealisasi += item.kuantitas;
+          countItems++;
+          rowsList.push(`
+            <tr>
+              <td class="center" style="font-size: 8pt;">${idx + 1}</td>
+              <td style="font-size: 8pt; text-align: left;">${item.nama}</td>
+              <td class="center" style="font-size: 8pt;">${item.satuan}</td>
+              <td class="center" style="font-size: 8pt;">${item.kuantitas}</td>
+              <td class="center" style="font-size: 8pt;">${item.kuantitas}</td>
+              <td class="center" style="font-size: 8pt;">100</td>
+              <td class="center" style="font-size: 8pt;">100</td>
+              <td class="center" style="font-size: 8pt;"></td>
+              <td class="center" style="font-size: 8pt;"></td>
+              <td style="font-size: 8pt;"></td>
+            </tr>
+          `);
+        });
+      } else {
+        rowsList.push(`
+          <tr>
+            <td class="center" style="font-size: 8pt;">1</td>
+            <td style="font-size: 8pt; text-align: left;">&nbsp;</td>
+            <td class="center" style="font-size: 8pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8pt;">&nbsp;</td>
+            <td style="font-size: 8pt;">&nbsp;</td>
+          </tr>
+          <tr>
+            <td class="center" style="font-size: 8pt;">2</td>
+            <td style="font-size: 8pt; text-align: left;">&nbsp;</td>
+            <td class="center" style="font-size: 8pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8pt;">&nbsp;</td>
+            <td class="center" style="font-size: 8pt;">&nbsp;</td>
+            <td style="font-size: 8pt;">&nbsp;</td>
+          </tr>
+        `);
+      }
+
+      // Summary, Average, and CKP score rows
+      rowsList.push(`
+        <tr class="summary-row" style="font-weight: bold; background-color: #f9fafb;">
+          <td colspan="3" class="center" style="font-size: 8pt;">JUMLAH</td>
+          <td class="center" style="font-size: 8pt;">${sumTarget}</td>
+          <td class="center" style="font-size: 8pt;">${sumRealisasi}</td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td style="font-size: 8pt;"></td>
         </tr>
+        <tr class="summary-row" style="font-weight: bold; background-color: #f9fafb;">
+          <td colspan="3" class="center" style="font-size: 8pt;">RATA-RATA</td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td class="center" style="font-size: 8pt;">${countItems > 0 ? '100' : ''}</td>
+          <td class="center" style="font-size: 8pt;">${countItems > 0 ? '100' : ''}</td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td style="font-size: 8pt;"></td>
+        </tr>
+        <tr class="summary-row" style="font-weight: bold; background-color: #f9fafb;">
+          <td colspan="5" class="center" style="font-size: 8pt;">CAPAIAN KINERJA PEGAWAI (CKP)</td>
+          <td colspan="2" class="center" style="font-size: 8pt;">${countItems > 0 ? '100' : ''}</td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td class="center" style="font-size: 8pt;"></td>
+          <td style="font-size: 8pt;"></td>
+        </tr>
+      `);
+
+      rowsHtml = rowsList.join('');
+
+      signatureHtml = `
+        <table class="signature-table" style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="width: 50%; text-align: center; vertical-align: top; font-size: 9pt; padding: 2px 0;">
+              Penilaian Kinerja
+            </td>
+            <td style="width: 50%; text-align: center; vertical-align: top; font-size: 9pt; padding: 2px 0;">
+              &nbsp;
+            </td>
+          </tr>
+          <tr>
+            <td style="text-align: center; vertical-align: top; font-size: 9pt; padding: 2px 0;">
+              Tanggal : ${sigDate}<br>
+              Pegawai Yang Dinilai,
+              <div class="signature-space" style="height: 50px;"></div>
+              <strong>( ${targetEmpName} )</strong><br>
+              NIP. ${targetEmpNip}
+            </td>
+            <td style="text-align: center; vertical-align: top; font-size: 9pt; padding: 2px 0;">
+              <br>
+              Pejabat Penilai,
+              <div class="signature-space" style="height: 50px;"></div>
+              <strong>( ${targetPejName} )</strong><br>
+              NIP. ${targetPejNip}
+            </td>
+          </tr>
+        </table>
       `;
     }
 
@@ -4138,8 +4429,8 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
         <style>
           @media print {
             @page {
-              size: A4 portrait;
-              margin: 15mm 10mm 15mm 10mm;
+              size: A4 landscape;
+              margin: 10mm 10mm 10mm 10mm;
             }
             body {
               margin: 0;
@@ -4148,6 +4439,8 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
               color: #000;
               font-family: 'Arial', sans-serif;
               font-size: 9.5pt;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
             }
             .no-print {
               display: none !important;
@@ -4168,11 +4461,13 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
             display: flex;
             flex-direction: column;
             align-items: center;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
           .print-card {
             background: #fff;
             width: 100%;
-            max-width: 850px;
+            max-width: 1100px;
             padding: 35px;
             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
             border-radius: 8px;
@@ -4180,7 +4475,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
           }
           .no-print-bar {
             width: 100%;
-            max-width: 850px;
+            max-width: 1100px;
             display: flex;
             justify-content: flex-end;
             gap: 10px;
@@ -4292,24 +4587,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
           </table>
 
           <div class="signature-section">
-            <table class="signature-table">
-              <tr>
-                <td>
-                  Mengetahui,<br>
-                  Pejabat Penilai
-                  <div class="signature-space"></div>
-                  <strong>(......................................................)</strong><br>
-                  NIP.
-                </td>
-                <td>
-                  Penajam Paser Utara, ${sigDate}<br>
-                  Pegawai,<br>
-                  <div class="signature-space"></div>
-                  <strong>( ${employeeName} )</strong><br>
-                  NIP.
-                </td>
-              </tr>
-            </table>
+            ${signatureHtml}
           </div>
         </div>
       </body>
