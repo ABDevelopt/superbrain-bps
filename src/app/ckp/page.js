@@ -4105,7 +4105,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
           <td colspan="3" class="center" style="font-size: 8.5pt;">JUMLAH</td>
           <td class="center" style="font-size: 8.5pt;">${sumTarget}</td>
           <td class="center" style="font-size: 8.5pt;"></td>
-          <td class="center" style="font-size: 8.5pt;">0</td>
+          <td class="center" style="font-size: 8.5pt;"></td>
           <td style="font-size: 8.5pt;"></td>
         </tr>
       `);
