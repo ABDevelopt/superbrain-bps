@@ -4376,7 +4376,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
         </tr>
         <tr class="summary-row" style="font-weight: bold; background-color: #f9fafb;">
           <td colspan="5" class="center" style="font-size: 8pt;">CAPAIAN KINERJA PEGAWAI (CKP)</td>
-          <td colspan="2" class="center" style="font-size: 8pt;">${countItems > 0 ? '100' : ''}</td>
+          <td colspan="2" class="center" style="font-size: 8pt;"></td>
           <td class="center" style="font-size: 8pt;"></td>
           <td class="center" style="font-size: 8pt;"></td>
           <td style="font-size: 8pt;"></td>
