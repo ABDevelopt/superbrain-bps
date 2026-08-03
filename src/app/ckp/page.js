@@ -3829,35 +3829,32 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
 
     if (type === 'daily') {
       titleHtml = `
-        <div style="width: 100%; display: flex; flex-direction: column; align-items: center; margin-bottom: 20px;">
-          <div style="font-size: 13pt; font-weight: bold; text-transform: uppercase; text-align: center; border-bottom: 1.5px solid #000; padding-bottom: 2px;">
-            REKAPITULASI KEGIATAN BULANAN PEGAWAI
+        <div style="width: 100%; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+          <div style="width: 20%"></div>
+          <div style="font-size: 11pt; font-weight: bold; text-transform: uppercase; text-align: center; margin-top: 15px; flex-grow: 1; letter-spacing: 0.5px;">
+            REKAPITULASI KEGIATAN BULANAN PEGAWAI TAHUN ${yearVal}
           </div>
+          <div style="border: 1px solid #000; padding: 4px 10px; font-size: 9pt; font-weight: bold; min-width: 60px; text-align: center;">DAILY</div>
         </div>
       `;
 
       infoHtml = `
-        <table class="info-table">
+        <table class="info-table" style="width: 100%; margin-bottom: 15px;">
           <tr>
-            <td style="width: 3%"></td>
-            <td style="width: 15%"><strong>Nama Pegawai</strong></td>
-            <td style="width: 42%">: ${employeeName}</td>
-            <td style="width: 10%"><strong>Periode</strong></td>
-            <td style="width: 30%">: ${periodStr} ${yearVal}</td>
+            <td style="width: 18%; font-size: 9pt; padding: 2px 0; vertical-align: top;">Satuan Organisasi</td>
+            <td style="width: 82%; font-size: 9pt; padding: 2px 0;">: BPS Kabupaten Penajam Paser Utara</td>
           </tr>
           <tr>
-            <td></td>
-            <td><strong>Jabatan</strong></td>
-            <td>: Staf Tim IPJKD & DLS</td>
-            <td></td>
-            <td></td>
+            <td style="font-size: 9pt; padding: 2px 0; vertical-align: top;">Nama</td>
+            <td style="font-size: 9pt; padding: 2px 0;">: ${targetEmpName}</td>
           </tr>
           <tr>
-            <td></td>
-            <td><strong>Satker</strong></td>
-            <td>: BPS Kabupaten Penajam Paser Utara</td>
-            <td></td>
-            <td></td>
+            <td style="font-size: 9pt; padding: 2px 0; vertical-align: top;">Jabatan</td>
+            <td style="font-size: 9pt; padding: 2px 0;">: Staf</td>
+          </tr>
+          <tr>
+            <td style="font-size: 9pt; padding: 2px 0; vertical-align: top;">Periode</td>
+            <td style="font-size: 9pt; padding: 2px 0;">: ${periodStr} ${yearVal}</td>
           </tr>
         </table>
       `;
@@ -4369,7 +4366,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
           <td class="center" style="font-size: 8pt;"></td>
           <td class="center" style="font-size: 8pt;"></td>
           <td class="center" style="font-size: 8pt;">${countItems > 0 ? '100' : ''}</td>
-          <td class="center" style="font-size: 8pt;">${countItems > 0 ? '100' : ''}</td>
+          <td class="center" style="font-size: 8pt;"></td>
           <td class="center" style="font-size: 8pt;"></td>
           <td class="center" style="font-size: 8pt;"></td>
           <td style="font-size: 8pt;"></td>
