@@ -3811,7 +3811,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
     const monthIndex = Number(monthStr) - 1;
     const periodStr = `${getMonthName(monthIndex)}`;
     const yearVal = yearStr;
-    const employeeName = user?.displayName || 'Yahya Abdurrohman';
+    const employeeName = user?.displayName || 'Yahya Abdurrohman, S.Tr.Stat.';
     const sigDate = getSignatureDate();
 
     // Default template names and NIPs
@@ -3914,8 +3914,8 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
               Penajam Paser Utara, ${sigDate}<br>
               Pegawai,<br>
               <div class="signature-space"></div>
-              <strong>( ${employeeName} )</strong><br>
-              NIP. ${employeeName.includes('Yahya') ? targetEmpNip : '......................................................'}
+              <strong>( ${targetEmpName} )</strong><br>
+              NIP. ${targetEmpNip}
             </td>
           </tr>
         </table>
