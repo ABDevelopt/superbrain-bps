@@ -3801,7 +3801,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
   };
 
   const handlePrintPDF = (type = 'daily') => {
-    const monthEntries = getMonthEntries();
+    const monthEntries = entries.filter(e => e.tanggal && e.tanggal.startsWith(`${selectedMonth}-`));
     if (monthEntries.length === 0) {
       showAlert('Tidak ada data kegiatan di bulan ini.');
       return;
@@ -3861,16 +3861,15 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
 
       tableHeaderHtml = `
         <tr>
-          <th style="width: 2%; border-top: none; border-bottom: none; border-left: none; background: transparent;"></th>
-          <th style="width: 3%">No</th>
-          <th style="width: 8%">Tanggal</th>
-          <th style="width: 8%">Waktu</th>
-          <th style="width: 27%">Rincian Kegiatan</th>
-          <th style="width: 5%">Kuantitas</th>
-          <th style="width: 5%">Satuan</th>
-          <th style="width: 6%">Kategori</th>
-          <th style="width: 18%">Bukti Kegiatan</th>
-          <th style="width: 18%">Keterangan</th>
+          <th style="width: 4%">No</th>
+          <th style="width: 9%">Tanggal</th>
+          <th style="width: 9%">Waktu</th>
+          <th style="width: 30%">Rincian Kegiatan</th>
+          <th style="width: 6%">Kuantitas</th>
+          <th style="width: 6%">Satuan</th>
+          <th style="width: 8%">Kategori</th>
+          <th style="width: 14%">Bukti Kegiatan</th>
+          <th style="width: 14%">Keterangan</th>
         </tr>
       `;
 
@@ -3881,12 +3880,11 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
 
       rowsHtml = sortedData.map((e, idx) => {
         const formattedDate = e.tanggal ? e.tanggal.split('-').reverse().join('/') : '';
-        const skpItem = skpData.find(s => s.id === e.skpId);
+        const skpItem = (skpData || []).find(s => String(s.id) === String(e.skpId));
         const categoryStr = skpItem ? (skpItem.kategori === 'utama' ? 'Utama' : 'Tambahan') : '';
         const buktiLinkText = e.buktiDukung ? `<a href="${e.buktiDukung}" target="_blank" style="color: #4f46e5; text-decoration: underline; word-break: break-all; font-size: 7.5pt;">${e.buktiDukung}</a>` : '';
         return `
           <tr>
-            <td style="border: none; background: transparent;"></td>
             <td class="center">${idx + 1}</td>
             <td class="center">${formattedDate}</td>
             <td class="center">${e.waktuMulai || ''} - ${e.waktuSelesai || ''}</td>
@@ -4429,11 +4427,13 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
               size: A4 landscape;
               margin: 10mm 10mm 10mm 10mm;
             }
-            body {
-              margin: 0;
-              padding: 0;
-              background: #fff;
-              color: #000;
+            html, body {
+              display: block !important;
+              width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              background: #fff !important;
+              color: #000 !important;
               font-family: 'Arial', sans-serif;
               font-size: 9.5pt;
               -webkit-print-color-adjust: exact;
@@ -4443,10 +4443,23 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
               display: none !important;
             }
             .print-card {
+              display: block !important;
+              width: 100% !important;
               max-width: 100% !important;
               box-shadow: none !important;
               padding: 0 !important;
               border-radius: 0 !important;
+              margin: 0 !important;
+            }
+            table {
+              page-break-inside: auto;
+            }
+            thead {
+              display: table-header-group;
+            }
+            tr {
+              page-break-inside: avoid;
+              page-break-after: auto;
             }
           }
           body {
