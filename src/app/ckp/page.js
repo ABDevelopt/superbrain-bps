@@ -17,6 +17,7 @@ import { useAIContext } from '@/contexts/AIContext';
 import * as XLSX from 'xlsx';
 import { doc, updateDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import DailyTimeVisualizer from './DailyTimeVisualizer';
 
 const SATUAN_OPTIONS = ['Kegiatan', 'Lembar', 'File', 'Dokumen', 'Orang', 'Formulir', 'Lainnya'];
 
@@ -235,7 +236,7 @@ const compressMultipleFiles = async (filesList) => {
 
 // TAB 1: Input Kegiatan
 
-function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit, entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday, checkDl, onToggleDl, onPendingChange, skpData }) {
+function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit, entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday, checkDl, onToggleDl, onPendingChange, skpData, onEdit }) {
   const { accessToken, user, loginWithGoogle } = useAuth();
   const { showAlert } = useAlert();
   const [mounted, setMounted] = useState(false);
@@ -1704,6 +1705,23 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         date={form.tanggal} 
         highlightStart={previewTimes.start}
         highlightEnd={previewTimes.end}
+        onTimeChange={(start, end) => {
+          setForm(prev => ({
+            ...prev,
+            waktuMulai: start,
+            waktuSelesai: end,
+            isFullday: false
+          }));
+        }}
+        onUpdateEntry={async (id, updates) => {
+          try {
+            await onUpdate(id, updates);
+            showAlert(`Waktu kegiatan berhasil disesuaikan: ${updates.waktuMulai} - ${updates.waktuSelesai}`, 'success');
+          } catch (err) {
+            showAlert('Gagal memperbarui waktu kegiatan: ' + err.message);
+          }
+        }}
+        onEdit={onEdit}
       />
 
       <div className={styles.formRow} style={{ flexDirection: 'column', gap: '12px', alignItems: 'stretch' }}>
@@ -2663,134 +2681,8 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
   );
 }
 
-// Komponen Visualisasi Waktu
-function DailyTimeVisualizer({ entries, date, highlightStart, highlightEnd }) {
-  const START_HOUR = 6;
-  const END_HOUR = 18;
-  const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60;
-
-  const getMinutes = (timeStr) => {
-    if (!timeStr) return 0;
-    const [h, m] = timeStr.split(':').map(Number);
-    return h * 60 + m;
-  };
-
-  const targetDate = date ? new Date(date + 'T00:00:00') : new Date();
-  const dow = targetDate.getDay();
-  let coreStart = null;
-  let coreEnd = null;
-  
-  if (dow >= 1 && dow <= 4) {
-    coreStart = 7 * 60 + 30;
-    coreEnd = 16 * 60;
-  } else if (dow === 5) {
-    coreStart = 7 * 60 + 30;
-    coreEnd = 16 * 60 + 30;
-  }
-
-  const coreLeft = coreStart ? ((coreStart - START_HOUR * 60) / TOTAL_MINUTES) * 100 : null;
-  const coreWidth = coreStart && coreEnd ? ((coreEnd - coreStart) / TOTAL_MINUTES) * 100 : null;
-
-  const getColorForSkp = (skpId) => {
-    if (!skpId || isNaN(Number(skpId)) || Number(skpId) === 0) return 'rgba(148, 163, 184, 0.8)'; // slate-400
-    const hue = (Number(skpId) * 137.5) % 360;
-    return `hsla(${hue}, 75%, 55%, 0.85)`;
-  };
-
-  const blocks = entries.map(e => {
-    const startMin = getMinutes(e.waktuMulai);
-    const endMin = getMinutes(e.waktuSelesai);
-    let clampedStart = Math.max(START_HOUR * 60, startMin);
-    let clampedEnd = Math.min(END_HOUR * 60, endMin);
-    
-    if (clampedStart >= clampedEnd) return null;
-
-    const leftPerc = ((clampedStart - START_HOUR * 60) / TOTAL_MINUTES) * 100;
-    const widthPerc = ((clampedEnd - clampedStart) / TOTAL_MINUTES) * 100;
-
-    return {
-      id: e.id,
-      left: `${leftPerc}%`,
-      width: `${widthPerc}%`,
-      title: `${e.waktuMulai} - ${e.waktuSelesai}: ${e.rincian}`,
-      color: getColorForSkp(e.skpId)
-    };
-  }).filter(Boolean);
-
-  let highlightBlock = null;
-  if (highlightStart && highlightEnd) {
-    const sMin = getMinutes(highlightStart);
-    const eMin = getMinutes(highlightEnd);
-    if (sMin < eMin) {
-      let clampedS = Math.max(START_HOUR * 60, sMin);
-      let clampedE = Math.min(END_HOUR * 60, eMin);
-      if (clampedS < clampedE) {
-        const leftPerc = ((clampedS - START_HOUR * 60) / TOTAL_MINUTES) * 100;
-        const widthPerc = ((clampedE - clampedS) / TOTAL_MINUTES) * 100;
-        highlightBlock = {
-          left: `${leftPerc}%`,
-          width: `${widthPerc}%`,
-          title: `Input Waktu Form: ${highlightStart} - ${highlightEnd}`
-        };
-      }
-    }
-  }
-
-  return (
-    <div className={styles.timeVizContainer}>
-      <h4 className={styles.timeVizTitle}>Peta Jam Kerja (06:00 - 18:00)</h4>
-      <div className={styles.timeVizBar}>
-        {coreLeft !== null && (
-          <div 
-            style={{ position: 'absolute', left: `${coreLeft}%`, width: `${coreWidth}%`, top: '-2px', bottom: '-2px', border: '2px dashed rgba(16, 185, 129, 0.6)', borderRadius: '6px', zIndex: 0 }}
-            title="Jam Wajib Kerja"
-          />
-        )}
-        {Array.from({ length: END_HOUR - START_HOUR + 1 }).map((_, i) => (
-          <div key={i} className={styles.timeVizMarker} style={{ left: `${(i / (END_HOUR - START_HOUR)) * 100}%` }}>
-            <span className={styles.timeVizLabel}>{String(START_HOUR + i).padStart(2, '0')}:00</span>
-          </div>
-        ))}
-        {blocks.map(b => (
-          <div 
-            key={b.id} 
-            className={styles.timeVizBlock} 
-            style={{ left: b.left, width: b.width, backgroundColor: b.color }}
-            title={b.title}
-          />
-        ))}
-        {highlightBlock && (
-          <div 
-            className={styles.timeVizHighlightBlock} 
-            style={{ left: highlightBlock.left, width: highlightBlock.width }}
-            title={highlightBlock.title}
-          >
-            <div className={styles.timeVizHighlightLabel}>Baru</div>
-          </div>
-        )}
-      </div>
-      <div className={styles.timeVizLegend}>
-        <div className={styles.timeVizLegendItem}>
-          <div className={styles.timeVizLegendColor} style={{ background: 'rgba(255,255,255,0.08)' }} /> Kosong
-        </div>
-        <div className={styles.timeVizLegendItem}>
-          <div className={styles.timeVizLegendColor} style={{ background: 'rgba(99, 102, 241, 0.7)' }} /> Terisi
-        </div>
-        <div className={styles.timeVizLegendItem}>
-          <div className={styles.timeVizLegendColor} style={{ border: '1.5px dashed rgba(16, 185, 129, 0.6)', background: 'transparent' }} /> Jam Wajib
-        </div>
-        {highlightStart && highlightEnd && (
-          <div className={styles.timeVizLegendItem}>
-            <div className={styles.timeVizLegendColor} style={{ border: '1.5px dashed #6366f1', background: 'rgba(99, 102, 241, 0.25)', borderRadius: '3px' }} /> Pratinjau Input
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // Komponen Visualisasi Waktu Bulanan
-function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, onStretchClick, onEdit, onDelete }) {
+function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, onStretchClick, onEdit, onDelete, onUpdateEntry }) {
   const START_HOUR = 6;
   const END_HOUR = 18;
   const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60;
@@ -2803,7 +2695,24 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, on
   const getMinutes = (timeStr) => {
     if (!timeStr) return 0;
     const [h, m] = timeStr.split(':').map(Number);
-    return h * 60 + m;
+    return (h || 0) * 60 + (m || 0);
+  };
+
+  const handleNudge = async (entry, shiftMins) => {
+    if (!entry || !onUpdateEntry) return;
+    const s = getMinutes(entry.waktuMulai);
+    const e = getMinutes(entry.waktuSelesai);
+    const dur = e - s;
+    const newStart = Math.max(START_HOUR * 60, Math.min(END_HOUR * 60 - dur, s + shiftMins));
+    const newEnd = newStart + dur;
+    const startStr = `${String(Math.floor(newStart / 60)).padStart(2, '0')}:${String(newStart % 60).padStart(2, '0')}`;
+    const endStr = `${String(Math.floor(newEnd / 60)).padStart(2, '0')}:${String(newEnd % 60).padStart(2, '0')}`;
+    await onUpdateEntry(entry.id, {
+      waktuMulai: startStr,
+      waktuSelesai: endStr,
+      durasi: dur
+    });
+    setSelectedEntry(prev => prev && prev.id === entry.id ? { ...prev, waktuMulai: startStr, waktuSelesai: endStr, durasi: dur } : prev);
   };
 
   for (let day = 1; day <= daysInMonth; day++) {
@@ -2929,6 +2838,28 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, on
                     <span style={{ fontSize: '10px', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.1)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'monospace' }}>
                       {selectedEntry.waktuMulai}
                     </span>
+                  )}
+                  {onUpdateEntry && (
+                    <div style={{ display: 'flex', gap: '3px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleNudge(selectedEntry, -15)}
+                        className={styles.tooltipBtnEdit}
+                        title="Mundurkan 15 menit"
+                        style={{ padding: '2px 5px', fontSize: '10px', color: '#818cf8' }}
+                      >
+                        -15m
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleNudge(selectedEntry, 15)}
+                        className={styles.tooltipBtnEdit}
+                        title="Majukan 15 menit"
+                        style={{ padding: '2px 5px', fontSize: '10px', color: '#818cf8' }}
+                      >
+                        +15m
+                      </button>
+                    </div>
                   )}
                   <button
                     type="button"
@@ -3253,7 +3184,19 @@ function TabRekapHarian({ entries, onEdit, onDelete, deleteDocument, updateDocum
             )}
           </div>
 
-          <DailyTimeVisualizer entries={dayEntries} date={selectedDate} />
+          <DailyTimeVisualizer 
+            entries={dayEntries} 
+            date={selectedDate} 
+            onUpdateEntry={async (id, updates) => {
+              try {
+                await updateDocument(id, updates);
+                showAlert(`Waktu kegiatan berhasil disesuaikan: ${updates.waktuMulai} - ${updates.waktuSelesai}`, 'success');
+              } catch (err) {
+                showAlert('Gagal memperbarui waktu kegiatan: ' + err.message);
+              }
+            }}
+            onEdit={onEdit}
+          />
 
           <div className={styles.bulkActionBar}>
             <label className={styles.selectAllLabel}>
@@ -4950,7 +4893,24 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
         </div>
       </div>
 
-      <MonthlyTimeVisualizer entries={entries} year={yearVal} month={monthVal} checkHoliday={checkHoliday} checkDl={checkDl} onStretchClick={onStretchClick} onEdit={onEdit} onDelete={onDelete} />
+      <MonthlyTimeVisualizer 
+        entries={entries} 
+        year={yearVal} 
+        month={monthVal} 
+        checkHoliday={checkHoliday} 
+        checkDl={checkDl} 
+        onStretchClick={onStretchClick} 
+        onEdit={onEdit} 
+        onDelete={onDelete} 
+        onUpdateEntry={async (id, updates) => {
+          try {
+            await updateDocument(id, updates);
+            showAlert(`Waktu kegiatan berhasil disesuaikan: ${updates.waktuMulai} - ${updates.waktuSelesai}`, 'success');
+          } catch (err) {
+            showAlert('Gagal memperbarui waktu kegiatan: ' + err.message);
+          }
+        }}
+      />
 
       {monthData.length === 0 ? (
         <div className={styles.emptyState}>
@@ -6279,6 +6239,7 @@ function CKPPageInner() {
                 onToggleDl={toggleDl}
                 onPendingChange={fetchPendingUploads}
                 skpData={skpData}
+                onEdit={handleEdit}
               />
             )}
             {activeTab === 1 && (
