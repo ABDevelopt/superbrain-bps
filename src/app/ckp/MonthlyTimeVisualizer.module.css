@@ -1,0 +1,589 @@
+/* =======================================================
+   MonthlyTimeVisualizer.module.css
+   Interactive Draggable Monthly Time Chart (Peta Kekosongan CKP)
+   ======================================================= */
+
+.container {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  padding: 16px 20px 20px 20px;
+  margin-top: 20px;
+  margin-bottom: 24px;
+  position: relative;
+  user-select: none;
+  backdrop-filter: blur(8px);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #c7d2fe;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.savingBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 3px 10px;
+  border-radius: 9999px;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+.saveSuccessBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  padding: 3px 10px;
+  border-radius: 9999px;
+}
+
+.tipsBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #94a3b8;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px dashed rgba(99, 102, 241, 0.25);
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.tipsBanner strong {
+  color: #818cf8;
+}
+
+/* SKP Legend */
+.legendRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.skpBadge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: #fff;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Ruler Scale (Hours Header) */
+.rulerRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+
+.rulerLabelPlaceholder {
+  width: 65px;
+  flex-shrink: 0;
+}
+
+.rulerTrack {
+  position: relative;
+  flex: 1;
+  height: 18px;
+}
+
+.rulerTick {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #64748b;
+  font-family: var(--font-family, monospace);
+  pointer-events: none;
+}
+
+.rulerTickLine {
+  width: 1px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.2);
+  margin-top: 2px;
+}
+
+.rulerDurasiPlaceholder {
+  width: 200px;
+  flex-shrink: 0;
+}
+
+/* Days List */
+.daysList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dayRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.dayRow:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dayLabel {
+  width: 65px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-align: right;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.holidayDot {
+  color: #ef4444;
+  font-size: 10px;
+}
+
+.dlDot {
+  color: #38bdf8;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* The Bar Track */
+.dayBar {
+  position: relative;
+  flex: 1;
+  height: 26px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  overflow: visible;
+  touch-action: none;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Hour Grid Lines inside each Bar */
+.barHourLine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  pointer-events: none;
+}
+
+/* Core Working Hours Area */
+.coreWorkArea {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border: 1.5px dashed rgba(16, 185, 129, 0.45);
+  background: rgba(16, 185, 129, 0.05);
+  border-radius: 6px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Activity Block */
+.activityBlock {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border-radius: 5px;
+  z-index: 3;
+  cursor: grab;
+  touch-action: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  overflow: visible;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.activityBlock:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+  border-color: rgba(255, 255, 255, 0.6);
+  z-index: 10;
+}
+
+.activityBlockDragging {
+  cursor: grabbing !important;
+  z-index: 50 !important;
+  transform: scaleY(1.08) translateY(-2px) !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6), 0 0 12px rgba(99, 102, 241, 0.7) !important;
+  border-color: #fff !important;
+}
+
+.activityBlockSelected {
+  box-shadow: 0 0 0 2px #fff, 0 0 12px rgba(56, 189, 248, 0.9) !important;
+  z-index: 20 !important;
+  border-color: #38bdf8 !important;
+}
+
+.activityBlockConflict {
+  border: 1.5px dashed #f87171 !important;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.6) !important;
+  animation: conflictGlow 1.8s infinite ease-in-out;
+}
+
+/* Block Content */
+.blockContent {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  color: #fff;
+  pointer-events: none;
+  overflow: hidden;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.blockTimeText {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Resize Handles */
+.resizeHandle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 6;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.activityBlock:hover .resizeHandle,
+.activityBlockSelected .resizeHandle,
+.activityBlockDragging .resizeHandle {
+  opacity: 1;
+}
+
+.resizeHandleLeft {
+  left: 0;
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+}
+
+.resizeHandleRight {
+  right: 0;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
+.resizeHandle:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.resizeGripLine {
+  width: 2px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 1px;
+}
+
+/* Live Drag Floating Badge */
+.dragFloatingBadge {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(99, 102, 241, 0.5);
+  backdrop-filter: blur(10px);
+  padding: 4px 10px;
+  border-radius: 6px;
+  color: #f8fafc;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-family, monospace);
+}
+
+.dragFloatingBadgeConflict {
+  border-color: #f87171;
+  color: #fca5a5;
+  background: rgba(40, 10, 15, 0.96);
+}
+
+/* Standard Tooltip on Hover */
+.tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: #f1f5f9;
+  font-size: 11px;
+  width: 220px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 30;
+}
+
+.activityBlock:hover .tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+.tooltipTitle {
+  font-weight: 700;
+  color: #38bdf8;
+  margin-bottom: 2px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tooltipRincian {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 11px;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Right Side Actions / Duration */
+.durasiArea {
+  width: 200px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #22d3ee;
+  text-align: left;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.durasiText {
+  width: 60px;
+  flex-shrink: 0;
+}
+
+.nudgeBtn {
+  padding: 2px 5px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #818cf8;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nudgeBtn:hover {
+  background: rgba(99, 102, 241, 0.25);
+  color: #c7d2fe;
+}
+
+.actionIconBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+}
+
+.actionIconBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.stretchBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.stretchBtn:hover {
+  background: rgba(16, 185, 129, 0.25);
+  color: #34d399;
+}
+
+/* Detail Popover when Selected */
+.popover {
+  position: absolute;
+  top: 60px;
+  right: 20px;
+  width: 320px;
+  background: rgba(15, 23, 42, 0.98);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  backdrop-filter: blur(16px);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), 0 0 20px rgba(99, 102, 241, 0.2);
+  z-index: 60;
+  animation: popIn 0.2s ease-out;
+}
+
+.popoverHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.popoverTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f1f5f9;
+  line-height: 1.3;
+}
+
+.popoverClose {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+}
+
+.popoverClose:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.popoverMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.popoverTime {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-family: var(--font-family, monospace);
+  margin-bottom: 12px;
+}
+
+.popoverActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@keyframes conflictGlow {
+  0%, 100% {
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 14px rgba(239, 68, 68, 0.9);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

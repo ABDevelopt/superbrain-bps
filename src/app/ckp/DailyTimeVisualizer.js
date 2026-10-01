@@ -33,20 +33,20 @@ export const getBackgroundForSkps = (skpIds) => {
   return `linear-gradient(135deg, ${c1}, ${c2})`;
 };
 
-const timeStrToMinutes = (timeStr) => {
+export const timeStrToMinutes = (timeStr) => {
   if (!timeStr) return 0;
   const [h, m] = timeStr.split(':').map(Number);
   return (h || 0) * 60 + (m || 0);
 };
 
-const minutesToTimeStr = (mins) => {
+export const minutesToTimeStr = (mins) => {
   const clamped = Math.max(0, Math.min(24 * 60, mins));
   const h = Math.floor(clamped / 60);
   const m = Math.floor(clamped % 60);
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 };
 
-const formatDurationMins = (minutes) => {
+export const formatDurationMins = (minutes) => {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   if (h === 0) return `${m} mnt`;
