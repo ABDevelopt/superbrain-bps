@@ -128,6 +128,16 @@ export default function Dashboard() {
     .slice(0, 3);
 
   // --- LOGIKA LINIMASA TERPADU (NESTED TIMELINE) ---
+  const getCkpSubtitle = (c) => {
+    const sids = Array.isArray(c.skpIds) && c.skpIds.length > 0
+      ? c.skpIds.map(Number).filter(n => !isNaN(n) && n > 0)
+      : (c.skpId ? [Number(c.skpId)] : []);
+    if (sids.length > 0) {
+      return `CKP SKP #${sids.join(', #')}`;
+    }
+    return 'CKP';
+  };
+
   const timelineRoots = [];
 
   // 1. Ambil Schedules sebagai root
@@ -158,7 +168,7 @@ export default function Dashboard() {
         time: c.waktuMulai || s.waktu || '00:00',
         sortOrder: 2, // urutan kedua: CKP
         title: c.rincian || 'Kegiatan CKP',
-        subtitle: `CKP SKP #${c.skpId}`,
+        subtitle: getCkpSubtitle(c),
         color: 'green'
       });
     });
@@ -193,7 +203,7 @@ export default function Dashboard() {
             time: c.waktuMulai || '00:00',
             sortOrder: 2,
             title: c.rincian || 'Kegiatan CKP',
-            subtitle: `CKP SKP #${c.skpId}`,
+            subtitle: getCkpSubtitle(c),
             color: 'green'
           });
         });
@@ -224,7 +234,7 @@ export default function Dashboard() {
           time: c.waktuMulai || '00:00',
           timeEnd: c.waktuSelesai,
           title: c.rincian || 'Kegiatan CKP',
-          subtitle: `CKP SKP #${c.skpId}`,
+          subtitle: getCkpSubtitle(c),
           color: 'green',
           children: []
         });

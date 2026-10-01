@@ -228,10 +228,13 @@ export default function SKPPage() {
   const realisasiMap = useMemo(() => {
     const map = {};
     ckpDocs.forEach(doc => {
-      if (doc.skpId) {
-        if (!map[doc.skpId]) map[doc.skpId] = 0;
-        map[doc.skpId] += Number(doc.kuantitas) || 0;
-      }
+      const sids = Array.isArray(doc.skpIds) && doc.skpIds.length > 0
+        ? doc.skpIds.map(Number).filter(n => !isNaN(n) && n > 0)
+        : (doc.skpId ? [Number(doc.skpId)] : []);
+      sids.forEach(sid => {
+        if (!map[sid]) map[sid] = 0;
+        map[sid] += Number(doc.kuantitas) || 0;
+      });
     });
     return map;
   }, [ckpDocs]);

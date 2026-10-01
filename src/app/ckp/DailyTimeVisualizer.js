@@ -7,10 +7,30 @@ import styles from './DailyTimeVisualizer.module.css';
 const DEFAULT_START_HOUR = 6;
 const DEFAULT_END_HOUR = 18;
 
-const getColorForSkp = (skpId) => {
+export const getEntrySkpIds = (entry) => {
+  if (!entry) return [];
+  if (Array.isArray(entry.skpIds) && entry.skpIds.length > 0) {
+    return entry.skpIds.map(Number).filter((n) => !isNaN(n) && n > 0);
+  }
+  if (entry.skpId !== undefined && entry.skpId !== null && entry.skpId !== '' && entry.skpId !== 'none') {
+    const num = Number(entry.skpId);
+    if (!isNaN(num) && num > 0) return [num];
+  }
+  return [];
+};
+
+export const getColorForSkp = (skpId) => {
   if (!skpId || isNaN(Number(skpId)) || Number(skpId) === 0) return 'rgba(148, 163, 184, 0.85)';
   const hue = (Number(skpId) * 137.5) % 360;
   return `hsla(${hue}, 75%, 52%, 0.88)`;
+};
+
+export const getBackgroundForSkps = (skpIds) => {
+  if (!skpIds || skpIds.length === 0) return 'rgba(148, 163, 184, 0.85)';
+  if (skpIds.length === 1) return getColorForSkp(skpIds[0]);
+  const c1 = getColorForSkp(skpIds[0]);
+  const c2 = getColorForSkp(skpIds[1]);
+  return `linear-gradient(135deg, ${c1}, ${c2})`;
 };
 
 const timeStrToMinutes = (timeStr) => {
@@ -359,14 +379,18 @@ export default function DailyTimeVisualizer({
           (isDraggingThis && dragState.conflictWith) ||
           checkConflict(startMins, endMins, entry.id);
 
+        const itemSkpIds = getEntrySkpIds(entry);
+        const bg = getBackgroundForSkps(itemSkpIds);
+
         return {
           entry,
           id: entry.id,
+          skpIds: itemSkpIds,
           startMins,
           endMins,
           left: `${left}%`,
           width: `${Math.max(1.2, width)}%`,
-          color: getColorForSkp(entry.skpId),
+          color: bg,
           isDragging: isDraggingThis,
           isConflict: !!isConflict,
           conflictWith: isConflict
@@ -670,7 +694,23 @@ export default function DailyTimeVisualizer({
                   timeStrToMinutes(selectedEntry.waktuSelesai) - timeStrToMinutes(selectedEntry.waktuMulai)
                 )}
               </div>
-              {selectedEntry.skpId && (
+              {getEntrySkpIds(selectedEntry).length > 0 ? (
+                getEntrySkpIds(selectedEntry).map((sid) => (
+                  <span
+                    key={sid}
+                    style={{
+                      fontSize: '11px',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      backgroundColor: getColorForSkp(sid),
+                      color: '#fff',
+                      fontWeight: 600
+                    }}
+                  >
+                    SKP #{sid}
+                  </span>
+                ))
+              ) : selectedEntry.skpId ? (
                 <span
                   style={{
                     fontSize: '11px',
@@ -683,7 +723,7 @@ export default function DailyTimeVisualizer({
                 >
                   SKP #{selectedEntry.skpId}
                 </span>
-              )}
+              ) : null}
             </div>
 
             {onUpdateEntry && !readOnly && (

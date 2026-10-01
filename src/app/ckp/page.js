@@ -17,7 +17,7 @@ import { useAIContext } from '@/contexts/AIContext';
 import * as XLSX from 'xlsx';
 import { doc, updateDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import DailyTimeVisualizer from './DailyTimeVisualizer';
+import DailyTimeVisualizer, { getEntrySkpIds, getBackgroundForSkps } from './DailyTimeVisualizer';
 
 const SATUAN_OPTIONS = ['Kegiatan', 'Lembar', 'File', 'Dokumen', 'Orang', 'Formulir', 'Lainnya'];
 
@@ -136,6 +136,7 @@ function generateMockData() {
         waktuMulai: timeSlots[i].mulai,
         waktuSelesai: timeSlots[i].selesai,
         skpId: act.skpId,
+        skpIds: act.skpId ? [act.skpId] : [],
         rincian: act.rincian,
         kuantitas: act.kuantitas,
         satuan: act.satuan,
@@ -465,6 +466,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
     waktuMulai: '',
     waktuSelesai: '',
     skpId: '',
+    skpIds: [],
     rincian: '',
     kuantitas: '',
     satuan: 'Kegiatan',
@@ -483,6 +485,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         waktuMulai: '',
         waktuSelesai: '',
         skpId: '',
+        skpIds: [],
         rincian: '',
         kuantitas: '',
         satuan: 'Kegiatan',
@@ -518,11 +521,14 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         endDate = sortedDates[sortedDates.length - 1];
       }
 
+      const prefilledSkpIds = getEntrySkpIds(initialData);
+
       setForm({
         tanggal: startDate,
         waktuMulai: initialData.waktuMulai || '',
         waktuSelesai: initialData.waktuSelesai || '',
-        skpId: initialData.skpId ? String(initialData.skpId) : '',
+        skpIds: prefilledSkpIds,
+        skpId: prefilledSkpIds.length > 0 ? String(prefilledSkpIds[0]) : '',
         rincian: initialData.rincian || '',
         kuantitas: initialData.kuantitas || '',
         satuan: initialData.satuan || 'Kegiatan',
@@ -536,7 +542,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         _sourceScheduleId: initialData.sourceScheduleId || null,
         _sourceTaskId: initialData.sourceTaskId || null,
       });
-      setSkpSearch(initialData.skpId ? (skpData.find(s => s.id === initialData.skpId)?.nama || '') : '');
+      setSkpSearch('');
       setPreviewImage(null);
       setFiles([]);
       setBackgroundUploadedUrl(null);
@@ -666,19 +672,18 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
   }, [scheduleEvents, form.tanggal]);
 
   const handleAmbilDariJadwal = (event) => {
+    const evSkpIds = getEntrySkpIds(event);
     setForm(prev => ({
       ...prev,
       waktuMulai: event.waktu || prev.waktuMulai,
       waktuSelesai: event.waktuSelesai || prev.waktuSelesai,
-      skpId: event.skpId ? String(event.skpId) : prev.skpId,
+      skpIds: evSkpIds.length > 0 ? evSkpIds : prev.skpIds,
+      skpId: evSkpIds[0] ? String(evSkpIds[0]) : prev.skpId,
       rincian: event.judul + (event.deskripsi ? '\n' + event.deskripsi : ''),
       _sumber: 'jadwal',
       _sourceScheduleId: event.id,
       _fromScheduleEventId: event.id,
     }));
-    if (event.skpId) {
-        setSkpSearch(skpData.find(s => s.id === event.skpId)?.nama || '');
-    }
     setShowSchedulePicker(false);
   };
 
@@ -773,12 +778,20 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
 
       const responseData = await res.json();
       if (responseData.success && responseData.data?.skpId) {
-        const recommendedId = responseData.data.skpId;
+        const recommendedId = Number(responseData.data.skpId);
         const confidence = responseData.data.confidence;
         const reason = responseData.data.reason;
 
-        setForm(prev => ({ ...prev, skpId: recommendedId }));
-        showAlert(`Rekomendasi SKP #${recommendedId} terpilih dengan tingkat kepercayaan ${Math.round(confidence * 100)}%!\n\nAlasan: ${reason}`);
+        setForm(prev => {
+          const current = Array.isArray(prev.skpIds) ? prev.skpIds : [];
+          const next = current.includes(recommendedId) ? current : [...current, recommendedId];
+          return {
+            ...prev,
+            skpIds: next,
+            skpId: String(recommendedId)
+          };
+        });
+        showAlert(`Rekomendasi SKP #${recommendedId} ditambahkan dengan tingkat kepercayaan ${Math.round(confidence * 100)}%!\n\nAlasan: ${reason}`);
       } else {
         showAlert('AI tidak menemukan butir SKP yang cocok untuk rincian kegiatan ini.');
       }
@@ -1342,9 +1355,14 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         }
       }
 
+      const validSkpIds = Array.isArray(form.skpIds)
+        ? form.skpIds.map(Number).filter(n => !isNaN(n) && n > 0)
+        : (form.skpId && form.skpId !== 'none' ? [Number(form.skpId)] : []);
+
       const dataToSave = {
         ...form,
-        skpId: form.skpId ? Number(form.skpId) : null,
+        skpIds: validSkpIds,
+        skpId: validSkpIds[0] || null,
         kuantitas: Number(form.kuantitas) || 1,
         durasi: duration,
         buktiDukung: finalBuktiDukung || (initialData ? initialData.buktiDukung : null) || null,
@@ -1497,6 +1515,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         waktuMulai: '',
         waktuSelesai: '',
         skpId: '',
+        skpIds: [],
         rincian: '',
         kuantitas: '',
         satuan: 'Kegiatan',
@@ -1690,9 +1709,15 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
                 >
                   <div className={styles.schedulePickerTime}>{ev.waktu}{ev.waktuSelesai ? ` - ${ev.waktuSelesai}` : ''}</div>
                   <div className={styles.schedulePickerTitle}>{ev.judul}</div>
-                  {ev.skpId && (
+                  {getEntrySkpIds(ev).length > 0 ? (
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      {getEntrySkpIds(ev).map(sid => (
+                        <div key={sid} className={styles.schedulePickerSkp}>SKP #{sid}</div>
+                      ))}
+                    </div>
+                  ) : ev.skpId ? (
                     <div className={styles.schedulePickerSkp}>SKP #{ev.skpId}</div>
-                  )}
+                  ) : null}
                 </button>
               ))}
             </div>
@@ -1988,29 +2013,99 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
           <div 
             className={`${styles.input} ${styles.customSelectInput}`}
             onClick={() => {
-              setShowSkpDropdown(true);
+              setShowSkpDropdown(prev => !prev);
               setSkpSearch('');
             }}
-            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}
+            style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              gap: '8px',
+              minHeight: '44px',
+              height: 'auto',
+              padding: '6px 12px',
+              cursor: 'pointer'
+            }}
           >
-            <span style={{ 
-              whiteSpace: 'nowrap', 
-              overflow: 'hidden', 
-              textOverflow: 'ellipsis',
-              flex: 1,
-              textAlign: 'left'
-            }}>
-              {form.skpId === 'none' 
-                ? 'Tidak terkait SKP' 
-                : form.skpId 
-                  ? `${form.skpId}. ${skpData.find(s => s.id == form.skpId)?.nama}` 
-                  : '— Pilih Butir SKP —'}
-            </span>
-            <ChevronDown size={16} style={{ flexShrink: 0 }} />
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', flex: 1, alignItems: 'center' }}>
+              {(() => {
+                const curIds = Array.isArray(form.skpIds) ? form.skpIds.map(Number) : (form.skpId && form.skpId !== 'none' ? [Number(form.skpId)] : []);
+                const selectedItems = curIds.map(id => skpData.find(s => Number(s.id) === id)).filter(Boolean);
+                if (selectedItems.length > 0) {
+                  return selectedItems.map(item => (
+                    <span 
+                      key={item.id}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        background: 'rgba(99, 102, 241, 0.2)',
+                        border: '1px solid rgba(99, 102, 241, 0.4)',
+                        color: '#c7d2fe',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span 
+                        style={{
+                          background: getColorForSkp(item.id),
+                          color: '#fff',
+                          padding: '1px 5px',
+                          borderRadius: '3px',
+                          fontSize: '10px'
+                        }}
+                      >
+                        #{item.id}
+                      </span>
+                      <span>{item.nama.length > 25 ? item.nama.substring(0, 25) + '...' : item.nama}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const next = curIds.filter(x => x !== Number(item.id));
+                          setForm(prev => ({
+                            ...prev,
+                            skpIds: next,
+                            skpId: next.length > 0 ? String(next[0]) : ''
+                          }));
+                        }}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#f87171',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: 0
+                        }}
+                        title="Hapus butir SKP ini"
+                      >
+                        <X size={12} />
+                      </button>
+                    </span>
+                  ));
+                }
+                if (form.skpId === 'none') {
+                  return <span style={{ fontStyle: 'italic', color: '#94a3b8', fontSize: '13px' }}>Tidak terkait SKP</span>;
+                }
+                return <span style={{ color: '#94a3b8', fontSize: '13px' }}>— Pilih Butir SKP (Bisa Lebih Dari Satu) —</span>;
+              })()}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {(Array.isArray(form.skpIds) ? form.skpIds.length : (form.skpId && form.skpId !== 'none' ? 1 : 0)) > 0 && (
+                <span style={{ fontSize: '11px', color: '#818cf8', fontWeight: 700 }}>
+                  ({Array.isArray(form.skpIds) ? form.skpIds.length : 1})
+                </span>
+              )}
+              <ChevronDown size={16} style={{ flexShrink: 0 }} />
+            </div>
           </div>
           
           {showSkpDropdown && (
-            <div className={styles.customDropdown}>
+            <div className={styles.customDropdown} style={{ maxHeight: '340px' }}>
               <div className={styles.customDropdownSearch}>
                 <input
                   type="text"
@@ -2022,15 +2117,47 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
                   style={{ padding: '8px', fontSize: '13px' }}
                 />
               </div>
-              <div className={styles.customDropdownList}>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', background: 'rgba(0,0,0,0.2)' }}>
+                <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                  Centang untuk memilih beberapa SKP
+                </span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {(Array.isArray(form.skpIds) ? form.skpIds.length : 0) > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setForm(prev => ({ ...prev, skpIds: [], skpId: '' }))}
+                      style={{ background: 'none', border: 'none', color: '#f87171', fontSize: '11px', cursor: 'pointer', padding: 0 }}
+                    >
+                      Reset
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowSkpDropdown(false)}
+                    style={{ background: '#6366f1', border: 'none', color: '#fff', fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', cursor: 'pointer' }}
+                  >
+                    Selesai
+                  </button>
+                </div>
+              </div>
+
+              <div className={styles.customDropdownList} style={{ maxHeight: '230px' }}>
                 <div 
                   className={styles.customDropdownItem}
                   onClick={() => {
-                    setForm(prev => ({...prev, skpId: 'none'}));
+                    setForm(prev => ({ ...prev, skpIds: [], skpId: 'none' }));
                     setShowSkpDropdown(false);
                   }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                 >
-                  <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>Tidak terkait SKP</span>
+                  <input
+                    type="checkbox"
+                    checked={(!form.skpIds || form.skpIds.length === 0) && form.skpId === 'none'}
+                    readOnly
+                    style={{ cursor: 'pointer', accentColor: '#6366f1' }}
+                  />
+                  <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>Tidak terkait SKP (Kosongkan)</span>
                 </div>
                 {skpData.length === 0 ? (
                   <div className={styles.customDropdownItem} style={{ color: '#fb7185', fontStyle: 'italic', padding: '10px' }}>
@@ -2039,18 +2166,64 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
                 ) : (
                   skpData
                     .filter(s => s.nama.toLowerCase().includes(skpSearch.toLowerCase()) || String(s.id).includes(skpSearch))
-                    .map((item) => (
-                      <div 
-                        key={item.id} 
-                        className={styles.customDropdownItem}
-                        onClick={() => {
-                          setForm(prev => ({...prev, skpId: item.id}));
-                          setShowSkpDropdown(false);
-                        }}
-                      >
-                        <span className={styles.customDropdownItemId}>{item.id}.</span> {item.nama}
-                      </div>
-                    ))
+                    .map((item) => {
+                      const curIds = Array.isArray(form.skpIds) ? form.skpIds.map(Number) : (form.skpId && form.skpId !== 'none' ? [Number(form.skpId)] : []);
+                      const isChecked = curIds.includes(Number(item.id));
+                      return (
+                        <div 
+                          key={item.id} 
+                          className={styles.customDropdownItem}
+                          onClick={() => {
+                            const next = isChecked ? curIds.filter(x => x !== Number(item.id)) : [...curIds, Number(item.id)];
+                            setForm(prev => ({
+                              ...prev,
+                              skpIds: next,
+                              skpId: next.length > 0 ? String(next[0]) : ''
+                            }));
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            background: isChecked ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {}}
+                            style={{ cursor: 'pointer', accentColor: '#6366f1' }}
+                          />
+                          <span 
+                            className={styles.customDropdownItemId}
+                            style={{ 
+                              background: getColorForSkp(item.id), 
+                              color: '#fff', 
+                              padding: '1px 6px', 
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              fontWeight: 700 
+                            }}
+                          >
+                            #{item.id}
+                          </span>
+                          <span style={{ flex: 1, fontSize: '13px' }}>{item.nama}</span>
+                          {item.kategori && (
+                            <span style={{ 
+                              fontSize: '10px', 
+                              color: item.kategori === 'utama' ? '#34d399' : '#fbbf24',
+                              background: item.kategori === 'utama' ? 'rgba(52, 211, 153, 0.1)' : 'rgba(251, 191, 36, 0.1)',
+                              padding: '1px 5px',
+                              borderRadius: '4px',
+                              textTransform: 'capitalize'
+                            }}>
+                              {item.kategori}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })
                 )}
               </div>
             </div>
@@ -2732,12 +2905,13 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, on
       let clampedStart = Math.max(START_HOUR * 60, startMin);
       let clampedEnd = Math.min(END_HOUR * 60, endMin);
       if (clampedStart >= clampedEnd) return null;
+      const eSkpIds = getEntrySkpIds(e);
       return {
         id: e.id,
         left: `${((clampedStart - START_HOUR * 60) / TOTAL_MINUTES) * 100}%`,
         width: `${((clampedEnd - clampedStart) / TOTAL_MINUTES) * 100}%`,
         title: `${e.waktuMulai} - ${e.waktuSelesai}`,
-        color: getColorForSkp(e.skpId),
+        color: getBackgroundForSkps(eSkpIds),
         entry: e,
         isConflicting: conflictingIds.has(e.id)
       };
@@ -2771,7 +2945,10 @@ function MonthlyTimeVisualizer({ entries, year, month, checkHoliday, checkDl, on
     const [y, m] = e.tanggal.split('-').map(Number);
     return y === year && m === month;
   });
-  const uniqueSkps = Array.from(new Set(monthEntries.map(e => Number(e.skpId) || 'non-skp')));
+  const uniqueSkps = Array.from(new Set(monthEntries.flatMap(e => {
+    const sids = getEntrySkpIds(e);
+    return sids.length > 0 ? sids : ['non-skp'];
+  })));
 
   return (
     <div className={styles.monthlyVizContainer}>
@@ -3016,7 +3193,11 @@ function TabRekapHarian({ entries, onEdit, onDelete, deleteDocument, updateDocum
   const handleBulkEditSubmit = async (e) => {
     e.preventDefault();
     const updates = {};
-    if (bulkEditForm.updateSkp) updates.skpId = Number(bulkEditForm.skpId) || null;
+    if (bulkEditForm.updateSkp) {
+      const sId = Number(bulkEditForm.skpId) || null;
+      updates.skpId = sId;
+      updates.skpIds = sId ? [sId] : [];
+    }
     if (bulkEditForm.updateTimKerja) updates.timKerja = bulkEditForm.timKerja;
     if (bulkEditForm.updateSatuan) updates.satuan = bulkEditForm.satuan;
     if (bulkEditForm.updateTanggal) updates.tanggal = bulkEditForm.tanggal;
@@ -3263,8 +3444,23 @@ function TabRekapHarian({ entries, onEdit, onDelete, deleteDocument, updateDocum
                         <button onClick={() => onDelete(entry.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }} title="Hapus"><Trash2 size={16} /></button>
                       </div>
                     </div>
-                  <div className={styles.timelineSkp}>
-                    SKP #{entry.skpId}: {getSkpName(entry.skpId)}
+                  <div className={styles.timelineSkp} style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                    {getEntrySkpIds(entry).length > 0 ? (
+                      getEntrySkpIds(entry).map(sid => (
+                        <span 
+                          key={sid} 
+                          className={styles.skpBadge} 
+                          style={{ backgroundColor: getColorForSkp(sid), color: '#fff', border: 'none', fontSize: '11px', padding: '2px 8px' }}
+                          title={getSkpName(sid)}
+                        >
+                          SKP #{sid}: {getSkpName(sid)}
+                        </span>
+                      ))
+                    ) : (
+                      <span style={{ fontStyle: 'italic', color: '#94a3b8', fontSize: '12px' }}>
+                        {entry.skpId ? `SKP #${entry.skpId}: ${getSkpName(entry.skpId)}` : 'Non-SKP'}
+                      </span>
+                    )}
                   </div>
                   {entry.keteranganHari && (
                     <div className={styles.keteranganHariBadge}>
@@ -3823,8 +4019,11 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
 
       rowsHtml = sortedData.map((e, idx) => {
         const formattedDate = e.tanggal ? e.tanggal.split('-').reverse().join('/') : '';
-        const skpItem = (skpData || []).find(s => String(s.id) === String(e.skpId));
-        const categoryStr = skpItem ? (skpItem.kategori === 'utama' ? 'Utama' : 'Tambahan') : '';
+        const eSkps = getEntrySkpIds(e);
+        const skpItems = eSkps.map(sid => (skpData || []).find(s => String(s.id) === String(sid))).filter(Boolean);
+        const categoryStr = skpItems.length > 0
+          ? [...new Set(skpItems.map(s => s.kategori === 'utama' ? 'Utama' : 'Tambahan'))].join(', ')
+          : ((skpData || []).find(s => String(s.id) === String(e.skpId))?.kategori === 'utama' ? 'Utama' : '');
         const buktiLinkText = e.buktiDukung ? `<a href="${e.buktiDukung}" target="_blank" style="color: #4f46e5; text-decoration: underline; word-break: break-all; font-size: 7.5pt;">${e.buktiDukung}</a>` : '';
         return `
           <tr>
@@ -3922,18 +4121,21 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
       });
 
       sortedData.forEach(e => {
-        const skpKey = e.skpId || 'none';
-        if (!aggregated[skpKey]) {
-          const skpItem = skpData.find(s => String(s.id) === String(skpKey));
-          const kategori = skpItem ? skpItem.kategori : 'utama';
-          aggregated[skpKey] = {
-            kuantitas: 0,
-            satuan: e.satuan || 'kegiatan',
-            kategori: kategori,
-            nama: skpItem ? skpItem.nama : (skpKey === 'none' ? 'Kegiatan Tanpa SKP' : `SKP #${skpKey}`)
-          };
-        }
-        aggregated[skpKey].kuantitas += (e.kuantitas || 1);
+        const entrySkps = getEntrySkpIds(e);
+        const keys = entrySkps.length > 0 ? entrySkps : [e.skpId || 'none'];
+        keys.forEach(skpKey => {
+          if (!aggregated[skpKey]) {
+            const skpItem = skpData.find(s => String(s.id) === String(skpKey));
+            const kategori = skpItem ? skpItem.kategori : 'utama';
+            aggregated[skpKey] = {
+              kuantitas: 0,
+              satuan: e.satuan || 'kegiatan',
+              kategori: kategori,
+              nama: skpItem ? skpItem.nama : (skpKey === 'none' ? 'Kegiatan Tanpa SKP' : `SKP #${skpKey}`)
+            };
+          }
+          aggregated[skpKey].kuantitas += (e.kuantitas || 1);
+        });
       });
 
       const utamaKeys = Object.keys(aggregated).filter(k => aggregated[k].kategori === 'utama');
@@ -4148,18 +4350,21 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
       });
 
       sortedData.forEach(e => {
-        const skpKey = e.skpId || 'none';
-        if (!aggregated[skpKey]) {
-          const skpItem = skpData.find(s => String(s.id) === String(skpKey));
-          const kategori = skpItem ? skpItem.kategori : 'utama';
-          aggregated[skpKey] = {
-            kuantitas: 0,
-            satuan: e.satuan || 'kegiatan',
-            kategori: kategori,
-            nama: skpItem ? skpItem.nama : (skpKey === 'none' ? 'Kegiatan Tanpa SKP' : `SKP #${skpKey}`)
-          };
-        }
-        aggregated[skpKey].kuantitas += (e.kuantitas || 1);
+        const entrySkps = getEntrySkpIds(e);
+        const keys = entrySkps.length > 0 ? entrySkps : [e.skpId || 'none'];
+        keys.forEach(skpKey => {
+          if (!aggregated[skpKey]) {
+            const skpItem = skpData.find(s => String(s.id) === String(skpKey));
+            const kategori = skpItem ? skpItem.kategori : 'utama';
+            aggregated[skpKey] = {
+              kuantitas: 0,
+              satuan: e.satuan || 'kegiatan',
+              kategori: kategori,
+              nama: skpItem ? skpItem.nama : (skpKey === 'none' ? 'Kegiatan Tanpa SKP' : `SKP #${skpKey}`)
+            };
+          }
+          aggregated[skpKey].kuantitas += (e.kuantitas || 1);
+        });
       });
 
       const utamaKeys = Object.keys(aggregated).filter(k => aggregated[k].kategori === 'utama');
@@ -4584,7 +4789,11 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
   const handleBulkEditSubmit = async (e) => {
     e.preventDefault();
     const updates = {};
-    if (bulkEditForm.updateSkp) updates.skpId = Number(bulkEditForm.skpId) || null;
+    if (bulkEditForm.updateSkp) {
+      const sId = Number(bulkEditForm.skpId) || null;
+      updates.skpId = sId;
+      updates.skpIds = sId ? [sId] : [];
+    }
     if (bulkEditForm.updateTimKerja) updates.timKerja = bulkEditForm.timKerja;
     if (bulkEditForm.updateSatuan) updates.satuan = bulkEditForm.satuan;
     if (bulkEditForm.updateTanggal) updates.tanggal = bulkEditForm.tanggal;
@@ -4678,7 +4887,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
 
       if (dayEntries.length > 0 || isHolidayDate || isDlDate) {
         const totalDurasi = dayEntries.reduce((sum, e) => sum + e.durasi, 0);
-        const skpIds = [...new Set(dayEntries.map((e) => e.skpId))].filter(id => id !== null && id !== undefined && id !== '');
+        const skpIds = [...new Set(dayEntries.flatMap((e) => getEntrySkpIds(e)))];
         data.push({
           tanggal: dateStr,
           hari: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'][dow],
@@ -4743,7 +4952,11 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
     });
     if (type === 'daily') {
       const rows = sortedData.map((e, idx) => {
-        const skpItem = skpData.find(s => s.id === e.skpId);
+        const eSkps = getEntrySkpIds(e);
+        const skpItems = eSkps.map(sid => skpData.find(s => s.id === sid)).filter(Boolean);
+        const kategoriStr = skpItems.length > 0 
+          ? [...new Set(skpItems.map(s => s.kategori === 'utama' ? 'Utama' : 'Tambahan'))].join(', ')
+          : ((skpData.find(s => s.id === e.skpId))?.kategori === 'utama' ? 'Utama' : '');
         return [
           '',
           idx + 1,
@@ -4752,7 +4965,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
           e.rincian || '',
           e.kuantitas || 1,
           e.satuan || 'kegiatan',
-          skpItem ? (skpItem.kategori === 'utama' ? 'Utama' : 'Tambahan') : '',
+          kategoriStr,
           e.buktiDukung || '',
           e.buktiPresensi || ''
         ];
@@ -4762,20 +4975,24 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
     } else if (type === 'ckpt' || type === 'ckpr') {
       const aggregated = {};
       sortedData.forEach(e => {
-        if (!aggregated[e.skpId]) aggregated[e.skpId] = { kuantitas: 0, satuan: e.satuan };
-        aggregated[e.skpId].kuantitas += (e.kuantitas || 1);
+        const eSkps = getEntrySkpIds(e);
+        const keys = eSkps.length > 0 ? eSkps : [e.skpId || 'none'];
+        keys.forEach(sid => {
+          if (!aggregated[sid]) aggregated[sid] = { kuantitas: 0, satuan: e.satuan };
+          aggregated[sid].kuantitas += (e.kuantitas || 1);
+        });
       });
       const rows = Object.keys(aggregated).map((skpIdStr, idx) => {
         const skpId = Number(skpIdStr);
         const skpItem = skpData.find(s => s.id === skpId);
         if (type === 'ckpt') {
           return [
-            idx + 1, skpItem ? skpItem.nama : `SKP #${skpId}`, aggregated[skpIdStr].satuan || 'kegiatan',
+            idx + 1, skpItem ? skpItem.nama : (skpIdStr === 'none' ? 'Non-SKP' : `SKP #${skpId}`), aggregated[skpIdStr].satuan || 'kegiatan',
             aggregated[skpIdStr].kuantitas, '', '', ''
           ];
         } else {
           return [
-            idx + 1, skpItem ? skpItem.nama : `SKP #${skpId}`, aggregated[skpIdStr].satuan || 'kegiatan',
+            idx + 1, skpItem ? skpItem.nama : (skpIdStr === 'none' ? 'Non-SKP' : `SKP #${skpId}`), aggregated[skpIdStr].satuan || 'kegiatan',
             aggregated[skpIdStr].kuantitas, aggregated[skpIdStr].kuantitas, 100, 100, '', '', ''
           ];
         }
@@ -4942,7 +5159,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
                   <td>
                     <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                       {row.skpIds.map(id => (
-                        <span key={id} className={styles.skpBadge}>#{id}</span>
+                        <span key={id} className={styles.skpBadge} style={{ backgroundColor: getColorForSkp(id), color: '#fff', border: 'none' }}>#{id}</span>
                       ))}
                     </div>
                   </td>
@@ -5020,9 +5237,24 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
                     <td style={{ maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={row.rincian}>{row.rincian}</td>
                     <td>{row.kuantitas} {row.satuan}</td>
                     <td>
-                      <span className={styles.skpBadge} style={{ backgroundColor: getColorForSkp(row.skpId), color: '#fff', border: 'none' }}>
-                        #{row.skpId || 'Non-SKP'}
-                      </span>
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                        {getEntrySkpIds(row).length > 0 ? (
+                          getEntrySkpIds(row).map(sid => (
+                            <span 
+                              key={sid} 
+                              className={styles.skpBadge} 
+                              style={{ backgroundColor: getColorForSkp(sid), color: '#fff', border: 'none' }}
+                              title={`SKP #${sid}`}
+                            >
+                              #{sid}
+                            </span>
+                          ))
+                        ) : (
+                          <span className={styles.skpBadge} style={{ backgroundColor: getColorForSkp(null), color: '#fff', border: 'none' }}>
+                            Non-SKP
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td>
                       {row.buktiDukung ? (
@@ -5296,7 +5528,7 @@ function TabRekapTriwulanan({ entries }) {
       
       const activeDays = new Set(monthEntries.map(e => e.tanggal)).size;
       const rataRata = activeDays > 0 ? Math.round(totalJam / activeDays) : 0;
-      const skpIds = [...new Set(monthEntries.map((e) => e.skpId))];
+      const skpIds = [...new Set(monthEntries.flatMap((e) => getEntrySkpIds(e)))];
 
       data.push({
         bulan: getMonthName(m - 1),
@@ -5334,7 +5566,7 @@ function TabRekapTriwulanan({ entries }) {
       'Waktu Mulai': e.waktuMulai,
       'Waktu Selesai': e.waktuSelesai,
       'Durasi (Menit)': e.durasi,
-      'ID SKP': e.skpId || '',
+      'ID SKP': getEntrySkpIds(e).join(', ') || (e.skpId || ''),
       'Tim Kerja': e.timKerja || '',
       'Rincian Kegiatan': e.rincian || '',
       'Kuantitas': e.kuantitas || 0,
@@ -5710,6 +5942,7 @@ function CKPPageInner() {
             waktuMulai: prefill.waktuMulai || '',
             waktuSelesai: prefill.waktuSelesai || '',
             skpId: prefill.skpId || '',
+            skpIds: Array.isArray(prefill.skpIds) ? prefill.skpIds : (prefill.skpId ? [prefill.skpId] : []),
             rincian: prefill.rincian || '',
             fromScheduleEventId: prefill.fromScheduleEventId || null,
             sumber: prefill.sumber || 'manual',
@@ -5922,7 +6155,9 @@ function CKPPageInner() {
     const chatId = localStorage.getItem('telegramChatId');
     if (chatId) {
       try {
-        const skpName = skpData.find(s => s.id === formData.skpId)?.nama || 'N/A';
+        const formSkpIds = getEntrySkpIds(formData);
+        const skpNames = formSkpIds.map(sid => skpData.find(s => s.id === sid)?.nama).filter(Boolean);
+        const skpName = skpNames.length > 0 ? skpNames.join(', ') : (skpData.find(s => s.id === formData.skpId)?.nama || 'N/A');
         const msg = `*Kegiatan CKP Baru*\n\n*SKP:* ${skpName}\n*Rincian:* ${formData.rincian}\n*Waktu:* ${formData.waktuMulai} - ${formData.waktuSelesai}\n*Output:* ${formData.kuantitas} ${formData.satuan}`;
         
         await fetch('/api/telegram', {
