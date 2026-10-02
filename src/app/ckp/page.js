@@ -3652,6 +3652,61 @@ function stretchMonthEntries(originalEntries, checkHoliday, checkDl) {
   return { hasGaps, hasApelOnly, newEntries };
 }
 
+export const aggregateCkpBySkpAndSatuan = (monthEntries = [], skpData = []) => {
+  const aggregated = {};
+  const sortedData = [...monthEntries].sort((a, b) => {
+    if (a.tanggal !== b.tanggal) return (a.tanggal || '').localeCompare(b.tanggal || '');
+    return (a.waktuMulai || '').localeCompare(b.waktuMulai || '');
+  });
+
+  sortedData.forEach(e => {
+    const entrySkps = getEntrySkpIds(e);
+    const keys = entrySkps.length > 0 ? entrySkps : [e.skpId || 'none'];
+    const rawSatuan = (e.satuan || 'Kegiatan').trim();
+    const satuan = rawSatuan ? (rawSatuan.charAt(0).toUpperCase() + rawSatuan.slice(1)) : 'Kegiatan';
+
+    keys.forEach(skpKey => {
+      const groupKey = `${skpKey}:::${satuan.toLowerCase()}`;
+      if (!aggregated[groupKey]) {
+        const skpItem = (skpData || []).find(s => String(s.id) === String(skpKey) || String(s.skpId) === String(skpKey));
+        const kategori = skpItem ? (skpItem.kategori || 'utama') : 'utama';
+        aggregated[groupKey] = {
+          skpKey,
+          skpId: skpKey,
+          nama: skpItem ? skpItem.nama : (skpKey === 'none' ? 'Kegiatan Tanpa SKP' : `SKP #${skpKey}`),
+          satuan: satuan,
+          kategori: kategori,
+          kuantitas: 0
+        };
+      }
+      const qty = (e.kuantitas !== undefined && e.kuantitas !== null && !isNaN(Number(e.kuantitas))) ? Number(e.kuantitas) : 1;
+      aggregated[groupKey].kuantitas += qty;
+    });
+  });
+
+  const sortKeys = (keys) => {
+    return [...keys].sort((a, b) => {
+      const itemA = aggregated[a];
+      const itemB = aggregated[b];
+      const idA = Number(itemA.skpKey) || 999999;
+      const idB = Number(itemB.skpKey) || 999999;
+      if (idA !== idB) return idA - idB;
+      return (itemA.satuan || '').localeCompare(itemB.satuan || '');
+    });
+  };
+
+  const utamaKeys = sortKeys(Object.keys(aggregated).filter(k => aggregated[k].kategori === 'utama'));
+  const tambahanKeys = sortKeys(Object.keys(aggregated).filter(k => aggregated[k].kategori === 'tambahan'));
+  const allSortedKeys = [...utamaKeys, ...tambahanKeys];
+
+  return {
+    aggregated,
+    utamaKeys,
+    tambahanKeys,
+    allSortedKeys
+  };
+};
+
 // TAB 3: Rekap Bulanan
 function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday, checkDl, onToggleDl, onStretchClick, onEdit, onDelete, deleteDocument, updateDocument, onCreateEmptyFolder, creatingFolderId, accessToken, skpData }) {
   const { showAlert } = useAlert();
@@ -3870,32 +3925,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
         </tr>
       `;
 
-      const aggregated = {};
-      const sortedData = [...monthEntries].sort((a, b) => {
-        if (a.tanggal !== b.tanggal) return a.tanggal.localeCompare(b.tanggal);
-        return (a.waktuMulai || '').localeCompare(b.waktuMulai || '');
-      });
-
-      sortedData.forEach(e => {
-        const entrySkps = getEntrySkpIds(e);
-        const keys = entrySkps.length > 0 ? entrySkps : [e.skpId || 'none'];
-        keys.forEach(skpKey => {
-          if (!aggregated[skpKey]) {
-            const skpItem = skpData.find(s => String(s.id) === String(skpKey));
-            const kategori = skpItem ? skpItem.kategori : 'utama';
-            aggregated[skpKey] = {
-              kuantitas: 0,
-              satuan: e.satuan || 'kegiatan',
-              kategori: kategori,
-              nama: skpItem ? skpItem.nama : (skpKey === 'none' ? 'Kegiatan Tanpa SKP' : `SKP #${skpKey}`)
-            };
-          }
-          aggregated[skpKey].kuantitas += (e.kuantitas || 1);
-        });
-      });
-
-      const utamaKeys = Object.keys(aggregated).filter(k => aggregated[k].kategori === 'utama');
-      const tambahanKeys = Object.keys(aggregated).filter(k => aggregated[k].kategori === 'tambahan');
+      const { aggregated, utamaKeys, tambahanKeys } = aggregateCkpBySkpAndSatuan(monthEntries, skpData);
 
       let sumTarget = 0;
       let rowsList = [];
@@ -4099,32 +4129,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
         </tr>
       `;
 
-      const aggregated = {};
-      const sortedData = [...monthEntries].sort((a, b) => {
-        if (a.tanggal !== b.tanggal) return a.tanggal.localeCompare(b.tanggal);
-        return (a.waktuMulai || '').localeCompare(b.waktuMulai || '');
-      });
-
-      sortedData.forEach(e => {
-        const entrySkps = getEntrySkpIds(e);
-        const keys = entrySkps.length > 0 ? entrySkps : [e.skpId || 'none'];
-        keys.forEach(skpKey => {
-          if (!aggregated[skpKey]) {
-            const skpItem = skpData.find(s => String(s.id) === String(skpKey));
-            const kategori = skpItem ? skpItem.kategori : 'utama';
-            aggregated[skpKey] = {
-              kuantitas: 0,
-              satuan: e.satuan || 'kegiatan',
-              kategori: kategori,
-              nama: skpItem ? skpItem.nama : (skpKey === 'none' ? 'Kegiatan Tanpa SKP' : `SKP #${skpKey}`)
-            };
-          }
-          aggregated[skpKey].kuantitas += (e.kuantitas || 1);
-        });
-      });
-
-      const utamaKeys = Object.keys(aggregated).filter(k => aggregated[k].kategori === 'utama');
-      const tambahanKeys = Object.keys(aggregated).filter(k => aggregated[k].kategori === 'tambahan');
+      const { aggregated, utamaKeys, tambahanKeys } = aggregateCkpBySkpAndSatuan(monthEntries, skpData);
 
       let sumTarget = 0;
       let sumRealisasi = 0;
@@ -4729,27 +4734,32 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
       const fileName = `CKP-Daily_${getMonthName(monthVal - 1)}_${yearVal}_Yahya_Abdurrohman.xlsx`;
       triggerExport('template_ckp_daily.xlsx', 9, rows, { 'D6': `: ${getMonthName(monthVal - 1)} ${yearVal}` }, fileName);
     } else if (type === 'ckpt' || type === 'ckpr') {
-      const aggregated = {};
-      sortedData.forEach(e => {
-        const eSkps = getEntrySkpIds(e);
-        const keys = eSkps.length > 0 ? eSkps : [e.skpId || 'none'];
-        keys.forEach(sid => {
-          if (!aggregated[sid]) aggregated[sid] = { kuantitas: 0, satuan: e.satuan };
-          aggregated[sid].kuantitas += (e.kuantitas || 1);
-        });
-      });
-      const rows = Object.keys(aggregated).map((skpIdStr, idx) => {
-        const skpId = Number(skpIdStr);
-        const skpItem = skpData.find(s => s.id === skpId);
+      const { aggregated, allSortedKeys } = aggregateCkpBySkpAndSatuan(sortedData, skpData);
+      const rows = allSortedKeys.map((key, idx) => {
+        const item = aggregated[key];
+        const displayNama = item.skpKey === 'none' ? 'Non-SKP' : item.nama;
         if (type === 'ckpt') {
           return [
-            idx + 1, skpItem ? skpItem.nama : (skpIdStr === 'none' ? 'Non-SKP' : `SKP #${skpId}`), aggregated[skpIdStr].satuan || 'kegiatan',
-            aggregated[skpIdStr].kuantitas, '', '', ''
+            idx + 1,
+            displayNama,
+            item.satuan,
+            item.kuantitas,
+            '',
+            '',
+            ''
           ];
         } else {
           return [
-            idx + 1, skpItem ? skpItem.nama : (skpIdStr === 'none' ? 'Non-SKP' : `SKP #${skpId}`), aggregated[skpIdStr].satuan || 'kegiatan',
-            aggregated[skpIdStr].kuantitas, aggregated[skpIdStr].kuantitas, 100, 100, '', '', ''
+            idx + 1,
+            displayNama,
+            item.satuan,
+            item.kuantitas,
+            item.kuantitas,
+            100,
+            100,
+            '',
+            '',
+            ''
           ];
         }
       });
