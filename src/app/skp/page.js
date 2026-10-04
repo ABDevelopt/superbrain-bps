@@ -776,7 +776,7 @@ export default function SKPPage() {
               </div>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div className={styles.cardRight}>
             <span className={`${styles.statusBadge} ${statusCfg.class}`}>
               {statusCfg.label}
             </span>

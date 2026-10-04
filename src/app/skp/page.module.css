@@ -202,6 +202,12 @@
   margin-bottom: 14px;
 }
 
+.cardRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .cardLeft {
   display: flex;
   align-items: flex-start;
@@ -453,21 +459,11 @@
   }
 
   .filterBar {
-    flex-direction: column;
-    align-items: stretch;
+    gap: 10px;
   }
 
   .searchWrapper {
     min-width: 100%;
-  }
-
-  .filterSelect {
-    min-width: 100%;
-  }
-
-  .resultCount {
-    margin-left: 0;
-    text-align: center;
   }
 
   .progressSection {
@@ -477,20 +473,102 @@
 
 @media (max-width: 640px) {
   .container {
-    padding: 0;
-    padding-bottom: 100px;
+    padding: 12px 6px;
+    padding-bottom: 24px;
+  }
+
+  .header {
+    padding: 16px 14px;
+    margin-bottom: 16px;
+    border-radius: 12px;
   }
 
   .title {
-    font-size: 1.35rem;
+    font-size: 1.25rem;
+  }
+
+  .subtitle {
+    font-size: 0.8rem;
+  }
+
+  .headerTitleRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .actionButtons {
+    width: 100%;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .actionButtons button {
+    width: 100%;
+    justify-content: center;
+    padding: 9px 12px;
+    font-size: 0.8rem;
   }
 
   .summaryRow {
     grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .statTotal {
+    grid-column: span 2;
+  }
+
+  .statCard {
+    padding: 12px 14px;
+    border-radius: 10px;
+    gap: 4px;
+  }
+
+  .statValue {
+    font-size: 1.3rem;
+  }
+
+  .statLabel {
+    font-size: 0.68rem;
+  }
+
+  .filterBar {
+    padding: 14px 12px;
+    gap: 8px;
+  }
+
+  .filterSelect {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 130px;
+    font-size: 0.78rem;
+    padding: 8px 24px 8px 10px;
+  }
+
+  .viewModeToggle {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-top: 4px;
+  }
+
+  .viewBtn {
+    flex: 1;
+    justify-content: center;
+    padding: 8px 12px;
+  }
+
+  .resultCount {
+    width: 100%;
+    text-align: center;
+    margin-top: 4px;
+    font-size: 0.75rem;
   }
 
   .card {
-    padding: 16px;
+    padding: 14px;
+    border-radius: 12px;
+    margin-bottom: 10px;
   }
 
   .cardTop {
@@ -498,16 +576,77 @@
     gap: 10px;
   }
 
+  .cardLeft {
+    gap: 10px;
+  }
+
+  .numberBadge {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+  }
+
+  .cardName {
+    font-size: 0.88rem;
+    margin-bottom: 6px;
+  }
+
+  .cardRight {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding-top: 8px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.08);
+  }
+
   .statusBadge {
-    align-self: flex-start;
+    font-size: 0.72rem;
+    padding: 3px 8px;
   }
 
   .cardTags {
-    gap: 6px;
+    gap: 4px;
+  }
+
+  .categoryBadge, .timTag, .clusterTag {
+    font-size: 0.68rem;
+    padding: 2px 8px;
   }
 
   .progressSection {
     grid-template-columns: 1fr;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+
+  .progressItem {
+    padding: 0;
+  }
+
+  .progressHeader {
+    font-size: 0.72rem;
+    margin-bottom: 4px;
+  }
+
+  .setupCard {
+    padding: 16px 12px;
+    border-radius: 12px;
+  }
+
+  .setupListCard {
+    padding: 16px 12px;
+    border-radius: 12px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .formRow {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 }
 
@@ -1359,12 +1498,24 @@
 /* ===== RESPONSIVE MEDIA FOR STEPS ===== */
 @media (max-width: 768px) {
   .stepTabs {
-    grid-template-columns: 1fr;
-    gap: 8px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
   }
   .stepTab {
-    padding: 12px;
-    font-size: 0.8rem;
+    padding: 10px 4px;
+    font-size: 0.72rem;
+    flex-direction: column;
+    text-align: center;
+    gap: 4px;
+    justify-content: center;
+  }
+  .stepNumber {
+    width: 20px;
+    height: 20px;
+    font-size: 0.68rem;
+  }
+  .stepCheck {
+    display: none;
   }
   .inlineForm {
     flex-direction: column;
