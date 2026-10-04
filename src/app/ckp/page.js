@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { useAlert } from '@/contexts/AlertContext';
 import { compressFile } from '@/lib/compressor';
-import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Clock, Link as LinkIcon, CloudOff, FolderOpen, AlertTriangle, Sparkles, FolderPlus, ExternalLink, FileArchive, Send, Palmtree, Repeat } from 'lucide-react';
+import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Clock, Link as LinkIcon, CloudOff, FolderOpen, AlertTriangle, Sparkles, FolderPlus, ExternalLink, FileArchive, Send, Palmtree, Repeat, Plus, Tag } from 'lucide-react';
 import { useSkps } from '@/hooks/useSkps';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,6 +24,10 @@ import MonthlyTimeVisualizer from './MonthlyTimeVisualizer';
 import KipappSyncModal from './KipappSyncModal';
 
 const SATUAN_OPTIONS = ['Kegiatan', 'Lembar', 'File', 'Dokumen', 'Orang', 'Formulir', 'Lainnya'];
+const BPS_RECOMMENDED_SATUAN = [
+  'Kuesioner', 'Responden', 'Blok Sensus', 'SLS', 'Keluarga',
+  'Rumah Tangga', 'Desa', 'Kecamatan', 'Peta', 'Publikasi', 'Paket', 'Sampel', 'Daftar'
+];
 
 const getColorForSkp = (skpId) => {
   if (!skpId || isNaN(Number(skpId)) || Number(skpId) === 0) return 'rgba(148, 163, 184, 0.8)'; // slate-400
@@ -235,6 +239,23 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
   const [isDragging, setIsDragging] = useState(false);
   const [isDraggingPresensi, setIsDraggingPresensi] = useState(false);
   const [isCreatingExplicitFolder, setIsCreatingExplicitFolder] = useState(false);
+
+  const [customSatuanList, setCustomSatuanList] = useState([]);
+  const [showCustomSatuanModal, setShowCustomSatuanModal] = useState(false);
+  const [newCustomSatuanInput, setNewCustomSatuanInput] = useState('');
+  const [customSatuanTab, setCustomSatuanTab] = useState('add');
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('superbrain_custom_satuan');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) setCustomSatuanList(parsed);
+      }
+    } catch (e) {
+      console.error('Error loading custom satuan:', e);
+    }
+  }, []);
 
   const handleCreateExplicitFolder = async () => {
     if (!accessToken) {
@@ -538,6 +559,81 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
       setForm(prev => ({ ...prev, tanggal: sharedDate }));
     }
   }, [sharedDate, initialData]);
+
+  // Satuan Kuantitas Kustom Options & Handlers
+  const allSatuanOptions = useMemo(() => {
+    const standardLower = new Set(SATUAN_OPTIONS.map(s => s.toLowerCase()));
+    const combined = [...SATUAN_OPTIONS];
+
+    customSatuanList.forEach(item => {
+      const clean = (item || '').trim();
+      if (clean && !standardLower.has(clean.toLowerCase())) {
+        combined.push(clean);
+        standardLower.add(clean.toLowerCase());
+      }
+    });
+
+    if (Array.isArray(entries)) {
+      entries.forEach(e => {
+        if (e && e.satuan) {
+          const clean = e.satuan.trim();
+          if (clean && !standardLower.has(clean.toLowerCase())) {
+            combined.push(clean);
+            standardLower.add(clean.toLowerCase());
+          }
+        }
+      });
+    }
+
+    if (form.satuan && !standardLower.has(form.satuan.trim().toLowerCase())) {
+      combined.push(form.satuan.trim());
+    }
+
+    return combined;
+  }, [customSatuanList, entries, form.satuan]);
+
+  const handleAddCustomSatuan = (unitVal) => {
+    const val = (unitVal || newCustomSatuanInput).trim();
+    if (!val) {
+      showAlert('Silakan masukkan nama satuan kuantitas.');
+      return;
+    }
+    const formatted = val.charAt(0).toUpperCase() + val.slice(1);
+    const updated = Array.from(new Set([...customSatuanList, formatted]));
+    setCustomSatuanList(updated);
+    try {
+      localStorage.setItem('superbrain_custom_satuan', JSON.stringify(updated));
+    } catch (e) {
+      console.error('Error saving custom satuan:', e);
+    }
+    setForm(prev => ({ ...prev, satuan: formatted }));
+    setNewCustomSatuanInput('');
+    setShowCustomSatuanModal(false);
+    showAlert(`Satuan "${formatted}" berhasil disimpan dan diterapkan!`, 'success');
+  };
+
+  const handleDeleteCustomSatuan = (unitToDelete) => {
+    const updated = customSatuanList.filter(s => s.toLowerCase() !== unitToDelete.toLowerCase());
+    setCustomSatuanList(updated);
+    try {
+      localStorage.setItem('superbrain_custom_satuan', JSON.stringify(updated));
+    } catch (e) {
+      console.error('Error deleting custom satuan:', e);
+    }
+    if (form.satuan.toLowerCase() === unitToDelete.toLowerCase()) {
+      setForm(prev => ({ ...prev, satuan: 'Kegiatan' }));
+    }
+  };
+
+  const handleSatuanChange = (e) => {
+    const val = e.target.value;
+    if (val === '__ADD_NEW_CUSTOM__') {
+      setCustomSatuanTab('add');
+      setShowCustomSatuanModal(true);
+      return;
+    }
+    setForm(prev => ({ ...prev, satuan: val }));
+  };
 
   const handleShortenLinkInline = async () => {
     if (!buktiLink) return;
@@ -2762,15 +2858,43 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
           />
         </div>
         <div className={styles.formGroup}>
-          <label className={styles.label}>Satuan Kuantitas</label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+            <label className={styles.label} style={{ margin: 0 }}>Satuan Kuantitas</label>
+            <button
+              type="button"
+              onClick={() => {
+                setCustomSatuanTab('add');
+                setShowCustomSatuanModal(true);
+              }}
+              className={styles.customUnitBtn}
+              title="Tambah atau kelola satuan kuantitas kustom"
+            >
+              <Plus size={12} />
+              <span>Satuan Kustom</span>
+            </button>
+          </div>
           <select
             className={styles.select}
             value={form.satuan}
-            onChange={handleChange('satuan')}
+            onChange={handleSatuanChange}
           >
-            {SATUAN_OPTIONS.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
+            <optgroup label="Satuan Standar">
+              {SATUAN_OPTIONS.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </optgroup>
+            {allSatuanOptions.filter(s => !SATUAN_OPTIONS.includes(s)).length > 0 && (
+              <optgroup label="Satuan Kustom / Tersimpan">
+                {allSatuanOptions
+                  .filter(s => !SATUAN_OPTIONS.includes(s))
+                  .map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+              </optgroup>
+            )}
+            <option value="__ADD_NEW_CUSTOM__" style={{ color: '#818cf8', fontWeight: 600 }}>
+              + Tambah Satuan Kustom Baru...
+            </option>
           </select>
         </div>
       </div>
@@ -2812,6 +2936,173 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
       </div>
 
       {cameraModal}
+
+      {/* Modal Tambah & Kelola Satuan Kuantitas Kustom */}
+      {showCustomSatuanModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 7, 40, 0.75)', backdropFilter: 'blur(8px)',
+          zIndex: 1100, display: 'flex', alignItems: 'center',
+          padding: '20px', justifyContent: 'center'
+        }}>
+          <div style={{
+            background: 'rgba(30, 27, 75, 0.98)', border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: '16px', maxWidth: '460px', width: '100%', padding: '24px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
+            display: 'flex', flexDirection: 'column'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Tag size={18} color="#818cf8" />
+                <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#f1f5f9', margin: 0 }}>
+                  Satuan Kuantitas Kustom
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCustomSatuanModal(false)}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}
+                title="Tutup Modal"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Tabs */}
+            <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '8px', marginBottom: '16px' }}>
+              <button
+                type="button"
+                onClick={() => setCustomSatuanTab('add')}
+                style={{
+                  background: customSatuanTab === 'add' ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
+                  border: '1px solid',
+                  borderColor: customSatuanTab === 'add' ? '#818cf8' : 'transparent',
+                  color: customSatuanTab === 'add' ? '#fff' : '#94a3b8',
+                  padding: '4px 12px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  cursor: 'pointer'
+                }}
+              >
+                Tambah Baru
+              </button>
+              <button
+                type="button"
+                onClick={() => setCustomSatuanTab('manage')}
+                style={{
+                  background: customSatuanTab === 'manage' ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
+                  border: '1px solid',
+                  borderColor: customSatuanTab === 'manage' ? '#818cf8' : 'transparent',
+                  color: customSatuanTab === 'manage' ? '#fff' : '#94a3b8',
+                  padding: '4px 12px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  cursor: 'pointer'
+                }}
+              >
+                Kelola Tersimpan ({customSatuanList.length})
+              </button>
+            </div>
+
+            {customSatuanTab === 'add' ? (
+              <div>
+                <label style={{ fontSize: '12px', color: '#cbd5e1', fontWeight: 500, display: 'block', marginBottom: '6px' }}>
+                  Nama Satuan Kuantitas:
+                </label>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                  <input
+                    type="text"
+                    placeholder="Ketik nama satuan (misal: Responden, SLS, Peta)..."
+                    value={newCustomSatuanInput}
+                    onChange={(e) => setNewCustomSatuanInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomSatuan();
+                      }
+                    }}
+                    className="input-base"
+                    style={{ fontSize: '13px', padding: '8px 12px', flex: 1 }}
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleAddCustomSatuan()}
+                    className="btn btn-primary"
+                    style={{ fontSize: '12.5px', padding: '0 16px', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    <Plus size={14} /> Gunakan
+                  </button>
+                </div>
+
+                <span style={{ fontSize: '11px', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>
+                  Rekomendasi Satuan Kedinasan BPS:
+                </span>
+                <div className={styles.unitChipGroup}>
+                  {BPS_RECOMMENDED_SATUAN.map((rec) => (
+                    <button
+                      key={rec}
+                      type="button"
+                      className={styles.unitChip}
+                      onClick={() => handleAddCustomSatuan(rec)}
+                      title={`Gunakan satuan "${rec}"`}
+                    >
+                      + {rec}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
+                {customSatuanList.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '24px 0', color: '#64748b', fontSize: '13px' }}>
+                    Belum ada satuan kustom yang tersimpan.
+                  </div>
+                ) : (
+                  customSatuanList.map((item) => (
+                    <div key={item} className={styles.customUnitListItem}>
+                      <span style={{ fontWeight: 500, color: '#f1f5f9' }}>{item}</span>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setForm(p => ({ ...p, satuan: item }));
+                            setShowCustomSatuanModal(false);
+                            showAlert(`Satuan diubah ke "${item}".`, 'success');
+                          }}
+                          className="btn btn-secondary"
+                          style={{ fontSize: '11px', padding: '2px 8px' }}
+                        >
+                          Pilih
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCustomSatuan(item)}
+                          className={styles.customUnitDeleteBtn}
+                          title={`Hapus satuan "${item}" dari daftar tersimpan`}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+              <button
+                type="button"
+                onClick={() => setShowCustomSatuanModal(false)}
+                className="btn btn-secondary"
+                style={{ fontSize: '12px', padding: '6px 16px' }}
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }
