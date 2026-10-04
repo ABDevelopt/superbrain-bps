@@ -47,6 +47,144 @@ const TIM_KERJA_OPTIONS = [
   'Tim Desa Cantik'
 ];
 
+const DEFAULT_ACTIVITY_PRESETS = [
+  {
+    nama: 'Apel Pagi',
+    rincian: 'Mengikuti apel pagi rutin BPS dan pembinaan pimpinan',
+    waktuMulai: '07:30',
+    waktuSelesai: '08:00',
+    kuantitas: 1,
+    satuan: 'Kegiatan',
+    timKerja: 'Subbagian Umum',
+  },
+  {
+    nama: 'Rapat Tim',
+    rincian: 'Mengikuti rapat koordinasi dan evaluasi progres pelaksanaan kegiatan tim kerja',
+    waktuMulai: '09:00',
+    waktuSelesai: '11:00',
+    kuantitas: 1,
+    satuan: 'Kegiatan',
+    timKerja: 'Subbagian Umum',
+  },
+  {
+    nama: 'Entri Data',
+    rincian: 'Melakukan entri dan validasi data kuesioner survei',
+    waktuMulai: '08:30',
+    waktuSelesai: '12:00',
+    kuantitas: 25,
+    satuan: 'Kuesioner',
+    timKerja: 'Tim Statistik Sosial',
+  },
+  {
+    nama: 'Pemeriksaan Dokumen',
+    rincian: 'Pemeriksaan, editing, dan coding dokumen hasil pencacahan lapangan',
+    waktuMulai: '13:00',
+    waktuSelesai: '16:00',
+    kuantitas: 10,
+    satuan: 'Dokumen',
+    timKerja: 'Tim Statistik Sosial',
+  },
+  {
+    nama: 'Pelayanan PST',
+    rincian: 'Pelayanan konsultasi statistik dan permintaan data pengunjung di Pelayanan Statistik Terpadu (PST)',
+    waktuMulai: '08:30',
+    waktuSelesai: '11:30',
+    kuantitas: 2,
+    satuan: 'Orang',
+    timKerja: 'Tim IPJKD & DLS',
+  },
+  {
+    nama: 'Penyusunan Publikasi',
+    rincian: 'Penyusunan naskah, kompilasi tabel, dan infografis bahan publikasi statistik',
+    waktuMulai: '10:00',
+    waktuSelesai: '15:30',
+    kuantitas: 1,
+    satuan: 'Publikasi',
+    timKerja: 'Tim IPJKD & DLS',
+  },
+  {
+    nama: 'Supervisi Lapangan',
+    rincian: 'Melakukan supervisi dan pembinaan petugas pendataan survei di lapangan',
+    waktuMulai: '08:00',
+    waktuSelesai: '15:00',
+    kuantitas: 1,
+    satuan: 'Kegiatan',
+    timKerja: 'Tim Distribusi',
+  },
+];
+
+function getSmartSkpSuggestion(rincian, skpList) {
+  if (!rincian || typeof rincian !== 'string' || rincian.trim().length < 3 || !Array.isArray(skpList) || skpList.length === 0) {
+    return [];
+  }
+
+  const query = rincian.toLowerCase();
+  const words = query.split(/[\s,.;:/\-]+/).filter(w => w.length >= 3);
+
+  const scored = skpList.map(item => {
+    let score = 0;
+    const nameLower = (item.nama || '').toLowerCase();
+    
+    // Exact phrase match
+    if (nameLower.includes(query)) score += 50;
+
+    // Word matches
+    for (const word of words) {
+      if (nameLower.includes(word)) {
+        score += word.length > 5 ? 15 : 10;
+      }
+    }
+
+    // Domain keyword correlations
+    const domainKeywords = [
+      { key: 'sakernas', tag: 'sakernas', boost: 40 },
+      { key: 'susenas', tag: 'susenas', boost: 40 },
+      { key: 'seruti', tag: 'seruti', boost: 40 },
+      { key: 'shk', tag: 'harga', boost: 35 },
+      { key: 'ihk', tag: 'harga', boost: 35 },
+      { key: 'inflasi', tag: 'harga', boost: 35 },
+      { key: 'pdrb', tag: 'pdrb', boost: 40 },
+      { key: 'kda', tag: 'kda', boost: 40 },
+      { key: 'kecamatan dalam angka', tag: 'kda', boost: 40 },
+      { key: 'daerah dalam angka', tag: 'dda', boost: 40 },
+      { key: 'pst', tag: 'pelayanan', boost: 35 },
+      { key: 'pelayanan statistik', tag: 'pelayanan', boost: 35 },
+      { key: 'publikasi', tag: 'publikasi', boost: 30 },
+      { key: 'peta', tag: 'peta', boost: 35 },
+      { key: 'wilkerstat', tag: 'wilkerstat', boost: 35 },
+      { key: 'sensus', tag: 'sensus', boost: 30 },
+      { key: 'se2026', tag: 'ekonomi', boost: 40 },
+      { key: 'ekonomi', tag: 'ekonomi', boost: 20 },
+      { key: 'kepegawaian', tag: 'umum', boost: 30 },
+      { key: 'keuangan', tag: 'keuangan', boost: 30 },
+      { key: 'arsip', tag: 'arsip', boost: 25 },
+      { key: 'surat', tag: 'administrasi', boost: 25 },
+      { key: 'disposisi', tag: 'administrasi', boost: 25 },
+      { key: 'bmn', tag: 'bmn', boost: 35 },
+      { key: 'desa cantik', tag: 'cantik', boost: 40 },
+      { key: 'epss', tag: 'epss', boost: 40 },
+      { key: 'evaluasi', tag: 'evaluasi', boost: 15 },
+      { key: 'supervisi', tag: 'supervisi', boost: 20 },
+      { key: 'listing', tag: 'listing', boost: 30 },
+      { key: 'kuesioner', tag: 'pencacahan', boost: 20 },
+    ];
+
+    for (const dk of domainKeywords) {
+      if (query.includes(dk.key) && nameLower.includes(dk.tag)) {
+        score += dk.boost;
+      }
+    }
+
+    return { item, score };
+  });
+
+  return scored
+    .filter(s => s.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .map(s => s.item);
+}
+
 function getTodayStr() {
   const d = new Date();
   const y = d.getFullYear();
@@ -291,6 +429,151 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
       console.error('Error loading custom satuan:', e);
     }
   }, []);
+
+  // User Activity Presets (localStorage)
+  const [userPresets, setUserPresets] = useState([]);
+  
+  // Salin Kegiatan dari Hari Sebelumnya
+  const [showCopyPrevDayModal, setShowCopyPrevDayModal] = useState(false);
+  const [prevDayCandidates, setPrevDayCandidates] = useState([]);
+  const [prevDayDate, setPrevDayDate] = useState('');
+  const [selectedPrevDayIds, setSelectedPrevDayIds] = useState(new Set());
+  const [isCopyingPrevDay, setIsCopyingPrevDay] = useState(false);
+
+  useEffect(() => {
+    try {
+      const savedPresets = localStorage.getItem('superbrain_user_activity_presets');
+      if (savedPresets) {
+        const parsed = JSON.parse(savedPresets);
+        if (Array.isArray(parsed)) setUserPresets(parsed);
+      }
+    } catch (e) {
+      console.error('Error loading activity presets:', e);
+    }
+  }, []);
+
+  const handleSaveCurrentAsPreset = () => {
+    if (!form.rincian.trim()) {
+      showAlert('Silakan isi rincian kegiatan terlebih dahulu untuk disimpan sebagai template.');
+      return;
+    }
+    const name = window.prompt('Masukkan nama template kegiatan (contoh: Entry Survei X):', form.rincian.substring(0, 20));
+    if (!name || !name.trim()) return;
+
+    const newPreset = {
+      id: Date.now(),
+      nama: name.trim(),
+      rincian: form.rincian,
+      waktuMulai: form.waktuMulai || '08:00',
+      waktuSelesai: form.waktuSelesai || '10:00',
+      kuantitas: form.kuantitas || 1,
+      satuan: form.satuan || 'Kegiatan',
+      timKerja: form.timKerja || TIM_KERJA_OPTIONS[0],
+      skpId: form.skpId || '',
+      skpIds: Array.isArray(form.skpIds) ? form.skpIds : (form.skpId ? [form.skpId] : []),
+    };
+    const updated = [newPreset, ...userPresets];
+    setUserPresets(updated);
+    try {
+      localStorage.setItem('superbrain_user_activity_presets', JSON.stringify(updated));
+    } catch (e) {}
+    showAlert(`Template '${name.trim()}' berhasil disimpan!`, 'success');
+  };
+
+  const handleDeleteUserPreset = (presetId, e) => {
+    e.stopPropagation();
+    const updated = userPresets.filter(p => p.id !== presetId);
+    setUserPresets(updated);
+    try {
+      localStorage.setItem('superbrain_user_activity_presets', JSON.stringify(updated));
+    } catch (e) {}
+    showAlert('Template kustom berhasil dihapus.', 'info');
+  };
+
+  const handleApplyPreset = (preset) => {
+    setForm(prev => ({
+      ...prev,
+      rincian: preset.rincian || prev.rincian,
+      waktuMulai: preset.waktuMulai || prev.waktuMulai,
+      waktuSelesai: preset.waktuSelesai || prev.waktuSelesai,
+      kuantitas: preset.kuantitas !== undefined ? preset.kuantitas : prev.kuantitas,
+      satuan: preset.satuan || prev.satuan,
+      timKerja: preset.timKerja || prev.timKerja,
+      skpId: preset.skpId || prev.skpId,
+      skpIds: Array.isArray(preset.skpIds) && preset.skpIds.length > 0 ? preset.skpIds : (preset.skpId ? [Number(preset.skpId)] : prev.skpIds),
+    }));
+    showAlert(`Template '${preset.nama}' diterapkan ke form!`, 'info');
+  };
+
+  const handleOpenCopyPrevDay = () => {
+    const datesBefore = Array.from(
+      new Set(
+        entries
+          .map(e => e.tanggal)
+          .filter(t => t < form.tanggal)
+      )
+    ).sort().reverse();
+
+    if (datesBefore.length === 0) {
+      showAlert('Tidak ditemukan catatan kegiatan sebelum tanggal ' + formatDate(form.tanggal));
+      return;
+    }
+
+    const targetPrevDate = datesBefore[0];
+    const prevActivities = entries
+      .filter(e => e.tanggal === targetPrevDate)
+      .sort((a, b) => (a.waktuMulai || '').localeCompare(b.waktuMulai || ''));
+
+    if (prevActivities.length === 0) {
+      showAlert('Tidak ada kegiatan pada hari kerja sebelumnya.');
+      return;
+    }
+
+    setPrevDayDate(targetPrevDate);
+    setPrevDayCandidates(prevActivities);
+    setSelectedPrevDayIds(new Set(prevActivities.map(a => a.id)));
+    setShowCopyPrevDayModal(true);
+  };
+
+  const handleExecuteCopyPrevDay = async () => {
+    if (selectedPrevDayIds.size === 0) {
+      showAlert('Pilih minimal satu kegiatan untuk disalin.');
+      return;
+    }
+
+    setIsCopyingPrevDay(true);
+    try {
+      const itemsToCopy = prevDayCandidates.filter(c => selectedPrevDayIds.has(c.id));
+      let count = 0;
+      for (const item of itemsToCopy) {
+        const itemSkpIds = getEntrySkpIds(item);
+        const newEntry = {
+          tanggal: form.tanggal,
+          waktuMulai: item.waktuMulai || '',
+          waktuSelesai: item.waktuSelesai || '',
+          durasi: item.durasi || calcDurationMinutes(item.waktuMulai, item.waktuSelesai),
+          skpId: item.skpId || (itemSkpIds.length > 0 ? String(itemSkpIds[0]) : ''),
+          skpIds: itemSkpIds,
+          rincian: item.rincian || '',
+          kuantitas: item.kuantitas || 1,
+          satuan: item.satuan || 'Kegiatan',
+          timKerja: item.timKerja || TIM_KERJA_OPTIONS[0],
+          isFullday: item.isFullday || false,
+          sumber: 'copy_prev_day',
+          createdAt: new Date(),
+        };
+        await onSubmit(newEntry);
+        count++;
+      }
+      setShowCopyPrevDayModal(false);
+      showAlert(`Berhasil menyalin ${count} kegiatan dari ${formatDate(prevDayDate)} ke ${formatDate(form.tanggal)}!`, 'success');
+    } catch (err) {
+      console.error(err);
+      showAlert('Gagal menyalin kegiatan: ' + err.message);
+    } finally {
+      setIsCopyingPrevDay(false);
+    }
+  };
 
   const handleCreateExplicitFolder = async () => {
     if (!accessToken) {
@@ -936,6 +1219,16 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
   const filteredSkp = useMemo(() => {
       return skpData.filter(s => s.nama.toLowerCase().includes(skpSearch.toLowerCase()));
   }, [skpSearch]);
+
+  const smartSkpSuggestions = useMemo(() => {
+    const rawSuggestions = getSmartSkpSuggestion(form.rincian, skpData);
+    const selectedIds = new Set(
+      Array.isArray(form.skpIds)
+        ? form.skpIds.map(Number)
+        : (form.skpId && form.skpId !== 'none' ? [Number(form.skpId)] : [])
+    );
+    return rawSuggestions.filter(item => !selectedIds.has(Number(item.id)));
+  }, [form.rincian, skpData, form.skpIds, form.skpId]);
 
   const processImage = (imageFile, coords) => {
     const reader = new FileReader();
@@ -1809,6 +2102,75 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
 
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
+      {initialData && (initialData._isSkpDirect || initialData.sumber === 'skp_direct') && (
+        <div className={styles.skpDirectBanner}>
+          <div className={styles.skpDirectBannerText}>
+            <span className={styles.skpDirectBannerBadge}>Pencatatan Cepat SKP</span>
+            <span>
+              Sedang mencatat kegiatan untuk <strong>{initialData.skpNameTitle || `SKP #${initialData.skpId}`}</strong>
+            </span>
+          </div>
+          {onCancelEdit && (
+            <button 
+              type="button" 
+              className={styles.skpDirectBannerClose}
+              onClick={onCancelEdit}
+              title="Batal mode SKP langsung"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Preset & Template Kegiatan Cepat BPS */}
+      <div className={styles.presetSection}>
+        <div className={styles.presetHeader}>
+          <div className={styles.presetTitleGroup}>
+            <Tag size={13} style={{ color: 'var(--primary)' }} />
+            <span>Template &amp; Preset Cepat BPS</span>
+          </div>
+          <button 
+            type="button" 
+            onClick={handleSaveCurrentAsPreset}
+            className={styles.presetSaveBtn}
+            title="Simpan isian form saat ini sebagai template cepat kustom"
+          >
+            <Plus size={12} /> Simpan Form Jadi Template
+          </button>
+        </div>
+        <div className={styles.presetList}>
+          {userPresets.map(preset => (
+            <div 
+              key={preset.id} 
+              className={`${styles.presetChip} ${styles.presetChipCustom}`}
+              onClick={() => handleApplyPreset(preset)}
+              title={`Terapkan template kustom: ${preset.rincian}`}
+            >
+              <span>{preset.nama}</span>
+              <button 
+                type="button" 
+                className={styles.presetChipDelete}
+                onClick={(e) => handleDeleteUserPreset(preset.id, e)}
+                title="Hapus template ini"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ))}
+          {DEFAULT_ACTIVITY_PRESETS.map((preset, idx) => (
+            <div 
+              key={idx} 
+              className={styles.presetChip}
+              onClick={() => handleApplyPreset(preset)}
+              title={`Terapkan: ${preset.rincian}`}
+            >
+              <span>{preset.nama}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {initialData && initialData.groupId && (
         <div className={styles.multiDayEditAlert}>
           <CalendarClock size={16} />
@@ -1882,7 +2244,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
       <div className={styles.formRow} style={{ flexDirection: 'column', gap: '12px', alignItems: 'stretch' }}>
         <div className={styles.formGroup} style={{ width: '100%' }}>
           <label className={styles.label}>Tanggal Kegiatan</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', flexWrap: 'wrap' }}>
             <button 
               type="button" 
               className={styles.dateNavBtn}
@@ -1901,7 +2263,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
               value={form.tanggal}
               onChange={handleChange('tanggal')}
               required
-              style={{ flex: 1 }}
+              style={{ flex: 1, minWidth: '150px' }}
             />
             <button 
               type="button" 
@@ -1914,6 +2276,15 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
               title="Hari Berikutnya"
             >
               <ChevronRight size={16} />
+            </button>
+            <button 
+              type="button" 
+              className={styles.copyPrevDayBtn}
+              onClick={handleOpenCopyPrevDay}
+              title="Salin seluruh kegiatan dari hari kerja sebelumnya ke tanggal ini"
+            >
+              <Repeat size={13} />
+              <span>Salin dari Kemarin</span>
             </button>
           </div>
         </div>
@@ -2371,6 +2742,39 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
           rows={3}
           required
         />
+        {smartSkpSuggestions.length > 0 && (
+          <div className={styles.smartSuggestBox}>
+            <div className={styles.smartSuggestHeader}>
+              <Sparkles size={13} className={styles.smartSuggestIcon} />
+              <span>Saran Butir SKP Otomatis (Klik untuk Memilih):</span>
+            </div>
+            <div className={styles.smartSuggestList}>
+              {smartSkpSuggestions.map(item => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={styles.smartSuggestChip}
+                  onClick={() => {
+                    setForm(prev => {
+                      const curIds = Array.isArray(prev.skpIds) ? prev.skpIds.map(Number) : [];
+                      const nextIds = curIds.includes(Number(item.id)) ? curIds : [...curIds, Number(item.id)];
+                      return {
+                        ...prev,
+                        skpIds: nextIds,
+                        skpId: String(nextIds[0])
+                      };
+                    });
+                  }}
+                  title={item.nama}
+                >
+                  <Plus size={12} className={styles.smartSuggestPlus} />
+                  <span className={styles.smartSuggestId}>#{item.id}</span>
+                  <span className={styles.smartSuggestName}>{item.nama}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className={styles.formGroup}>
@@ -3257,6 +3661,105 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
           </div>
         </div>
       )}
+
+      {/* Modal Salin Kegiatan dari Hari Sebelumnya */}
+      {showCopyPrevDayModal && typeof document !== 'undefined' && createPortal(
+        <div className={styles.modalOverlay} onClick={() => !isCopyingPrevDay && setShowCopyPrevDayModal(false)}>
+          <div className={`${styles.modal} ${styles.copyModal}`} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Repeat size={18} style={{ color: 'var(--primary)' }} />
+                <h3 className={styles.modalTitle}>Salin Kegiatan Hari Sebelumnya</h3>
+              </div>
+              <button 
+                type="button" 
+                className={styles.modalCloseBtn}
+                onClick={() => !isCopyingPrevDay && setShowCopyPrevDayModal(false)}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '4px 0 12px 0' }}>
+              Ditemukan <strong>{prevDayCandidates.length} kegiatan</strong> pada hari kerja sebelumnya (<strong>{formatDate(prevDayDate)}</strong>). Pilih kegiatan yang ingin disalin ke tanggal <strong>{formatDate(form.tanggal)}</strong>:
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (selectedPrevDayIds.size === prevDayCandidates.length) {
+                    setSelectedPrevDayIds(new Set());
+                  } else {
+                    setSelectedPrevDayIds(new Set(prevDayCandidates.map(c => c.id)));
+                  }
+                }}
+                style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', padding: 0 }}
+              >
+                {selectedPrevDayIds.size === prevDayCandidates.length ? 'Batal Pilih Semua' : 'Pilih Semua'}
+              </button>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                {selectedPrevDayIds.size} dipilih
+              </span>
+            </div>
+
+            <div className={styles.copyModalList}>
+              {prevDayCandidates.map(candidate => {
+                const isChecked = selectedPrevDayIds.has(candidate.id);
+                return (
+                  <div 
+                    key={candidate.id} 
+                    className={styles.copyModalItem}
+                    onClick={() => {
+                      setSelectedPrevDayIds(prev => {
+                        const next = new Set(prev);
+                        if (next.has(candidate.id)) next.delete(candidate.id);
+                        else next.add(candidate.id);
+                        return next;
+                      });
+                    }}
+                  >
+                    <input 
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => {}}
+                      style={{ marginTop: '3px', cursor: 'pointer', accentColor: 'var(--primary)' }}
+                    />
+                    <div className={styles.copyModalItemInfo}>
+                      <div className={styles.copyModalItemTime}>
+                        {candidate.waktuMulai} - {candidate.waktuSelesai} ({candidate.kuantitas} {candidate.satuan})
+                      </div>
+                      <div className={styles.copyModalItemTitle}>
+                        {candidate.rincian}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.modalCancelBtn}
+                onClick={() => setShowCopyPrevDayModal(false)}
+                disabled={isCopyingPrevDay}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                className={styles.modalConfirmBtn}
+                onClick={handleExecuteCopyPrevDay}
+                disabled={isCopyingPrevDay || selectedPrevDayIds.size === 0}
+              >
+                {isCopyingPrevDay ? 'Menyalin...' : `Salin ${selectedPrevDayIds.size} Kegiatan`}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </form>
   );
 }
@@ -3309,6 +3812,63 @@ function TabRekapHarian({ entries, onEdit, onDelete, deleteDocument, updateDocum
     () => dayEntries.reduce((sum, e) => sum + e.durasi, 0),
     [dayEntries]
   );
+
+  const auditMetrics = useMemo(() => {
+    const isWknd = (() => {
+      const dow = new Date(selectedDate + 'T00:00:00').getDay();
+      return dow === 0 || dow === 6;
+    })();
+    const isHol = checkHoliday ? checkHoliday(selectedDate) : false;
+    const isDl = checkDl ? checkDl(selectedDate) : false;
+    const dow = new Date(selectedDate + 'T00:00:00').getDay();
+    const isFriday = dow === 5;
+
+    // Target durasi BPS: Senin-Kamis: 450 menit (7.5 jam), Jumat: 400 menit (6.67 jam)
+    const targetMinutes = isWknd || isHol ? 0 : (isFriday ? 400 : 450);
+    const durationFulfillment = targetMinutes > 0 ? Math.round((totalDurasi / targetMinutes) * 100) : 100;
+    
+    // Bukti dukung ratio
+    const entriesWithBukti = dayEntries.filter(e => !!(e.buktiDukung || e.buktiPresensi)).length;
+    const buktiRatio = dayEntries.length > 0 ? Math.round((entriesWithBukti / dayEntries.length) * 100) : 0;
+
+    // Status overall
+    const isDurationOk = isWknd || isHol || totalDurasi >= targetMinutes;
+    const isBuktiOk = dayEntries.length === 0 || buktiRatio === 100;
+    const isGapsOk = !hasGaps;
+
+    let overallStatus = 'Siap KIPAPP';
+    let isWarning = false;
+
+    if (dayEntries.length === 0) {
+      if (isWknd || isHol) {
+        overallStatus = 'Hari Libur';
+      } else {
+        overallStatus = 'Belum Ada Kegiatan';
+        isWarning = true;
+      }
+    } else if (!isDurationOk || !isGapsOk || !isBuktiOk) {
+      overallStatus = 'Perlu Penyesuaian';
+      isWarning = true;
+    }
+
+    return {
+      targetMinutes,
+      totalDurasi,
+      durationFulfillment,
+      isDurationOk,
+      entriesWithBukti,
+      totalEntries: dayEntries.length,
+      buktiRatio,
+      isBuktiOk,
+      hasGaps,
+      isGapsOk,
+      isWknd,
+      isHol,
+      isDl,
+      overallStatus,
+      isWarning
+    };
+  }, [selectedDate, checkHoliday, checkDl, totalDurasi, dayEntries, hasGaps]);
 
   useEffect(() => {
     setSelectedIds(new Set());
@@ -3496,6 +4056,51 @@ function TabRekapHarian({ entries, onEdit, onDelete, deleteDocument, updateDocum
       </div>
 
       <h3 className={styles.rekapTitle}>{formatDate(selectedDate)}</h3>
+
+      {/* Day Health & Readiness Audit Card */}
+      <div className={styles.dayAuditCard}>
+        <div className={styles.dayAuditHeader}>
+          <h4 className={styles.dayAuditTitle}>
+            <ClipboardList size={16} />
+            <span>Audit Kesiapan KIPAPP ({formatDate(selectedDate)})</span>
+          </h4>
+          <span className={`${styles.dayAuditBadgeStatus} ${auditMetrics.isWarning ? styles.statusAuditWarning : styles.statusAuditGood}`}>
+            {auditMetrics.overallStatus}
+          </span>
+        </div>
+
+        <div className={styles.dayAuditGrid}>
+          <div className={styles.dayAuditItem}>
+            <span className={styles.dayAuditItemLabel}>Target Durasi Kerja</span>
+            <span className={styles.dayAuditItemValue}>
+              {auditMetrics.targetMinutes === 0 ? 'Hari Libur (0 menit)' : `${totalDurasi} / ${auditMetrics.targetMinutes} mnt (${auditMetrics.durationFulfillment}%)`}
+            </span>
+            <span style={{ fontSize: '11px', color: auditMetrics.isDurationOk ? '#059669' : '#d97706', fontWeight: 500 }}>
+              {auditMetrics.targetMinutes === 0 ? 'Tidak ada target jam kerja' : (auditMetrics.isDurationOk ? 'Memenuhi target harian' : `Kurang ${auditMetrics.targetMinutes - totalDurasi} menit`)}
+            </span>
+          </div>
+
+          <div className={styles.dayAuditItem}>
+            <span className={styles.dayAuditItemLabel}>Kelengkapan Bukti Dukung</span>
+            <span className={styles.dayAuditItemValue}>
+              {auditMetrics.entriesWithBukti} / {auditMetrics.totalEntries} berkas ({auditMetrics.buktiRatio}%)
+            </span>
+            <span style={{ fontSize: '11px', color: auditMetrics.isBuktiOk ? '#059669' : '#d97706', fontWeight: 500 }}>
+              {auditMetrics.totalEntries === 0 ? 'Belum ada berkas' : (auditMetrics.isBuktiOk ? 'Semua terlampir bukti' : `${auditMetrics.totalEntries - auditMetrics.entriesWithBukti} butir belum ada bukti`)}
+            </span>
+          </div>
+
+          <div className={styles.dayAuditItem}>
+            <span className={styles.dayAuditItemLabel}>Kontinuitas Jam Kerja</span>
+            <span className={styles.dayAuditItemValue}>
+              {auditMetrics.totalEntries === 0 ? '-' : (auditMetrics.hasGaps ? 'Terdapat Celah Waktu' : 'Rapi Tanpa Celah')}
+            </span>
+            <span style={{ fontSize: '11px', color: auditMetrics.isGapsOk ? '#059669' : '#d97706', fontWeight: 500 }}>
+              {auditMetrics.hasGaps ? 'Gunakan tombol regangkan' : 'Jadwal tersambung sempurna'}
+            </span>
+          </div>
+        </div>
+      </div>
 
       {dayEntries.length === 0 ? (
         <div className={styles.emptyState}>
@@ -6118,8 +6723,31 @@ function CKPPageInner() {
     syncPendingFiles();
   }, [entries, loading, accessToken, updateDocument, showAlert]);
 
-  // Handle prefill from schedule
+  // Handle prefill from SKP or Schedule
   useEffect(() => {
+    const fromSkp = searchParams.get('fromSkp');
+    const skpName = searchParams.get('skpName');
+    if (fromSkp) {
+      const numSkp = Number(fromSkp);
+      setEditingEntry({
+        _isPrefill: true,
+        _isSkpDirect: true,
+        tanggal: getTodayStr(),
+        waktuMulai: '08:00',
+        waktuSelesai: '10:00',
+        skpId: String(fromSkp),
+        skpIds: !isNaN(numSkp) && numSkp > 0 ? [numSkp] : [],
+        rincian: skpName ? `Pelaksanaan kegiatan terkait ${skpName}` : '',
+        kuantitas: 1,
+        satuan: 'Kegiatan',
+        timKerja: TIM_KERJA_OPTIONS[0],
+        sumber: 'skp_direct',
+        skpNameTitle: skpName || `SKP #${fromSkp}`,
+      });
+      setActiveTab(0);
+      return;
+    }
+
     const fromSchedule = searchParams.get('fromSchedule');
     if (fromSchedule) {
       try {

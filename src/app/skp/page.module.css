@@ -430,6 +430,60 @@
   background: linear-gradient(90deg, #ef4444, #f87171);
 }
 
+/* ===== CARD FOOTER (CKP INTEGRATION) ===== */
+.cardFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--surface-border);
+  flex-wrap: wrap;
+}
+
+.cardCkpSummary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ckpCountBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.addCkpBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.addCkpBtn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+  color: white;
+}
+
 /* ===== EMPTY STATE ===== */
 .emptyState {
   text-align: center;

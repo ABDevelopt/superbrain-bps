@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { ClipboardList, Search, Inbox, Users, Folder, Upload, RotateCcw, ChevronRight, LayoutGrid, Network, X, Check, Trash2, Edit2, Plus, Sparkles, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { ClipboardList, Search, Inbox, Users, Folder, Upload, RotateCcw, ChevronRight, LayoutGrid, Network, X, Check, Trash2, Edit2, Plus, Sparkles, AlertCircle, Clock } from 'lucide-react';
 import { skpData as fallbackSkpData } from '@/data/skpData';
 import styles from './page.module.css';
 import { useSkps } from '@/hooks/useSkps';
@@ -19,6 +20,15 @@ const STATUS_CONFIG = {
   belum: { label: 'Belum Dimulai', class: styles.statusBelum },
   terlambat: { label: 'Terlambat', class: styles.statusTerlambat },
 };
+
+function formatDuration(minutes) {
+  if (!minutes || minutes <= 0) return '0 menit';
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m} mnt`;
+  if (m === 0) return `${h} jam`;
+  return `${h}j ${m}m`;
+}
 
 function getProgressClass(value) {
   if (value >= 80) return styles.progressHigh;
@@ -224,19 +234,25 @@ export default function SKPPage() {
     return Array.from(new Set(projects.map(p => p.nama)));
   }, [projects]);
 
-  // Compute realization from CKP
-  const realisasiMap = useMemo(() => {
-    const map = {};
+  // Compute realization, activity count, and duration from CKP
+  const { realisasiMap, ckpCountMap, ckpDurationMap } = useMemo(() => {
+    const rMap = {};
+    const cMap = {};
+    const dMap = {};
     ckpDocs.forEach(doc => {
       const sids = Array.isArray(doc.skpIds) && doc.skpIds.length > 0
         ? doc.skpIds.map(Number).filter(n => !isNaN(n) && n > 0)
         : (doc.skpId ? [Number(doc.skpId)] : []);
       sids.forEach(sid => {
-        if (!map[sid]) map[sid] = 0;
-        map[sid] += Number(doc.kuantitas) || 0;
+        if (!rMap[sid]) rMap[sid] = 0;
+        rMap[sid] += Number(doc.kuantitas) || 0;
+        if (!cMap[sid]) cMap[sid] = 0;
+        cMap[sid] += 1;
+        if (!dMap[sid]) dMap[sid] = 0;
+        dMap[sid] += Number(doc.durasi) || 0;
       });
     });
-    return map;
+    return { realisasiMap: rMap, ckpCountMap: cMap, ckpDurationMap: dMap };
   }, [ckpDocs]);
 
   // Transform skpData to inject dynamic realisasi and status
@@ -273,11 +289,17 @@ export default function SKPPage() {
       if (filterKategori !== 'semua' && item.kategori !== filterKategori) return false;
       if (filterTim !== 'semua' && item.tim !== filterTim) return false;
       if (filterCluster !== 'semua' && item.cluster !== filterCluster) return false;
-      if (filterStatus !== 'semua' && item.status !== filterStatus) return false;
+      if (filterStatus === 'ada_ckp') {
+        if (!ckpCountMap[item.id] || ckpCountMap[item.id] === 0) return false;
+      } else if (filterStatus === 'tanpa_ckp') {
+        if (ckpCountMap[item.id] && ckpCountMap[item.id] > 0) return false;
+      } else if (filterStatus !== 'semua' && item.status !== filterStatus) {
+        return false;
+      }
       if (search.trim() && !item.nama.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
-  }, [search, filterKategori, filterTim, filterCluster, filterStatus, dynamicSkpData]);
+  }, [search, filterKategori, filterTim, filterCluster, filterStatus, dynamicSkpData, ckpCountMap]);
 
   // Summary stats (computed from dynamic dataset)
   const stats = useMemo(() => {
@@ -833,6 +855,24 @@ export default function SKPPage() {
             </div>
           </div>
         </div>
+
+        {/* Footer: CKP integration */}
+        <div className={styles.cardFooter}>
+          <div className={styles.cardCkpSummary}>
+            <span className={styles.ckpCountBadge}>
+              <ClipboardList size={13} />
+              {ckpCountMap[item.id] || 0} Kegiatan CKP
+              {(ckpDurationMap[item.id] || 0) > 0 && ` (${formatDuration(ckpDurationMap[item.id])})`}
+            </span>
+          </div>
+          <Link
+            href={`/ckp?fromSkp=${item.id}&skpName=${encodeURIComponent(item.nama)}`}
+            className={styles.addCkpBtn}
+            title={`Catat kegiatan CKP harian untuk SKP #${item.id}`}
+          >
+            <Plus size={13} /> Catat CKP
+          </Link>
+        </div>
       </div>
     );
   };
@@ -1289,6 +1329,8 @@ export default function SKPPage() {
                 <option value="progress">Dalam Proses</option>
                 <option value="belum">Belum Dimulai</option>
                 <option value="terlambat">Terlambat</option>
+                <option value="ada_ckp">Sudah Ada CKP</option>
+                <option value="tanpa_ckp">Belum Ada CKP</option>
               </select>
 
               <div className={styles.viewModeToggle}>
