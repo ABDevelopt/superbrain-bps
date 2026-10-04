@@ -131,26 +131,30 @@
   --input-border: rgba(255, 255, 255, 0.12);
   --card-bg-subtle: rgba(255, 255, 255, 0.03);
   --card-border-subtle: rgba(255, 255, 255, 0.06);
+  --title-gradient: linear-gradient(135deg, #6366f1, #22d3ee);
 }
 
 /* ============================================
    Light Theme Custom Properties (Design Tokens)
    ============================================ */
 [data-theme="light"] {
-  /* Background colors */
-  --bg-primary: #f8fafc;        /* Slate 50 */
-  --bg-secondary: #ffffff;      /* Pure White */
-  --bg-tertiary: #f1f5f9;       /* Slate 100 */
+  /* Background colors — Soft Slate Anti-Glare Canvas */
+  --bg-primary: #eaedf2;        /* Soft Mist Slate (reduces glare and eye fatigue) */
+  --bg-secondary: #ffffff;      /* Pure White Card Surface */
+  --bg-tertiary: #e2e8f0;       /* Slate 200 */
   --bg-elevated: #ffffff;
-  --bg-sidebar: rgba(255, 255, 255, 0.96);
-  --bg-mobilenav: rgba(255, 255, 255, 0.96);
+  --bg-sidebar: #ffffff;
+  --bg-mobilenav: #ffffff;
   --bg-card: #ffffff;
 
-  /* Primary brand — Royal BPS Blue / Indigo */
+  /* Primary brand — Deep Royal BPS Blue / Indigo */
   --primary: #2563eb;
   --primary-light: #3b82f6;
   --primary-dark: #1d4ed8;
-  --primary-glow: rgba(37, 99, 235, 0.15);
+  --primary-glow: rgba(37, 99, 235, 0.2);
+
+  /* Title gradient — High contrast navy to sky blue */
+  --title-gradient: linear-gradient(135deg, #1e3a8a, #0284c7);
 
   /* Accent colors */
   --accent-cyan: #0284c7;
@@ -168,35 +172,35 @@
   --info: #0284c7;
   --info-glow: rgba(2, 132, 199, 0.15);
 
-  /* Surfaces — Crisp light card tokens */
+  /* Surfaces — Crisp high-contrast card tokens */
   --surface: #ffffff;
-  --surface-hover: #f8fafc;
-  --surface-active: #f1f5f9;
-  --surface-border: #e2e8f0;    /* Slate 200 */
-  --surface-border-hover: #cbd5e1; /* Slate 300 */
+  --surface-hover: #f1f5f9;
+  --surface-active: #e2e8f0;
+  --surface-border: #cbd5e1;    /* Slate 300 - clear, crisp contrast border */
+  --surface-border-hover: #94a3b8; /* Slate 400 */
 
-  /* Text */
+  /* Text — WCAG AAA compliant dark typography */
   --text-primary: #0f172a;       /* Slate 900 */
-  --text-secondary: #475569;     /* Slate 600 */
-  --text-muted: #94a3b8;         /* Slate 400 */
+  --text-secondary: #334155;     /* Slate 700 */
+  --text-muted: #64748b;         /* Slate 500 */
   --text-inverse: #ffffff;
 
-  /* Shadows for Light Theme */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.03);
-  --shadow-glow-primary: 0 0 16px rgba(37, 99, 235, 0.18);
-  --shadow-glow-cyan: 0 0 16px rgba(2, 132, 199, 0.15);
+  /* Shadows for Light Theme — Crisp tactile elevation */
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 10px -1px rgba(15, 23, 42, 0.10), 0 2px 4px -1px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 10px 20px -3px rgba(15, 23, 42, 0.12), 0 4px 8px -2px rgba(15, 23, 42, 0.06);
+  --shadow-xl: 0 20px 30px -5px rgba(15, 23, 42, 0.14), 0 10px 12px -5px rgba(15, 23, 42, 0.06);
+  --shadow-glow-primary: 0 0 16px rgba(37, 99, 235, 0.2);
+  --shadow-glow-cyan: 0 0 16px rgba(2, 132, 199, 0.18);
 
   /* Input & visualizer tokens */
   --timeline-track-bg: #e2e8f0;
-  --timeline-grid-line: rgba(0, 0, 0, 0.1);
-  --timeline-grid-line-major: rgba(0, 0, 0, 0.18);
+  --timeline-grid-line: rgba(15, 23, 42, 0.12);
+  --timeline-grid-line-major: rgba(15, 23, 42, 0.22);
   --input-bg: #ffffff;
   --input-border: #cbd5e1;
-  --card-bg-subtle: #ffffff;
-  --card-border-subtle: #e2e8f0;
+  --card-bg-subtle: #f8fafc;
+  --card-border-subtle: #cbd5e1;
 }
 
 [data-theme="light"] body {
@@ -206,8 +210,8 @@
 
 [data-theme="light"] body::before {
   background:
-    radial-gradient(ellipse 60% 50% at 10% 20%, rgba(37, 99, 235, 0.04) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 40% at 80% 80%, rgba(14, 165, 233, 0.03) 0%, transparent 50%);
+    radial-gradient(ellipse 60% 50% at 10% 20%, rgba(37, 99, 235, 0.03) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 80% 80%, rgba(14, 165, 233, 0.02) 0%, transparent 50%);
 }
 
 [data-theme="light"] .glass-card {
@@ -265,44 +269,65 @@
 }
 
 [data-theme="light"] .btn-secondary:hover {
-  background: #f8fafc;
+  background: #f1f5f9;
   border-color: var(--surface-border-hover);
 }
 
+[data-theme="light"] .btn-ghost {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .btn-ghost:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
 [data-theme="light"] ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(15, 23, 42, 0.2);
 }
 
 [data-theme="light"] ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(15, 23, 42, 0.35);
 }
 
 [data-theme="light"] * {
-  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+  scrollbar-color: rgba(15, 23, 42, 0.2) transparent;
 }
 
 [data-theme="light"] .status-belum {
-  background: #f1f5f9;
-  color: #475569;
+  background: #e2e8f0;
+  color: #334155;
   border: 1px solid #cbd5e1;
 }
 
 [data-theme="light"] .status-progress {
-  background: #eff6ff;
-  color: #2563eb;
-  border: 1px solid #bfdbfe;
+  background: #dbeafe;
+  color: #1d4ed8;
+  border: 1px solid #93c5fd;
 }
 
 [data-theme="light"] .status-selesai {
-  background: #ecfdf5;
-  color: #059669;
-  border: 1px solid #a7f3d0;
+  background: #d1fae5;
+  color: #047857;
+  border: 1px solid #6ee7b7;
 }
 
 [data-theme="light"] .status-terlambat {
-  background: #fef2f2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+/* Light theme form elements and contrast enhancements */
+[data-theme="light"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: var(--text-muted);
 }
 
 /* ============================================

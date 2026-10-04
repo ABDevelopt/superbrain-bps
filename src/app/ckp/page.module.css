@@ -25,7 +25,7 @@
 .pageTitle {
   font-size: 28px;
   font-weight: 700;
-  background: linear-gradient(135deg, #6366f1, #22d3ee);
+  background: var(--title-gradient);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -60,9 +60,9 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(99, 102, 241, 0.15);
-  color: #818cf8;
-  border: 1px solid rgba(99, 102, 241, 0.3);
+  background: var(--surface);
+  color: var(--primary);
+  border: 1px solid var(--surface-border);
   padding: 10px 16px;
   border-radius: 10px;
   cursor: pointer;
@@ -71,20 +71,21 @@
   transition: all 0.2s ease;
   font-family: 'Inter', sans-serif;
   text-decoration: none;
+  box-shadow: var(--shadow-sm);
 }
 
 .headerDriveBtn:hover {
-  background: rgba(99, 102, 241, 0.25);
-  color: #a5b4fc;
+  background: var(--surface-hover);
+  border-color: var(--surface-border-hover);
 }
 
 .headerDriveBtnConnect {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  color: #94a3b8;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--surface-border);
   padding: 10px 16px;
   border-radius: 10px;
   cursor: pointer;
@@ -92,11 +93,13 @@
   font-size: 13px;
   transition: all 0.2s ease;
   font-family: 'Inter', sans-serif;
+  box-shadow: var(--shadow-sm);
 }
 
 .headerDriveBtnConnect:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: var(--surface-hover);
+  border-color: var(--surface-border-hover);
+  color: var(--text-primary);
 }
 
 /* ===== Pending Offline Uploads Banner ===== */
@@ -109,7 +112,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: #fca5a5;
+  color: var(--danger);
   gap: 12px;
   flex-wrap: wrap;
 }
@@ -1934,11 +1937,11 @@
   top: calc(100% + 4px);
   left: 0;
   width: 100%;
-  background: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-card);
+  border: 1px solid var(--surface-border);
   border-radius: 8px;
   z-index: 50;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -1946,7 +1949,7 @@
 
 .customDropdownSearch {
   padding: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--surface-border);
 }
 
 .customDropdownList {
@@ -1957,18 +1960,18 @@
 .customDropdownItem {
   padding: 10px 12px;
   font-size: 13px;
-  color: #f1f5f9;
+  color: var(--text-primary);
   cursor: pointer;
   transition: background 0.2s;
 }
 
 .customDropdownItem:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-hover);
 }
 
 .customDropdownItemId {
   font-weight: 600;
-  color: #818cf8;
+  color: var(--primary);
   margin-right: 4px;
 }
 
@@ -2233,11 +2236,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
   border-radius: 20px;
   padding: 8px 16px;
-  color: #94a3b8;
+  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -2248,9 +2251,9 @@
 }
 
 .toggleChip:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.15);
-  color: #e2e8f0;
+  background: var(--surface-hover);
+  border-color: var(--surface-border-hover);
+  color: var(--text-primary);
 }
 
 .toggleChip:disabled {

@@ -271,12 +271,13 @@
 }
 
 .btnOutline {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #e2e8f0;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  color: var(--text-primary);
 }
 .btnOutline:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--surface-hover);
+  border-color: var(--surface-border-hover);
 }
 
 .backupControls {
