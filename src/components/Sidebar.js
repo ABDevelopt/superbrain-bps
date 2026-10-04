@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, ClipboardList, Edit3, Calendar, BrainCircuit, LogOut, PanelLeftClose, PanelLeftOpen, Settings, CheckSquare, Link2, FileArchive, Award } from 'lucide-react';
+import { Home, ClipboardList, Edit3, Calendar, BrainCircuit, LogOut, PanelLeftClose, PanelLeftOpen, Settings, CheckSquare, Link2, FileArchive } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import { useAuth } from '@/contexts/AuthContext';
 import ConfirmDialog from './ConfirmDialog';
@@ -14,7 +14,6 @@ const navItems = [
   { href: '/tasks',    icon: <CheckSquare size={20} />, label: 'Papan & Peta Kerja' },
   { href: '/ckp',      icon: <Edit3 size={20} />, label: 'CKP Harian' },
   { href: '/skp',      icon: <ClipboardList size={20} />, label: 'Manajemen SKP' },
-  { href: '/evaluasi', icon: <Award size={20} />, label: 'Evaluasi & Kuadran' },
   { href: '/compress', icon: <FileArchive size={20} />, label: 'Kompres Berkas' },
   { href: '/short-links', icon: <Link2 size={20} />, label: 'Ringkas Link' },
   { href: '/settings', icon: <Settings size={20} />, label: 'Pengaturan' },
