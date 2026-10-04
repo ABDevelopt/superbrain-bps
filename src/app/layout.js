@@ -1,5 +1,6 @@
 import './globals.css';
 import AppShell from '@/components/AppShell';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { AlertProvider } from '@/contexts/AlertContext';
 import { ChatActionProvider } from '@/contexts/ChatActionContext';
@@ -29,20 +30,45 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="id">
+    <html lang="id" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var savedMode = localStorage.getItem('superbrain_theme_mode');
+                  var savedTheme = localStorage.getItem('superbrain_theme');
+                  var theme = 'dark';
+                  if (savedMode === 'light' || savedMode === 'dark') {
+                    theme = savedMode;
+                  } else if (savedTheme === 'light' || savedTheme === 'dark') {
+                    theme = savedTheme;
+                  } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                    theme = 'light';
+                  }
+                  document.documentElement.setAttribute('data-theme', theme);
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body>
-        <AuthProvider>
-          <UndoRedoProvider>
-            <AlertProvider>
-              <ChatActionProvider>
-                <AIProvider>
-                  <AppShell>{children}</AppShell>
-                </AIProvider>
-              </ChatActionProvider>
-            </AlertProvider>
-          </UndoRedoProvider>
-        </AuthProvider>
-      </body>
-    </html>
-  );
+        <ThemeProvider>
+          <AuthProvider>
+            <UndoRedoProvider>
+              <AlertProvider>
+                <ChatActionProvider>
+                  <AIProvider>
+                    <AppShell>{children}</AppShell>
+                  </AIProvider>
+                  </ChatActionProvider>
+                </AlertProvider>
+              </UndoRedoProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </body>
+      </html>
+    );
 }

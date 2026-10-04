@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useAlert } from '@/contexts/AlertContext';
-import { Settings as SettingsIcon, Send, User, Bell, Shield, LogOut, Database, Cloud, UploadCloud, DownloadCloud, CheckCircle2 } from 'lucide-react';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Settings as SettingsIcon, Send, User, Bell, Shield, LogOut, Database, Cloud, UploadCloud, DownloadCloud, CheckCircle2, Sun, Moon, Monitor } from 'lucide-react';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
 import { exportToJSON, createCloudSnapshot, restoreFromCloudSnapshot, restoreFromBackupData } from '@/lib/backupService';
@@ -12,6 +13,7 @@ import { doc, setDoc, deleteDoc, getDocs, collection, query, where } from 'fireb
 export default function SettingsPage() {
   const { user, logout } = useAuth();
   const { showAlert } = useAlert();
+  const { theme, mode, setMode } = useTheme();
   const [chatId, setChatId] = useState('');
   const [savedChatId, setSavedChatId] = useState('');
   const [mounted, setMounted] = useState(false);
@@ -256,6 +258,89 @@ export default function SettingsPage() {
                 <div className={styles.profileEmail}>{user?.email || 'yahya@bps.go.id'}</div>
                 <div className={styles.profileRole}>BPS Kab. Penajam Paser Utara</div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Tampilan & Tema Card */}
+        <section className={styles.settingsSection}>
+          <div className={styles.sectionHeader}>
+            <Sun size={20} className={styles.sectionIcon} />
+            <h2 className={styles.sectionTitle}>Tampilan & Tema Aplikasi</h2>
+          </div>
+          <div className={styles.card}>
+            <p className={styles.cardDesc}>
+              Pilih tema antarmuka sesuai kenyamanan visual dan kondisi pencahayaan ruangan kerja Anda.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginTop: '16px' }}>
+              <button
+                type="button"
+                onClick={() => setMode('light')}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  border: '2px solid',
+                  borderColor: mode === 'light' ? 'var(--primary)' : 'var(--surface-border)',
+                  background: mode === 'light' ? 'var(--primary-glow)' : 'var(--surface)',
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <Sun size={24} color="#f59e0b" />
+                <span style={{ fontSize: '13px', fontWeight: 600 }}>Mode Terang</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Cerah & Formal</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMode('dark')}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  border: '2px solid',
+                  borderColor: mode === 'dark' ? 'var(--primary)' : 'var(--surface-border)',
+                  background: mode === 'dark' ? 'var(--primary-glow)' : 'var(--surface)',
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <Moon size={24} color="#6366f1" />
+                <span style={{ fontSize: '13px', fontWeight: 600 }}>Mode Gelap</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Nyaman di Malam Hari</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMode('system')}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  border: '2px solid',
+                  borderColor: mode === 'system' ? 'var(--primary)' : 'var(--surface-border)',
+                  background: mode === 'system' ? 'var(--primary-glow)' : 'var(--surface)',
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <Monitor size={24} color="#10b981" />
+                <span style={{ fontSize: '13px', fontWeight: 600 }}>Sistem Otomatis</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Ikuti Preferensi OS</span>
+              </button>
             </div>
           </div>
         </section>

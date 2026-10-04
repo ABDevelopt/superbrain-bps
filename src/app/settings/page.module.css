@@ -17,7 +17,7 @@
 .pageTitle {
   font-size: 28px;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--text-primary);
   margin-bottom: 8px;
   display: flex;
   align-items: center;
@@ -25,12 +25,12 @@
 }
 
 .titleIcon {
-  color: #818cf8;
+  color: var(--primary);
 }
 
 .pageSubtitle {
   font-size: 15px;
-  color: #94a3b8;
+  color: var(--text-secondary);
 }
 
 .layout {
@@ -50,25 +50,25 @@
   align-items: center;
   gap: 10px;
   padding-bottom: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--surface-border);
 }
 
 .sectionIcon {
-  color: #94a3b8;
+  color: var(--text-secondary);
 }
 
 .sectionTitle {
   font-size: 18px;
   font-weight: 600;
-  color: #e2e8f0;
+  color: var(--text-primary);
 }
 
 .card {
-  background: rgba(30, 41, 59, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
   border-radius: 16px;
   padding: 24px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-sm);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
@@ -125,7 +125,7 @@
 .profileName {
   font-size: 20px;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--text-primary);
   word-wrap: break-word;
   word-break: break-word;
   max-width: 100%;
@@ -133,7 +133,7 @@
 
 .profileEmail {
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--text-secondary);
   word-wrap: break-word;
   word-break: break-all;
   max-width: 100%;
@@ -142,7 +142,7 @@
 .profileRole {
   font-size: 14px;
   font-weight: 500;
-  color: #818cf8;
+  color: var(--primary);
   margin-top: 4px;
   display: inline-block;
   background: rgba(99, 102, 241, 0.1);
@@ -183,12 +183,12 @@
 .integrationTitle {
   font-size: 16px;
   font-weight: 600;
-  color: #f8fafc;
+  color: var(--text-primary);
 }
 
 .integrationDesc {
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
@@ -209,10 +209,10 @@
   flex: 1;
   min-width: 200px;
   padding: 10px 16px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
   border-radius: 10px;
-  color: #f8fafc;
+  color: var(--text-primary);
   font-size: 14px;
   font-family: 'Inter', sans-serif;
   transition: all 0.2s;

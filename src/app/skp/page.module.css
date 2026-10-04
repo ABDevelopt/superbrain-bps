@@ -9,12 +9,13 @@
 /* ===== HEADER ===== */
 .header {
   margin-bottom: 28px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
   border-radius: 16px;
   padding: 24px;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-sm);
 }
 
 .title {
@@ -30,7 +31,7 @@
 
 .subtitle {
   font-size: 0.9rem;
-  color: #94a3b8;
+  color: var(--text-secondary);
   margin: 0;
   font-weight: 400;
 }
@@ -44,8 +45,8 @@
 }
 
 .statCard {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: 14px;
@@ -53,24 +54,26 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  transition: border-color 0.25s ease, transform 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
 }
 
 .statCard:hover {
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: var(--primary);
   transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .statValue {
   font-size: 1.6rem;
   font-weight: 700;
-  color: #f1f5f9;
+  color: var(--text-primary);
   line-height: 1;
 }
 
 .statLabel {
   font-size: 0.78rem;
-  color: #94a3b8;
+  color: var(--text-secondary);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -79,13 +82,13 @@
 .statTotal .statValue { color: #818cf8; }
 .statSelesai .statValue { color: #10b981; }
 .statProgress .statValue { color: #22d3ee; }
-.statBelum .statValue { color: #94a3b8; }
+.statBelum .statValue { color: var(--text-secondary); }
 .statTerlambat .statValue { color: #ef4444; }
 
 /* ===== FILTER BAR ===== */
 .filterBar {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: 14px;
@@ -95,6 +98,7 @@
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
+  box-shadow: var(--shadow-sm);
 }
 
 .searchWrapper {
@@ -108,18 +112,18 @@
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 0.9rem;
   pointer-events: none;
 }
 
 .searchInput {
   width: 100%;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
   border-radius: 8px;
   padding: 10px 14px 10px 36px;
-  color: #f1f5f9;
+  color: var(--text-primary);
   font-size: 0.85rem;
   font-family: 'Inter', sans-serif;
   outline: none;
@@ -127,27 +131,27 @@
 }
 
 .searchInput::placeholder {
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .searchInput:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
 }
 
 .filterSelect {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
   border-radius: 8px;
   padding: 10px 32px 10px 14px;
-  color: #f1f5f9;
+  color: var(--text-primary);
   font-size: 0.83rem;
   font-family: 'Inter', sans-serif;
   outline: none;
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3c/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   min-width: 150px;
@@ -155,18 +159,18 @@
 }
 
 .filterSelect:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
 }
 
 .filterSelect option {
-  background: #1e293b;
-  color: #f1f5f9;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
 }
 
 .resultCount {
   font-size: 0.8rem;
-  color: #64748b;
+  color: var(--text-muted);
   margin-left: auto;
   white-space: nowrap;
 }
@@ -179,19 +183,20 @@
 }
 
 .card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: 14px;
   padding: 22px 24px;
+  box-shadow: var(--shadow-sm);
   transition: border-color 0.25s ease, transform 0.2s ease, box-shadow 0.25s ease;
 }
 
 .card:hover {
-  border-color: rgba(99, 102, 241, 0.3);
+  border-color: var(--primary);
   transform: translateY(-1px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-md);
 }
 
 .cardTop {
@@ -238,7 +243,7 @@
 .cardName {
   font-size: 0.92rem;
   font-weight: 600;
-  color: #f1f5f9;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
   line-height: 1.45;
 }

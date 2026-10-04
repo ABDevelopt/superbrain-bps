@@ -5,6 +5,7 @@ const nextConfig = {
   },
   experimental: {
     webpackBuildWorker: false,
+    cpus: 1,
   }
 };
 

@@ -11,7 +11,7 @@
   height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: rgba(17, 24, 39, 0.85);
+  background: var(--bg-sidebar);
   border-right: 1px solid var(--surface-border);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -49,7 +49,7 @@
   transition: all 0.2s;
 }
 .toggleBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--surface-hover);
   color: var(--text-primary);
 }
 
@@ -183,6 +183,15 @@
   padding: var(--space-4) var(--space-6);
   margin-top: auto;
   border-top: 1px solid var(--surface-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebarThemeToggle {
+  width: 100%;
+  justify-content: flex-start;
+  padding: 10px 12px;
 }
 
 .logoutBtn {
@@ -205,6 +214,23 @@
   background: rgba(239, 68, 68, 0.1);
   color: #ef4444;
   border-color: rgba(239, 68, 68, 0.2);
+}
+
+.sidebarCollapsed .sidebarFooter {
+  padding: var(--space-3);
+  align-items: center;
+}
+
+.sidebarCollapsed .sidebarThemeToggle {
+  justify-content: center;
+  padding: 10px 0;
+  width: 44px;
+}
+
+.sidebarCollapsed .logoutBtn {
+  justify-content: center;
+  padding: 10px 0;
+  width: 44px;
 }
 
 .sidebarCollapsed .userSection {

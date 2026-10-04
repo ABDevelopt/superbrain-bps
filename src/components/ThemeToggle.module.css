@@ -1,0 +1,44 @@
+.toggleBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  color: var(--text-secondary);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  transition: all var(--transition-base);
+  user-select: none;
+}
+
+.toggleBtn:hover {
+  background: var(--surface-hover);
+  border-color: var(--surface-border-hover);
+  color: var(--text-primary);
+}
+
+.iconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.toggleBtn:hover .iconWrapper {
+  transform: rotate(20deg) scale(1.1);
+}
+
+.sunIcon {
+  color: #f59e0b;
+}
+
+.moonIcon {
+  color: #6366f1;
+}
+
+.label {
+  white-space: nowrap;
+}

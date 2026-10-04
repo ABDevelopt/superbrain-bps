@@ -4,8 +4,8 @@
    ======================================================= */
 
 .timeVizContainer {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
   border-radius: 14px;
   padding: 16px 20px 20px 20px;
   margin-top: 20px;
@@ -27,7 +27,7 @@
 .timeVizTitle {
   font-size: 13px;
   font-weight: 700;
-  color: #c7d2fe;
+  color: var(--text-primary);
   text-transform: uppercase;
   letter-spacing: 0.6px;
   display: flex;
@@ -84,13 +84,13 @@
 .timelineBar {
   position: relative;
   height: 46px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--timeline-track-bg);
+  border: 1px solid var(--surface-border);
   border-radius: 10px;
   overflow: visible;
   touch-action: none;
   cursor: crosshair;
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.25);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 /* Grid & Markers */
@@ -99,13 +99,13 @@
   top: 0;
   bottom: -6px;
   width: 1px;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--timeline-grid-line);
   pointer-events: none;
   z-index: 1;
 }
 
 .hourMarkerMajor {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--timeline-grid-line-major);
 }
 
 .halfHourMarker {
@@ -113,7 +113,7 @@
   top: 14px;
   bottom: -2px;
   width: 1px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--timeline-grid-line);
   pointer-events: none;
   z-index: 1;
 }
@@ -124,7 +124,7 @@
   transform: translateX(-50%);
   font-size: 11px;
   font-weight: 500;
-  color: #94a3b8;
+  color: var(--text-secondary);
   white-space: nowrap;
   pointer-events: none;
   font-family: var(--font-family, sans-serif);
@@ -147,13 +147,14 @@
   left: 6px;
   font-size: 10px;
   font-weight: 700;
-  color: #10b981;
-  background: rgba(10, 14, 26, 0.9);
+  color: var(--success);
+  background: var(--bg-elevated);
   padding: 1px 6px;
   border-radius: 4px;
-  border: 1px solid rgba(16, 185, 129, 0.4);
+  border: 1px solid var(--success);
   white-space: nowrap;
   pointer-events: none;
+  box-shadow: var(--shadow-sm);
 }
 
 /* Activity Blocks */
@@ -400,15 +401,15 @@
 }
 
 .popoverCard {
-  background: #1e2338;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--bg-elevated);
+  border: 1px solid var(--surface-border);
   border-radius: 14px;
   padding: 20px;
   width: 90%;
   max-width: 440px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--shadow-xl);
   animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  color: #f1f5f9;
+  color: var(--text-primary);
 }
 
 .popoverHeader {
@@ -422,7 +423,7 @@
 .popoverTitle {
   font-size: 15px;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--text-primary);
   line-height: 1.4;
   margin: 0;
 }
@@ -430,7 +431,7 @@
 .popoverCloseBtn {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: var(--text-muted);
   cursor: pointer;
   padding: 4px;
   border-radius: 6px;
@@ -441,8 +442,8 @@
 }
 
 .popoverCloseBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background: var(--surface-hover);
+  color: var(--text-primary);
 }
 
 .popoverMeta {
@@ -456,7 +457,7 @@
 
 .popoverTimeBadge {
   background: rgba(56, 189, 248, 0.12);
-  color: #38bdf8;
+  color: #0284c7;
   border: 1px solid rgba(56, 189, 248, 0.3);
   padding: 4px 10px;
   border-radius: 6px;
@@ -468,7 +469,7 @@
 
 .popoverDurBadge {
   background: rgba(16, 185, 129, 0.12);
-  color: #10b981;
+  color: var(--success);
   border: 1px solid rgba(16, 185, 129, 0.3);
   padding: 4px 10px;
   border-radius: 6px;
@@ -476,8 +477,8 @@
 }
 
 .popoverSection {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--surface-border);
   border-radius: 10px;
   padding: 12px;
   margin-bottom: 16px;
@@ -486,7 +487,7 @@
 .popoverSectionTitle {
   font-size: 11px;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 8px;
@@ -499,9 +500,9 @@
 }
 
 .nudgeBtn {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #e2e8f0;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  color: var(--text-primary);
   border-radius: 8px;
   padding: 8px 6px;
   font-size: 12px;
@@ -515,9 +516,9 @@
 }
 
 .nudgeBtn:hover {
-  background: rgba(99, 102, 241, 0.2);
-  border-color: rgba(99, 102, 241, 0.5);
-  color: #818cf8;
+  background: var(--surface-hover);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .nudgeSub {

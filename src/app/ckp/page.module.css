@@ -3,7 +3,7 @@
 .page {
   min-height: 100vh;
   background: transparent;
-  color: #f1f5f9;
+  color: var(--text-primary);
   font-family: 'Inter', sans-serif;
   padding: 24px;
   max-width: 960px;
@@ -13,12 +13,13 @@
 /* ===== Header ===== */
 .header {
   margin-bottom: 32px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
   border-radius: 16px;
   padding: 24px;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-sm);
 }
 
 .pageTitle {
@@ -33,18 +34,18 @@
 
 .pageSubtitle {
   font-size: 14px;
-  color: #94a3b8;
+  color: var(--text-secondary);
 }
 
 /* ===== Tab Bar ===== */
 .tabBar {
   display: flex;
   position: relative;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg-tertiary);
   border-radius: 14px;
   padding: 4px;
   margin-bottom: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--surface-border);
 }
 
 .tab {
@@ -52,11 +53,11 @@
   padding: 12px 16px;
   background: none;
   border: none;
-  color: #94a3b8;
+  color: var(--text-secondary);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: color 0.25s ease;
+  transition: color 0.25s ease, background 0.25s ease;
   z-index: 1;
   display: flex;
   align-items: center;
@@ -67,12 +68,13 @@
 }
 
 .tab:hover {
-  color: #f1f5f9;
+  color: var(--text-primary);
 }
 
 .tabActive {
-  color: #f1f5f9;
-  background: rgba(99, 102, 241, 0.2);
+  color: var(--primary);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .tabIcon {
@@ -103,8 +105,8 @@
 
 /* ===== Form Styles ===== */
 .form {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: 16px;
@@ -112,6 +114,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  box-shadow: var(--shadow-sm);
 }
 
 .formRow {
@@ -129,7 +132,7 @@
 .label {
   font-size: 13px;
   font-weight: 600;
-  color: #94a3b8;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -137,11 +140,11 @@
 .input,
 .select,
 .textarea {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
   border-radius: 8px;
   padding: 10px 14px;
-  color: #f1f5f9;
+  color: var(--text-primary);
   font-size: 14px;
   font-family: 'Inter', sans-serif;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -152,8 +155,8 @@
 .input:focus,
 .select:focus,
 .textarea:focus {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
 }
 
 .select {
@@ -167,8 +170,8 @@
 }
 
 .select option {
-  background: #1e293b;
-  color: #f1f5f9;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
 }
 
 .textarea {
@@ -201,14 +204,14 @@
   cursor: pointer;
   padding: 8px 14px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--surface-border);
+  background: var(--surface);
   transition: all 0.2s ease;
 }
 
 .radioLabel:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.15);
+  background: var(--surface-hover);
+  border-color: var(--surface-border-hover);
 }
 
 .radioInput {
@@ -243,12 +246,12 @@
 }
 
 .radioInput:checked ~ .radioText {
-  color: #f1f5f9;
+  color: var(--text-primary);
 }
 
 .radioText {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--text-secondary);
   transition: color 0.2s ease;
 }
 
@@ -308,7 +311,7 @@
 .rekapTitle {
   font-size: 20px;
   font-weight: 600;
-  color: #f1f5f9;
+  color: var(--text-primary);
 }
 
 /* ===== Stats Row ===== */
@@ -321,8 +324,8 @@
 .statCard {
   flex: 1;
   min-width: 140px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
   border-radius: 12px;
   padding: 16px;
   display: flex;
@@ -330,6 +333,7 @@
   gap: 4px;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-sm);
 }
 
 .statValue {
@@ -340,7 +344,7 @@
 
 .statLabel {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
@@ -378,22 +382,23 @@
   height: 14px;
   border-radius: 50%;
   background: #6366f1;
-  border: 3px solid #0a0e1a;
+  border: 3px solid var(--bg-primary);
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.4);
   z-index: 1;
 }
 
 .timelineCard {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
   border-radius: 12px;
   padding: 16px;
   transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
 }
 
 .timelineCard:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(99, 102, 241, 0.3);
+  background: var(--surface-hover);
+  border-color: var(--primary);
   transform: translateX(4px);
 }
 
@@ -418,14 +423,14 @@
 
 .timelineSkp {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--text-secondary);
   margin-bottom: 4px;
   line-height: 1.4;
 }
 
 .timelineRincian {
   font-size: 14px;
-  color: #f1f5f9;
+  color: var(--text-primary);
   margin-bottom: 8px;
   line-height: 1.5;
 }
@@ -441,8 +446,8 @@
 
 .timelineTim {
   font-size: 11px;
-  color: #94a3b8;
-  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
   padding: 2px 8px;
   border-radius: 4px;
 }
@@ -451,7 +456,7 @@
 .tableWrapper {
   overflow-x: auto;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--surface-border);
   width: 100%;
   -webkit-overflow-scrolling: touch;
 }
@@ -463,11 +468,11 @@
 }
 
 .table th {
-  background: rgba(99, 102, 241, 0.12);
+  background: var(--bg-tertiary);
   padding: 12px 14px;
   text-align: left;
   font-weight: 600;
-  color: #818cf8;
+  color: var(--primary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-size: 11px;
@@ -476,13 +481,13 @@
 
 .table td {
   padding: 10px 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  color: #f1f5f9;
+  border-top: 1px solid var(--surface-border);
+  color: var(--text-primary);
   vertical-align: middle;
 }
 
 .table tbody tr:nth-child(even) {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--surface-hover);
 }
 
 .table tbody tr:hover {
@@ -2705,11 +2710,11 @@
 }
 
 .modalContent {
-  background: #0f172a;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-elevated);
+  border: 1px solid var(--surface-border);
   border-radius: 16px;
   width: 100%;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-xl);
   animation: modalSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   flex-direction: column;
@@ -2731,20 +2736,20 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--surface-border);
 }
 
 .modalTitle {
   font-size: 16px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0;
 }
 
 .modalCloseBtn {
   background: none;
   border: none;
-  color: #94a3b8;
+  color: var(--text-muted);
   cursor: pointer;
   padding: 4px;
   border-radius: 6px;
@@ -2752,8 +2757,8 @@
 }
 
 .modalCloseBtn:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  background: var(--surface-hover);
 }
 
 .bulkEditForm {
@@ -2771,7 +2776,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 10px 0;
-  border-bottom: 1px dashed rgba(255, 255, 255, 0.04);
+  border-bottom: 1px dashed var(--surface-border);
 }
 
 .bulkFormCheckLabel {
@@ -2779,21 +2784,21 @@
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #f1f5f9;
+  color: var(--text-primary);
   cursor: pointer;
   user-select: none;
 }
 
 .bulkFormCheckbox {
   cursor: pointer;
-  accent-color: #38bdf8;
+  accent-color: var(--primary);
 }
 
 .bulkSelect, .bulkInput {
-  background: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
   border-radius: 8px;
-  color: #fff;
+  color: var(--text-primary);
   padding: 8px 12px;
   font-size: 13px;
   width: 220px;
@@ -2802,8 +2807,8 @@
 }
 
 .bulkSelect:focus, .bulkInput:focus {
-  border-color: #38bdf8;
-  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-glow);
 }
 
 .bulkFormActions {
@@ -2815,8 +2820,8 @@
 
 .bulkCancelBtn {
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
+  border: 1px solid var(--surface-border);
+  color: var(--text-secondary);
   border-radius: 8px;
   padding: 8px 16px;
   font-size: 13px;
@@ -2826,11 +2831,12 @@
 }
 
 .bulkCancelBtn:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--surface-hover);
+  color: var(--text-primary);
 }
 
 .bulkSubmitBtn {
-  background: #0284c7;
+  background: var(--primary);
   border: none;
   color: #fff;
   border-radius: 8px;
@@ -2842,14 +2848,14 @@
 }
 
 .bulkSubmitBtn:hover {
-  background: #0ea5e9;
+  background: var(--primary-dark);
 }
 
 /* Custom Satuan Styles */
 .customUnitBtn {
   background: rgba(99, 102, 241, 0.1);
   border: 1px dashed rgba(99, 102, 241, 0.4);
-  color: #818cf8;
+  color: var(--primary);
   font-size: 11px;
   font-weight: 500;
   padding: 3px 8px;
@@ -2863,8 +2869,7 @@
 
 .customUnitBtn:hover {
   background: rgba(99, 102, 241, 0.2);
-  border-color: #818cf8;
-  color: #a5b4fc;
+  border-color: var(--primary);
 }
 
 .unitChipGroup {
@@ -2876,9 +2881,9 @@
 }
 
 .unitChip {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #cbd5e1;
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  color: var(--text-secondary);
   font-size: 11.5px;
   padding: 4px 10px;
   border-radius: 9999px;
@@ -2888,9 +2893,9 @@
 }
 
 .unitChip:hover {
-  background: rgba(99, 102, 241, 0.25);
-  border-color: #818cf8;
-  color: #fff;
+  background: var(--surface-hover);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .customUnitListItem {
@@ -2898,11 +2903,12 @@
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
   border-radius: 8px;
   margin-bottom: 6px;
   font-size: 13px;
+  color: var(--text-primary);
 }
 
 .customUnitDeleteBtn {

@@ -6,6 +6,7 @@ import { Home, ClipboardList, Edit3, Calendar, BrainCircuit, LogOut, PanelLeftCl
 import styles from './Sidebar.module.css';
 import { useAuth } from '@/contexts/AuthContext';
 import ConfirmDialog from './ConfirmDialog';
+import ThemeToggle from './ThemeToggle';
 import { useState } from 'react';
 
 const navItems = [
@@ -77,8 +78,9 @@ export default function Sidebar({ isOpen = true, onToggle }) {
 
       {/* Footer */}
       <div className={styles.sidebarFooter}>
+        <ThemeToggle showLabel={isOpen} className={styles.sidebarThemeToggle} />
         <button className={styles.logoutBtn} onClick={() => setShowLogoutConfirm(true)} title="Logout">
-          <LogOut size={18} /> <span>Logout</span>
+          <LogOut size={18} /> {isOpen && <span>Logout</span>}
         </button>
       </div>
 

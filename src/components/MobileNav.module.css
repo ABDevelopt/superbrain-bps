@@ -12,13 +12,13 @@
   display: none; /* hidden on desktop by default */
   align-items: center;
   justify-content: space-around;
-  background: rgba(15, 23, 42, 0.95);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-mobilenav);
+  border-top: 1px solid var(--surface-border);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   z-index: 999;
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 -4px 20px var(--shadow-sm);
 }
 
 .navItem {
@@ -32,7 +32,7 @@
   padding: 6px 2px;
   min-height: 52px;
   border-radius: 8px;
-  color: #94a3b8;
+  color: var(--text-secondary);
   font-size: 11px;
   font-weight: 500;
   transition: all 0.2s ease;
@@ -42,7 +42,7 @@
 }
 
 .navItem:hover {
-  color: #e2e8f0;
+  color: var(--text-primary);
 }
 
 .navItem:active {
@@ -50,7 +50,7 @@
 }
 
 .navItemActive {
-  color: #818cf8;
+  color: var(--primary);
 }
 
 .navItemActive:not(.navItemCenter)::before {
