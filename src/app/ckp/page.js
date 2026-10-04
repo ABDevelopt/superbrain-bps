@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { useAlert } from '@/contexts/AlertContext';
-import { compressFile } from '@/lib/compressor';
+import { compressFile, formatBytes } from '@/lib/compressor';
 import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Clock, Link as LinkIcon, CloudOff, FolderOpen, AlertTriangle, Sparkles, FolderPlus, ExternalLink, FileArchive, Send, Palmtree, Repeat, Plus, Tag } from 'lucide-react';
 import { useSkps } from '@/hooks/useSkps';
 import styles from './page.module.css';
@@ -175,24 +175,40 @@ function Toast({ message, visible, onClose }) {
 }
 
 
-const compressImage = async (file) => {
+const compressSingleFileWithMeta = async (file, options = { mode: 'balanced' }) => {
   try {
-    const res = await compressFile(file);
-    return res?.file || file;
+    const res = await compressFile(file, options);
+    if (res && res.file) {
+      const compFile = res.file;
+      compFile._compressionMeta = {
+        originalSize: res.originalSize || file.size,
+        compressedSize: res.compressedSize || compFile.size,
+        percentSaved: res.percentSaved || 0,
+        mode: options.mode || 'balanced'
+      };
+      return compFile;
+    }
+    return file;
   } catch (err) {
     console.error('Compression error:', err);
     return file;
   }
 };
 
-const compressMultipleFiles = async (filesList) => {
+const compressMultipleFilesWithMeta = async (filesList, options = { mode: 'balanced' }, onProgress = () => {}) => {
   const compressed = [];
-  for (const f of filesList) {
-    const cf = await compressImage(f);
+  for (let i = 0; i < filesList.length; i++) {
+    const f = filesList[i];
+    onProgress(i + 1, filesList.length, f.name);
+    const cf = await compressSingleFileWithMeta(f, options);
     compressed.push(cf);
   }
   return compressed;
 };
+
+// Fallback compatibility helpers
+const compressImage = async (file) => compressSingleFileWithMeta(file);
+const compressMultipleFiles = async (filesList) => compressMultipleFilesWithMeta(filesList);
 
 // TAB 1: Input Kegiatan
 
@@ -244,6 +260,25 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
   const [showCustomSatuanModal, setShowCustomSatuanModal] = useState(false);
   const [newCustomSatuanInput, setNewCustomSatuanInput] = useState('');
   const [customSatuanTab, setCustomSatuanTab] = useState('add');
+  
+  // Fitur Kompres Berkas Terintegrasi (Default: Aktif, Tipe Sedang)
+  const [isCompressActive, setIsCompressActive] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('superbrain_ckp_compress_active');
+      return saved !== null ? saved === 'true' : true;
+    }
+    return true;
+  });
+  const [compressType, setCompressType] = useState('balanced');
+  const [isCompressingStatus, setIsCompressingStatus] = useState(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('superbrain_ckp_compress_active', String(isCompressActive));
+      } catch (e) {}
+    }
+  }, [isCompressActive]);
 
   useEffect(() => {
     try {
@@ -384,15 +419,65 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
     setIsDragging(false);
   };
 
+  const handleAddFiles = async (selectedFiles) => {
+    if (!selectedFiles || selectedFiles.length === 0) return;
+    
+    let processedFiles = [];
+    if (isCompressActive) {
+      setIsCompressingStatus(`Mengompres ${selectedFiles.length} berkas (tipe sedang)...`);
+      try {
+        processedFiles = await compressMultipleFilesWithMeta(
+          selectedFiles, 
+          { mode: compressType }, 
+          (curr, total, name) => {
+            setIsCompressingStatus(`Mengompres berkas (${curr}/${total}): ${name.substring(0, 18)}...`);
+          }
+        );
+      } catch (err) {
+        console.error('Gagal mengompres berkas:', err);
+        processedFiles = selectedFiles;
+      } finally {
+        setIsCompressingStatus(null);
+      }
+    } else {
+      processedFiles = selectedFiles;
+    }
+
+    const updated = [...files, ...processedFiles];
+    setFiles(updated);
+    triggerBackgroundUpload(updated);
+  };
+
+  const handleAddPresensiFile = async (fileSelected) => {
+    if (!fileSelected) return;
+    
+    let processedFile = fileSelected;
+    if (isCompressActive) {
+      setIsCompressingStatus('Mengompres bukti presensi (tipe sedang)...');
+      try {
+        processedFile = await compressSingleFileWithMeta(fileSelected, { mode: compressType });
+      } catch (err) {
+        console.error('Gagal mengompres presensi:', err);
+        processedFile = fileSelected;
+      } finally {
+        setIsCompressingStatus(null);
+      }
+    }
+
+    setPresensiFile(processedFile);
+    if (processedFile.type.startsWith('image/')) {
+      setPresensiPreviewImage(URL.createObjectURL(processedFile));
+    } else {
+      setPresensiPreviewImage(null);
+    }
+  };
+
   const handleDrop = async (e) => {
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       const droppedFiles = Array.from(e.dataTransfer.files);
-      const compressed = await compressMultipleFiles(droppedFiles);
-      const updated = [...files, ...compressed];
-      setFiles(updated);
-      triggerBackgroundUpload(updated);
+      await handleAddFiles(droppedFiles);
     }
   };
 
@@ -411,13 +496,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
     setIsDraggingPresensi(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const fileSelected = e.dataTransfer.files[0];
-      const compressed = await compressImage(fileSelected);
-      setPresensiFile(compressed);
-      if (compressed.type.startsWith('image/')) {
-        setPresensiPreviewImage(URL.createObjectURL(compressed));
-      } else {
-        setPresensiPreviewImage(null);
-      }
+      await handleAddPresensiFile(fileSelected);
     }
   };
 
@@ -2319,6 +2398,52 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         </label>
         
         <div className={styles.uploadCard}>
+          {/* Panel Kontrol Fitur Kompres Berkas */}
+          <div className={styles.compressControlBox}>
+            <div className={styles.compressHeaderRow}>
+              <label className={styles.compressCheckboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={isCompressActive}
+                  onChange={(e) => setIsCompressActive(e.target.checked)}
+                  className={styles.compressCheckbox}
+                />
+                <div className={styles.compressCheckboxTextGroup}>
+                  <div className={styles.compressCheckboxTitle}>
+                    <FileArchive size={14} className={styles.compressIcon} />
+                    <span>Kompres Berkas Otomatis</span>
+                    <span className={isCompressActive ? styles.compressBadgeActive : styles.compressBadgeInactive}>
+                      <Sparkles size={11} /> Tipe Sedang (Rekomendasi)
+                    </span>
+                  </div>
+                  <span className={styles.compressCheckboxSubtitle}>
+                    Mengecilkan ukuran file gambar dan dokumen PDF 60–80% sebelum diunggah ke Google Drive (teks & dokumen tetap sangat tajam).
+                  </span>
+                </div>
+              </label>
+
+              <div className={styles.compressActionsRight}>
+                <Link 
+                  href="/compress" 
+                  target="_blank" 
+                  className={styles.compressExternalLink}
+                  title="Buka Alat Kompres Berkas SuperBrain Mandiri"
+                >
+                  <ExternalLink size={12} />
+                  <span>Kompres Berkas Mandiri</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* Banner status saat kompresi sedang berjalan */}
+            {isCompressingStatus && (
+              <div className={styles.compressingProgressBanner}>
+                <div className={styles.spinnerTiny} />
+                <span>{isCompressingStatus}</span>
+              </div>
+            )}
+          </div>
+
           {/* Dropzone Area */}
           <div 
             className={`${styles.dropZone} ${isDragging ? styles.dropZoneActive : ''}`}
@@ -2339,10 +2464,8 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
               onChange={async (e) => {
                 if (e.target.files) {
                   const selected = Array.from(e.target.files);
-                  const compressed = await compressMultipleFiles(selected);
-                  const updated = [...files, ...compressed];
-                  setFiles(updated);
-                  triggerBackgroundUpload(updated);
+                  await handleAddFiles(selected);
+                  e.target.value = '';
                 }
               }}
               style={{ display: 'none' }}
@@ -2462,11 +2585,20 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
                   padding: '6px 10px',
                   fontSize: '12px'
                 }}>
-                  <span className={styles.selectedFileName} title={f.name} style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                  <div className={styles.selectedFileName} title={f.name} style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
                     <Paperclip size={12} style={{ color: '#818cf8', flexShrink: 0 }} />
                     <span className={styles.fileNameText} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
-                    <span className={styles.fileSizeText} style={{ color: '#64748b', fontSize: '10px', marginLeft: '4px' }}>({(f.size / (1024 * 1024)).toFixed(2)} MB)</span>
-                  </span>
+                    <span className={styles.fileSizeText} style={{ color: '#64748b', fontSize: '10px', marginLeft: '4px', flexShrink: 0 }}>({(f.size / (1024 * 1024)).toFixed(2)} MB)</span>
+                    {f._compressionMeta && f._compressionMeta.percentSaved > 0 && (
+                      <span 
+                        className={styles.compressionSavedBadge} 
+                        title={`Ukuran asli: ${formatBytes(f._compressionMeta.originalSize)} -> Terkompresi: ${formatBytes(f._compressionMeta.compressedSize)}`}
+                      >
+                        <Sparkles size={10} />
+                        <span>Hemat {f._compressionMeta.percentSaved}%</span>
+                      </span>
+                    )}
+                  </div>
                   <button
                     type="button"
                     className={styles.removeFileBtn}
@@ -2479,7 +2611,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
                       setFiles(updated);
                       triggerBackgroundUpload(updated);
                     }}
-                    style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                    style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', marginLeft: '6px', flexShrink: 0 }}
                     title="Hapus file ini"
                   >
                     <X size={12} />
@@ -2675,6 +2807,14 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         <label className={styles.label}>Bukti Presensi (Opsional)</label>
         
         <div className={styles.uploadCard}>
+          {/* Status Kompresi Presensi jika berjalan */}
+          {isCompressingStatus && (
+            <div className={styles.compressingProgressBanner} style={{ marginTop: 0, marginBottom: '4px' }}>
+              <div className={styles.spinnerTiny} />
+              <span>{isCompressingStatus}</span>
+            </div>
+          )}
+
           {/* Dropzone Area */}
           <div 
             className={`${styles.dropZone} ${isDraggingPresensi ? styles.dropZoneActive : ''}`}
@@ -2694,13 +2834,8 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
               onChange={async (e) => {
                 if (e.target.files && e.target.files[0]) {
                   const fileSelected = e.target.files[0];
-                  const compressed = await compressImage(fileSelected);
-                  setPresensiFile(compressed);
-                  if (compressed.type.startsWith('image/')) {
-                    setPresensiPreviewImage(URL.createObjectURL(compressed));
-                  } else {
-                    setPresensiPreviewImage(null);
-                  }
+                  await handleAddPresensiFile(fileSelected);
+                  e.target.value = '';
                 }
               }}
               style={{ display: 'none' }}
@@ -2780,10 +2915,20 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
                 padding: '6px 10px',
                 fontSize: '12px'
               }}>
-                <span className={styles.selectedFileName} title={presensiFile.name} style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                <div className={styles.selectedFileName} title={presensiFile.name} style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
                   <Paperclip size={12} style={{ color: '#a855f7', flexShrink: 0 }} />
                   <span className={styles.fileNameText} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{presensiFile.name}</span>
-                </span>
+                  <span className={styles.fileSizeText} style={{ color: '#64748b', fontSize: '10px', marginLeft: '4px', flexShrink: 0 }}>({(presensiFile.size / (1024 * 1024)).toFixed(2)} MB)</span>
+                  {presensiFile._compressionMeta && presensiFile._compressionMeta.percentSaved > 0 && (
+                    <span 
+                      className={styles.compressionSavedBadge} 
+                      title={`Ukuran asli: ${formatBytes(presensiFile._compressionMeta.originalSize)} -> Terkompresi: ${formatBytes(presensiFile._compressionMeta.compressedSize)}`}
+                    >
+                      <Sparkles size={10} />
+                      <span>Hemat {presensiFile._compressionMeta.percentSaved}%</span>
+                    </span>
+                  )}
+                </div>
                 <button
                   type="button"
                   className={styles.removeFileBtn}
@@ -2791,7 +2936,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
                     setPresensiFile(null);
                     if (presensiFileInputRef.current) presensiFileInputRef.current.value = '';
                   }}
-                  style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', marginLeft: '6px', flexShrink: 0 }}
                   title="Hapus file ini"
                 >
                   <X size={12} />
@@ -2816,8 +2961,16 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
               >
                 <X size={12} /> Hapus
               </button>
-              <div className={styles.cameraPreviewLabel} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#c084fc', marginTop: '6px', background: 'rgba(168, 85, 247, 0.08)', borderTop: '1px solid rgba(168, 85, 247, 0.2)' }}>
-                <Check size={12} /> Presensi siap diunggah
+              <div className={styles.cameraPreviewLabel} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', fontSize: '11px', color: '#c084fc', marginTop: '6px', background: 'rgba(168, 85, 247, 0.08)', borderTop: '1px solid rgba(168, 85, 247, 0.2)', padding: '6px 8px' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Check size={12} /> Presensi siap diunggah
+                </span>
+                {presensiFile?._compressionMeta && presensiFile._compressionMeta.percentSaved > 0 && (
+                  <span className={styles.compressionSavedBadge} style={{ margin: 0 }}>
+                    <Sparkles size={10} />
+                    <span>Hemat {presensiFile._compressionMeta.percentSaved}% ({formatBytes(presensiFile._compressionMeta.compressedSize)})</span>
+                  </span>
+                )}
               </div>
             </div>
           )}
