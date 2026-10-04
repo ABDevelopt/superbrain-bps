@@ -349,8 +349,10 @@ export default function MonthlyTimeVisualizer({
         </div>
       )}
 
-      {/* Top Ruler / Hour Labels */}
-      <div className={styles.rulerRow}>
+      {/* Scrollable Container for Ruler & Days on Mobile */}
+      <div className={styles.scrollWrapper}>
+        {/* Top Ruler / Hour Labels */}
+        <div className={styles.rulerRow}>
         <div className={styles.rulerLabelPlaceholder} />
         <div className={styles.rulerTrack}>
           {rulerHours.map((h) => {
@@ -588,6 +590,7 @@ export default function MonthlyTimeVisualizer({
             </div>
           </div>
         ))}
+      </div>
       </div>
 
       {/* Selected Entry Detail Popover */}

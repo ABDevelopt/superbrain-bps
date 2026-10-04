@@ -144,3 +144,23 @@
   background: rgba(56, 189, 248, 0.2);
 }
 
+@media (max-width: 480px) {
+  .overlay {
+    padding: 16px;
+  }
+  .modal {
+    padding: 20px 16px;
+  }
+  .actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+  .cancelBtn,
+  .thirdBtn,
+  .confirmDangerBtn,
+  .confirmPrimaryBtn {
+    width: 100%;
+    padding: 12px;
+  }
+}
+

@@ -2072,7 +2072,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
       </div>
 
       {!form.isFullday && (
-        <div className={styles.formRow}>
+        <div className={`${styles.formRow} ${styles.timeInputsRow}`}>
           <div className={styles.formGroup}>
             <label className={styles.label}>Waktu Mulai</label>
             <input
@@ -2998,7 +2998,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         </div>
       </div>
 
-      <div className={styles.formRow}>
+      <div className={`${styles.formRow} ${styles.quantityInputsRow}`}>
         <div className={styles.formGroup}>
           <label className={styles.label}>Kuantitas Hasil/Output</label>
           <input
@@ -3100,7 +3100,8 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         }}>
           <div style={{
             background: 'rgba(30, 27, 75, 0.98)', border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '16px', maxWidth: '460px', width: '100%', padding: '24px',
+            borderRadius: '16px', maxWidth: '460px', width: '100%', padding: '20px 16px',
+            maxHeight: '90vh', overflowY: 'auto',
             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
             display: 'flex', flexDirection: 'column'
           }}>
@@ -3513,7 +3514,7 @@ function TabRekapHarian({ entries, onEdit, onDelete, deleteDocument, updateDocum
               <span className={styles.statLabel}>Total Jam Kerja</span>
             </div>
             {hasGaps && onStretchClick && (
-              <div className={styles.statCard} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: 'rgba(99, 102, 241, 0.1)', borderColor: 'rgba(99, 102, 241, 0.25)' }}>
+              <div className={`${styles.statCard} ${styles.statCardStretch}`} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: 'rgba(99, 102, 241, 0.1)', borderColor: 'rgba(99, 102, 241, 0.25)' }}>
                 <button 
                   onClick={() => onStretchClick(selectedDate)}
                   className={styles.stretchBtn}
@@ -3600,7 +3601,7 @@ function TabRekapHarian({ entries, onEdit, onDelete, deleteDocument, updateDocum
                           </span>
                         )}
                       </div>
-                      <div style={{ display: 'flex', gap: '8px' }}>
+                      <div className={styles.timelineTimeActions}>
                         <button onClick={() => onEdit(entry)} style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer' }} title="Edit"><Edit3 size={16} /></button>
                         <button onClick={() => onDelete(entry.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }} title="Hapus"><Trash2 size={16} /></button>
                       </div>
@@ -5240,7 +5241,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
             </button>
           </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
+        <div className={styles.rekapHeaderActions}>
           <div className={styles.exportGroup}>
             <span style={{ fontSize: '11px', color: '#94a3b8', paddingLeft: '8px', paddingRight: '4px', fontWeight: 'bold' }}>Cetak PDF:</span>
             <button className={styles.exportBtnMini} style={{ backgroundColor: '#ef4444', color: '#fff', border: '1px solid #ef4444' }} onClick={() => handlePrintPDF('daily')} title="Cetak PDF Daily">Daily</button>
@@ -5774,8 +5775,8 @@ function TabRekapTriwulanan({ entries }) {
 
   return (
     <div className={styles.rekapContainer}>
-      <div className={styles.datePickerRow} style={{ gap: '16px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      <div className={styles.datePickerRow} style={{ gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '120px' }}>
           <label className={styles.label}>Tahun:</label>
           <select 
             className={styles.input} 
@@ -5785,7 +5786,7 @@ function TabRekapTriwulanan({ entries }) {
             {[2025, 2026, 2027, 2028].map(y => <option key={y} value={y}>{y}</option>)}
           </select>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '180px' }}>
           <label className={styles.label}>Triwulan:</label>
           <select 
             className={styles.input} 
@@ -6508,70 +6509,44 @@ function CKPPageInner() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.header} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <h1 className={styles.pageTitle}>Capaian Kinerja Harian</h1>
-          <p className={styles.pageSubtitle}>
-            Pencatatan dan monitoring CKP harian pegawai BPS
-          </p>
-        </div>
-        
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          {accessToken ? (
-            <button
-              onClick={handleOpenDriveFolder}
-              disabled={openingFolder}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                background: 'rgba(99, 102, 241, 0.15)',
-                color: '#818cf8',
-                border: '1px solid rgba(99, 102, 241, 0.3)',
-                padding: '10px 16px',
-                borderRadius: '10px',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '13px',
-                transition: 'all 0.2s ease',
-                fontFamily: 'Inter, sans-serif'
-              }}
-            >
-              {openingFolder ? (
-                <>
-                  <div className={styles.spinnerSmall} style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                  Membuka...
-                </>
-              ) : (
-                <>
-                  <FolderOpen size={16} />
-                  Buka Folder Drive
-                </>
-              )}
-            </button>
-          ) : (
-            <button
-              onClick={loginWithGoogle}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                background: 'rgba(255, 255, 255, 0.05)',
-                color: '#94a3b8',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                padding: '10px 16px',
-                borderRadius: '10px',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '13px',
-                transition: 'all 0.2s ease',
-                fontFamily: 'Inter, sans-serif'
-              }}
-            >
-              <RefreshCw size={16} />
-              Hubungkan Google Drive
-            </button>
-          )}
+      <header className={styles.header}>
+        <div className={styles.headerWrapper}>
+          <div className={styles.headerTitleGroup}>
+            <h1 className={styles.pageTitle}>Capaian Kinerja Harian</h1>
+            <p className={styles.pageSubtitle}>
+              Pencatatan dan monitoring CKP harian pegawai BPS
+            </p>
+          </div>
+          
+          <div className={styles.headerActions}>
+            {accessToken ? (
+              <button
+                onClick={handleOpenDriveFolder}
+                disabled={openingFolder}
+                className={styles.headerDriveBtn}
+              >
+                {openingFolder ? (
+                  <>
+                    <div className={styles.spinnerSmall} style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                    Membuka...
+                  </>
+                ) : (
+                  <>
+                    <FolderOpen size={16} />
+                    Buka Folder Drive
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={loginWithGoogle}
+                className={styles.headerDriveBtnConnect}
+              >
+                <RefreshCw size={16} />
+                Hubungkan Google Drive
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -6595,41 +6570,17 @@ function CKPPageInner() {
       </div>
 
       {pendingUploads.length > 0 && (
-        <div style={{
-          background: 'rgba(239, 68, 68, 0.12)',
-          border: '1px dashed rgba(239, 68, 68, 0.3)',
-          borderRadius: '12px',
-          padding: '16px',
-          marginBottom: '24px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          color: '#fca5a5'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <AlertTriangle size={18} style={{ color: '#f87171' }} />
-            <span style={{ fontSize: '14px' }}>
+        <div className={styles.pendingUploadsBanner}>
+          <div className={styles.pendingUploadsTextGroup}>
+            <AlertTriangle size={18} style={{ color: '#f87171', flexShrink: 0 }} />
+            <span style={{ fontSize: '13px' }}>
               Terdapat <strong>{pendingUploads.length}</strong> file bukti dukung yang belum terunggah ke Google Drive (tersimpan di lokal).
             </span>
           </div>
           <button
             onClick={handleSyncOfflineFiles}
             disabled={isSyncing}
-            style={{
-              background: '#ef4444',
-              color: '#fff',
-              border: 'none',
-              padding: '8px 16px',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: '600',
-              fontSize: '13px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              transition: 'background 0.2s',
-              fontFamily: 'Inter, sans-serif'
-            }}
+            className={styles.pendingUploadsBtn}
           >
             {isSyncing ? (
               <>
