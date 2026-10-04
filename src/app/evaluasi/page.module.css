@@ -1,28 +1,36 @@
+/* ==========================================================================
+   Modul Evaluasi Kinerja & Matriks Kuadran Permen PANRB No. 6 Tahun 2022
+   Optimasi Lengkap: Desktop & Mobile Screen
+   ========================================================================== */
+
 .container {
-  padding: 28px;
+  padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
   min-height: calc(100vh - 60px);
+  box-sizing: border-box;
 }
 
+/* Header Area */
 .header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 24px;
-  gap: 20px;
+  margin-bottom: 20px;
+  gap: 16px;
   flex-wrap: wrap;
 }
 
 .titleArea h1 {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 800;
   color: var(--text-primary, #0f172a);
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   margin: 0 0 6px 0;
   letter-spacing: -0.02em;
+  flex-wrap: wrap;
 }
 
 .badgeRegulasi {
@@ -34,27 +42,30 @@
   color: white;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
 .subtitle {
   color: var(--text-secondary, #64748b);
-  font-size: 14px;
+  font-size: 13px;
   margin: 0;
+  line-height: 1.5;
 }
 
 .headerActions {
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .btnPrimary {
   background: linear-gradient(135deg, #4f46e5, #6366f1);
   color: white;
   border: none;
-  padding: 10px 18px;
+  padding: 9px 16px;
   border-radius: 10px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -62,6 +73,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+  white-space: nowrap;
 }
 
 .btnPrimary:hover {
@@ -73,15 +85,16 @@
   background: var(--bg-card, #ffffff);
   color: var(--text-primary, #1e293b);
   border: 1px solid var(--border-color, #e2e8f0);
-  padding: 10px 16px;
+  padding: 9px 14px;
   border-radius: 10px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .btnSecondary:hover {
@@ -94,25 +107,26 @@
   background: var(--bg-card, #ffffff);
   border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 16px;
-  padding: 20px 24px;
+  padding: 16px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   flex-wrap: wrap;
-  gap: 20px;
+  gap: 16px;
 }
 
 .profileInfo {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .avatar {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
   border-radius: 50%;
   background: linear-gradient(135deg, #6366f1, #8b5cf6);
   color: white;
@@ -120,63 +134,74 @@
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 18px;
+  font-size: 16px;
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  overflow: hidden;
 }
 
 .nameBlock h3 {
-  margin: 0 0 4px 0;
-  font-size: 16px;
+  margin: 0 0 3px 0;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text-primary, #0f172a);
 }
 
 .nameBlock p {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-secondary, #64748b);
+  line-height: 1.3;
 }
 
 .periodSelector {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   background: var(--bg-hover, #f8fafc);
-  padding: 6px 12px;
+  padding: 8px 14px;
   border-radius: 12px;
   border: 1px solid var(--border-color, #e2e8f0);
 }
 
 .periodLabel {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   color: var(--text-secondary, #64748b);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
 .selectPeriod {
   border: none;
   background: transparent;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--text-primary, #0f172a);
   outline: none;
   cursor: pointer;
 }
 
-/* Tabs */
+/* Navigation Tabs */
 .tabNav {
   display: flex;
-  gap: 8px;
-  margin-bottom: 24px;
+  gap: 6px;
+  margin-bottom: 20px;
   border-bottom: 2px solid var(--border-color, #e2e8f0);
   padding-bottom: 2px;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.tabNav::-webkit-scrollbar {
+  display: none;
 }
 
 .tabBtn {
-  padding: 10px 18px;
-  font-size: 14px;
+  padding: 10px 16px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-secondary, #64748b);
   background: transparent;
@@ -188,43 +213,50 @@
   gap: 8px;
   transition: all 0.2s ease;
   margin-bottom: -2px;
+  border-radius: 8px 8px 0 0;
 }
 
 .tabBtn:hover {
   color: var(--text-primary, #0f172a);
+  background: var(--bg-hover, rgba(0, 0, 0, 0.02));
 }
 
 .tabBtnActive {
   color: #4f46e5;
   border-bottom-color: #4f46e5;
+  background: var(--bg-hover, rgba(79, 70, 229, 0.04));
+  font-weight: 700;
 }
 
 /* Summary Grid */
 .summaryGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
-  margin-bottom: 28px;
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
 .summaryCard {
   background: var(--bg-card, #ffffff);
   border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 16px;
-  padding: 20px;
+  padding: 18px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .cardHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .cardHeader h4 {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text-secondary, #64748b);
   text-transform: uppercase;
@@ -232,32 +264,61 @@
 }
 
 .cardIcon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .ratingValue {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 800;
   color: var(--text-primary, #0f172a);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .ratingDetail {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-secondary, #64748b);
   line-height: 1.4;
+  margin: 0;
+}
+
+.ratingPillGroup {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.ratingPill {
+  padding: 6px 4px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--border-color, #e2e8f0);
+  background: var(--bg-hover, #f8fafc);
+  color: var(--text-secondary, #64748b);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.ratingPillActive {
+  background: #4f46e5;
+  color: white;
+  border-color: #4f46e5;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
+  font-weight: 700;
 }
 
 .predikatBox {
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
   border-radius: 16px;
-  padding: 24px;
+  padding: 20px;
   text-align: center;
   box-shadow: 0 8px 24px rgba(16, 185, 129, 0.25);
   display: flex;
@@ -296,7 +357,7 @@
 }
 
 .predikatName {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 900;
   letter-spacing: -0.02em;
   margin-bottom: 6px;
@@ -307,93 +368,139 @@
   opacity: 0.95;
   max-width: 320px;
   line-height: 1.4;
+  margin: 0;
 }
 
-/* 3x3 Kuadran Matrix */
+/* 3x3 Kuadran Matrix Section */
 .matrixSection {
   background: var(--bg-card, #ffffff);
   border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 20px;
-  padding: 28px;
-  margin-bottom: 32px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
 }
 
 .sectionTitle {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 800;
   color: var(--text-primary, #0f172a);
-  margin: 0 0 6px 0;
+  margin: 0 0 4px 0;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .sectionSubtitle {
+  font-size: 12px;
+  color: var(--text-secondary, #64748b);
+  margin: 0 0 16px 0;
+}
+
+/* Position Highlight Banner */
+.positionBanner {
+  background: #f1f5f9;
+  border-left: 4px solid #4f46e5;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   font-size: 13px;
-  color: var(--text-secondary, #64748b);
-  margin: 0 0 24px 0;
 }
 
-.matrixContainer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
+.positionBanner strong {
+  color: var(--text-primary, #0f172a);
+}
+
+.scrollHint {
+  font-size: 11px;
+  color: #6366f1;
+  font-weight: 600;
+  display: none;
+}
+
+.matrixScrollWrapper {
+  width: 100%;
   overflow-x: auto;
-  padding: 10px;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 6px;
 }
 
-.matrixHeaderX {
-  display: grid;
-  grid-template-columns: 140px repeat(3, 1fr);
+.matrixTable {
   width: 100%;
-  max-width: 900px;
+  min-width: 580px;
+  border-collapse: separate;
+  border-spacing: 8px;
   text-align: center;
+}
+
+.thHeaderX {
+  padding: 8px;
+  font-size: 11px;
   font-weight: 700;
-  font-size: 12px;
   color: var(--text-secondary, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--bg-hover, #f8fafc);
+  border-radius: 8px;
 }
 
-.matrixGrid {
-  display: grid;
-  grid-template-columns: 140px repeat(3, 1fr);
-  width: 100%;
-  max-width: 900px;
-  gap: 12px;
-}
-
-.rowHeaderY {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-right: 16px;
-  font-size: 12px;
+.thHeaderY {
+  padding: 8px 12px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--text-secondary, #64748b);
   text-align: right;
+  white-space: nowrap;
+  background: var(--bg-hover, #f8fafc);
+  border-radius: 8px;
 }
 
 .matrixCell {
-  background: var(--bg-hover, #f8fafc);
-  border: 2px solid var(--border-color, #e2e8f0);
-  border-radius: 12px;
-  padding: 16px 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  min-height: 90px;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
+  padding: 14px 8px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
+  position: relative;
+  min-height: 72px;
+  vertical-align: middle;
+}
+
+.matrixCell:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+}
+
+.matrixCellActive {
+  transform: scale(1.03);
+  border-width: 3px !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15) !important;
+  z-index: 2;
+}
+
+.activePin {
+  position: absolute;
+  top: -8px;
+  right: -6px;
+  background: #4f46e5;
+  color: white;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 9999px;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.5);
+  letter-spacing: 0.05em;
 }
 
 .cellTitle {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .cellSub {
@@ -401,39 +508,20 @@
   color: var(--text-secondary, #64748b);
 }
 
-.matrixCellActive {
-  transform: scale(1.04);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
-  border-width: 3px;
-  z-index: 2;
-}
-
-.activeIndicator {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  background: #4f46e5;
-  color: white;
-  font-size: 10px;
-  font-weight: 800;
-  padding: 3px 8px;
-  border-radius: 9999px;
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
-}
-
-/* BerAKHLAK Accordion */
+/* BerAKHLAK List */
 .berakhlakList {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .berakhlakItem {
   background: var(--bg-card, #ffffff);
   border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 14px;
-  padding: 18px 22px;
+  padding: 16px 18px;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
 }
 
 .berakhlakHeader {
@@ -451,9 +539,10 @@
 }
 
 .coreValueIcon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 10px;
   background: #ede9fe;
   color: #6366f1;
   display: flex;
@@ -464,7 +553,7 @@
 }
 
 .coreValueName {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text-primary, #0f172a);
 }
@@ -473,63 +562,39 @@
   font-size: 12px;
   color: var(--text-secondary, #64748b);
   margin-top: 2px;
+  line-height: 1.4;
 }
 
 .ratingSelectGroup {
   display: flex;
-  gap: 8px;
-}
-
-.ratingPill {
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-  border: 1px solid var(--border-color, #e2e8f0);
-  background: var(--bg-card, #ffffff);
-  color: var(--text-secondary, #64748b);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.ratingPillActive {
-  background: #4f46e5;
-  color: white;
-  border-color: #4f46e5;
-  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
+  gap: 6px;
 }
 
 .berakhlakInputs {
-  margin-top: 16px;
+  margin-top: 14px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-@media (max-width: 768px) {
-  .berakhlakInputs {
-    grid-template-columns: 1fr;
-  }
+  gap: 14px;
 }
 
 .inputGroup label {
   display: block;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--text-secondary, #64748b);
-  margin-bottom: 6px;
+  margin-bottom: 5px;
 }
 
 .textInput {
   width: 100%;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-radius: 8px;
   border: 1px solid var(--border-color, #e2e8f0);
   background: var(--bg-hover, #f8fafc);
   color: var(--text-primary, #0f172a);
-  font-size: 13px;
+  font-size: 12px;
   resize: vertical;
-  min-height: 54px;
+  min-height: 50px;
   font-family: inherit;
   outline: none;
   box-sizing: border-box;
@@ -540,61 +605,294 @@
   background: #ffffff;
 }
 
-/* Hasil Kerja Table */
+/* SKP Results: Card View & Table View */
+.tableToolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.searchBox {
+  flex: 1;
+  min-width: 220px;
+  position: relative;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 8px 12px 8px 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #e2e8f0);
+  font-size: 12px;
+  outline: none;
+  box-sizing: border-box;
+  background: var(--bg-card, #ffffff);
+}
+
+.searchInput:focus {
+  border-color: #6366f1;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+}
+
+.viewModeToggle {
+  display: flex;
+  background: var(--bg-hover, #f8fafc);
+  border-radius: 8px;
+  padding: 2px;
+  border: 1px solid var(--border-color, #e2e8f0);
+}
+
+.viewModeBtn {
+  background: transparent;
+  border: none;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.viewModeBtnActive {
+  background: #ffffff;
+  color: #4f46e5;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Card View for SKP (Mobile Optimized) */
+.skpCardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+}
+
+.skpCard {
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.skpCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.skpCardNo {
+  font-size: 11px;
+  font-weight: 800;
+  color: #6366f1;
+  background: #ede9fe;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.skpCardTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.skpMeta {
+  font-size: 11px;
+  color: var(--text-secondary, #64748b);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.metaBadge {
+  background: var(--bg-hover, #f1f5f9);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.skpProgressSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.progressLabelRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+}
+
+.progressBarBg {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.progressBarFill {
+  height: 100%;
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+/* Table View for Desktop */
 .tableCard {
   background: var(--bg-card, #ffffff);
   border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 16px;
-  padding: 24px;
+  border-radius: 14px;
+  padding: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .evalTable {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .evalTable th {
   background: var(--bg-hover, #f8fafc);
   color: var(--text-secondary, #64748b);
   text-align: left;
-  padding: 12px 14px;
+  padding: 10px 12px;
   font-weight: 700;
   border-bottom: 2px solid var(--border-color, #e2e8f0);
+  white-space: nowrap;
 }
 
 .evalTable td {
-  padding: 12px 14px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--border-color, #e2e8f0);
   color: var(--text-primary, #0f172a);
 }
 
 .statusTag {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   padding: 3px 8px;
   border-radius: 6px;
   display: inline-block;
+  white-space: nowrap;
 }
 
 .tagGreen { background: #dcfce7; color: #15803d; }
 .tagBlue { background: #e0e7ff; color: #4338ca; }
 .tagYellow { background: #fef3c7; color: #b45309; }
 
+/* Responsive Media Queries */
+@media (max-width: 768px) {
+  .container {
+    padding: 12px 6px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .titleArea h1 {
+    font-size: 20px;
+  }
+
+  .headerActions {
+    width: 100%;
+  }
+
+  .headerActions button {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .profileCard {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    padding: 14px;
+  }
+
+  .periodSelector {
+    width: 100%;
+    justify-content: space-between;
+    box-sizing: border-box;
+  }
+
+  .selectPeriod {
+    max-width: 200px;
+    text-align: right;
+  }
+
+  .summaryGrid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .scrollHint {
+    display: inline-block;
+  }
+
+  .berakhlakInputs {
+    grid-template-columns: 1fr;
+  }
+
+  .ratingSelectGroup {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .ratingPill {
+    font-size: 10px;
+  }
+
+  .skpCardGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Printable Document Styles */
 @media print {
   .headerActions,
   .periodSelector,
   .tabNav,
-  .ratingSelectGroup {
+  .ratingSelectGroup,
+  .tableToolbar,
+  .ratingPillGroup,
+  .scrollHint,
+  .positionBanner {
     display: none !important;
   }
+
   .container {
     padding: 0 !important;
     max-width: 100% !important;
   }
+
   .matrixCell {
     border: 1px solid #000 !important;
   }

@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 16px;
 }
 
 .modal {
@@ -27,7 +27,7 @@
 }
 
 .modalHeader {
-  padding: 20px 24px;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--border-color, #e2e8f0);
   display: flex;
   justify-content: space-between;
@@ -38,20 +38,20 @@
 .headerTitle {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .headerTitle h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 800;
   color: var(--text-primary, #0f172a);
 }
 
 .badgeBps {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  padding: 3px 8px;
+  padding: 2px 8px;
   border-radius: 9999px;
   background: #ede9fe;
   color: #6366f1;
@@ -62,8 +62,11 @@
   border: none;
   color: var(--text-secondary, #64748b);
   cursor: pointer;
-  padding: 4px;
+  padding: 6px;
   border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.15s ease;
 }
 
@@ -73,22 +76,23 @@
 }
 
 .modalBody {
-  padding: 24px;
+  padding: 20px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 /* Connection Status Card */
 .statusCard {
   border-radius: 12px;
-  padding: 14px 18px;
+  padding: 12px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   border: 1px solid transparent;
+  flex-wrap: wrap;
 }
 
 .statusConnected {
@@ -105,14 +109,15 @@
 
 .statusInfo h4 {
   margin: 0 0 2px 0;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
 }
 
 .statusInfo p {
   margin: 0;
-  font-size: 12px;
-  opacity: 0.85;
+  font-size: 11px;
+  opacity: 0.9;
+  word-break: break-word;
 }
 
 .statusActionBtn {
@@ -120,7 +125,7 @@
   border: 1px solid currentColor;
   padding: 6px 12px;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -129,26 +134,26 @@
 /* Stats Overview */
 .statsGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
 }
 
 .statItem {
   background: var(--bg-hover, #f8fafc);
   border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 10px;
-  padding: 12px;
+  padding: 10px 8px;
   text-align: center;
 }
 
 .statItemVal {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 800;
   color: var(--text-primary, #0f172a);
 }
 
 .statItemLabel {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-secondary, #64748b);
   margin-top: 2px;
 }
@@ -158,7 +163,7 @@
   background: var(--bg-hover, #f8fafc);
   border: 1px dashed var(--border-color, #cbd5e1);
   border-radius: 12px;
-  padding: 14px 16px;
+  padding: 12px 14px;
 }
 
 .tokenBox label {
@@ -187,11 +192,16 @@
 /* Options */
 .optionRow {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-primary, #0f172a);
   cursor: pointer;
+  line-height: 1.4;
+}
+
+.optionRow input {
+  margin-top: 2px;
 }
 
 /* Progress bar */
@@ -200,7 +210,7 @@
   border-radius: 9999px;
   height: 8px;
   overflow: hidden;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .progressBar {
@@ -210,13 +220,13 @@
 }
 
 .modalFooter {
-  padding: 16px 24px;
+  padding: 14px 20px;
   border-top: 1px solid var(--border-color, #e2e8f0);
   display: flex;
   justify-content: space-between;
   align-items: center;
   background: var(--bg-hover, #f8fafc);
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
@@ -224,12 +234,13 @@
   background: linear-gradient(135deg, #4f46e5, #6366f1);
   color: #ffffff;
   border: none;
-  padding: 10px 20px;
+  padding: 9px 18px;
   border-radius: 10px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
@@ -250,16 +261,60 @@
   background: var(--bg-card, #ffffff);
   color: var(--text-primary, #1e293b);
   border: 1px solid var(--border-color, #e2e8f0);
-  padding: 9px 16px;
+  padding: 8px 14px;
   border-radius: 10px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   cursor: pointer;
 }
 
 .btnSecondary:hover {
   background: var(--bg-hover, #f8fafc);
+}
+
+/* Mobile responsive rules */
+@media (max-width: 640px) {
+  .overlay {
+    padding: 8px;
+    align-items: flex-end;
+  }
+
+  .modal {
+    max-height: 94vh;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .modalHeader {
+    padding: 14px 16px;
+  }
+
+  .modalBody {
+    padding: 16px;
+    gap: 14px;
+  }
+
+  .modalFooter {
+    flex-direction: column-reverse;
+    gap: 8px;
+    padding: 12px 16px;
+  }
+
+  .modalFooter > * {
+    width: 100%;
+  }
+
+  .modalFooter div {
+    display: flex;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .btnPrimary, .btnSecondary {
+    flex: 1;
+    text-align: center;
+  }
 }
