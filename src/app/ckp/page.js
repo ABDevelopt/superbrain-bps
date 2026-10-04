@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { useAlert } from '@/contexts/AlertContext';
 import { compressFile } from '@/lib/compressor';
-import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Clock, Link as LinkIcon, CloudOff, FolderOpen, AlertTriangle, Sparkles, FolderPlus, ExternalLink, FileArchive, Send } from 'lucide-react';
+import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Clock, Link as LinkIcon, CloudOff, FolderOpen, AlertTriangle, Sparkles, FolderPlus, ExternalLink, FileArchive, Send, Palmtree, Repeat } from 'lucide-react';
 import { useSkps } from '@/hooks/useSkps';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
@@ -1884,8 +1884,8 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
                     </div>
                     {(weekend > 0 || holiday > 0) && (
                       <div className={styles.multiHariPreviewNote}>
-                        {weekend > 0 && <span>📅 {weekend} hari libur (Sabtu/Minggu)</span>}
-                        {holiday > 0 && <span>🏖️ {holiday} hari Libur Nasional/Cuti</span>}
+                        {weekend > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Calendar size={13} /> {weekend} hari libur (Sabtu/Minggu)</span>}
+                        {holiday > 0 && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Palmtree size={13} /> {holiday} hari Libur Nasional/Cuti</span>}
                       </div>
                     )}
                   </div>
@@ -2203,8 +2203,9 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
           <span>Bukti Dukung (Opsional - Bisa Banyak File)</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {accessToken ? (
-              <span className={styles.driveStatusConnected}>
-                🟢 Drive Terhubung
+              <span className={styles.driveStatusConnected} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22c55e', display: 'inline-block' }} />
+                <span>Drive Terhubung</span>
               </span>
             ) : (
               <button
@@ -2212,8 +2213,10 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
                 onClick={loginWithGoogle}
                 className={styles.driveStatusConnectBtn}
                 title="Hubungkan ke Google Drive"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
               >
-                🔴 Hubungkan Drive
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ef4444', display: 'inline-block' }} />
+                <span>Hubungkan Drive</span>
               </button>
             )}
           </div>
@@ -3143,13 +3146,13 @@ function TabRekapHarian({ entries, onEdit, onDelete, deleteDocument, updateDocum
                         <span>{entry.waktuMulai} — {entry.waktuSelesai}</span>
                         <span className={styles.timelineDuration}>{formatDuration(entry.durasi)}</span>
                         {isConflicting && (
-                          <span className={styles.conflictBadge}>
-                            ⚠️ Bentrok
+                          <span className={styles.conflictBadge} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <AlertTriangle size={12} /> Bentrok
                           </span>
                         )}
                         {entry.groupId && (
-                          <span className={styles.multiDayBadge} title="Rangkaian kegiatan multi-hari">
-                            🔁 Multi-Hari
+                          <span className={styles.multiDayBadge} title="Rangkaian kegiatan multi-hari" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <Repeat size={12} /> Multi-Hari
                           </span>
                         )}
                       </div>
@@ -3177,8 +3180,8 @@ function TabRekapHarian({ entries, onEdit, onDelete, deleteDocument, updateDocum
                     )}
                   </div>
                   {entry.keteranganHari && (
-                    <div className={styles.keteranganHariBadge}>
-                      🏖️ {entry.keteranganHari}
+                    <div className={styles.keteranganHariBadge} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <Palmtree size={13} /> {entry.keteranganHari}
                     </div>
                   )}
                   <div className={styles.timelineRincian}>{entry.rincian}</div>
@@ -3190,7 +3193,7 @@ function TabRekapHarian({ entries, onEdit, onDelete, deleteDocument, updateDocum
                             <FolderOpen size={14} /> Folder Bukti (Masih Kosong)
                           </a>
                           <span style={{ color: '#fb923c', fontSize: '12px', fontWeight: '500', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            ⚠️ Belum diisi file
+                            <AlertTriangle size={12} /> Belum diisi file
                           </span>
                         </div>
                       ) : (
@@ -3204,8 +3207,8 @@ function TabRekapHarian({ entries, onEdit, onDelete, deleteDocument, updateDocum
                       </span>
                     ) : (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span className={styles.warningBadge}>
-                          ⚠️ Belum Upload Bukti
+                        <span className={styles.warningBadge} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <AlertTriangle size={12} /> Belum Upload Bukti
                         </span>
                         <button
                           type="button"
@@ -4997,7 +5000,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
                             <a href={row.buktiDukung} target="_blank" rel="noopener noreferrer" className={styles.buktiLinkKosongTable}>
                               <FolderOpen size={12} /> Folder Kosong
                             </a>
-                            <span style={{ color: '#fb923c', fontSize: '10px' }} title="Belum diisi file">⚠️</span>
+                            <span style={{ color: '#fb923c', fontSize: '10px', display: 'inline-flex', alignItems: 'center' }} title="Belum diisi file"><AlertTriangle size={11} /></span>
                           </div>
                         ) : (
                           <a href={row.buktiDukung} target="_blank" rel="noopener noreferrer" className={styles.buktiLinkTable}>
@@ -5006,7 +5009,9 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
                         )
                       ) : (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span className={styles.warningBadgeTable}>⚠️ Belum Upload</span>
+                          <span className={styles.warningBadgeTable} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <AlertTriangle size={11} /> Belum Upload
+                          </span>
                           <button
                             type="button"
                             onClick={() => onCreateEmptyFolder(row.id, row.tanggal, row.rincian)}

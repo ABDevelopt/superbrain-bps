@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAlert } from '@/contexts/AlertContext';
-import { Settings as SettingsIcon, Send, User, Bell, Shield, LogOut, Database, Cloud, UploadCloud, DownloadCloud } from 'lucide-react';
+import { Settings as SettingsIcon, Send, User, Bell, Shield, LogOut, Database, Cloud, UploadCloud, DownloadCloud, CheckCircle2 } from 'lucide-react';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
 import { exportToJSON, createCloudSnapshot, restoreFromCloudSnapshot, restoreFromBackupData } from '@/lib/backupService';
@@ -306,8 +306,9 @@ export default function SettingsPage() {
                 )}
               </div>
               {savedChatId && (
-                <div className={styles.successMsg}>
-                  ✓ Telegram bot sudah terhubung ke ID: {savedChatId}
+                <div className={styles.successMsg} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <CheckCircle2 size={15} />
+                  <span>Telegram bot sudah terhubung ke ID: {savedChatId}</span>
                 </div>
               )}
             </div>

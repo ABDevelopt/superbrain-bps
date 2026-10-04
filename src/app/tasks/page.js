@@ -9,7 +9,7 @@ import {
   Calendar, Edit3, ClipboardCheck, LayoutGrid, Bell,
   GraduationCap, Award, Search, MapPin, Target, Coffee, Zap,
   Monitor, Map as MapIcon, Book, Users, Folder, Network, BarChart2, ClipboardList,
-  SlidersHorizontal, FolderOpen, Paperclip, Loader2
+  SlidersHorizontal, FolderOpen, Paperclip, Loader2, Link2
 } from 'lucide-react';
 
 import { useSkps } from '@/hooks/useSkps';
@@ -1391,8 +1391,18 @@ export default function TasksPage() {
                                         {item.kategori}
                                       </span>
                                       {itemTasks.length > 0 && (
-                                        <span className={`${styles.taskCountBadge} ${activeTasks === 0 ? styles.taskCountBadgeCompleted : ''}`}>
-                                          {activeTasks > 0 ? `📋 ${activeTasks} Aktif` : `✓ ${doneTasks} Selesai`}
+                                        <span className={`${styles.taskCountBadge} ${activeTasks === 0 ? styles.taskCountBadgeCompleted : ''}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                          {activeTasks > 0 ? (
+                                            <>
+                                              <ClipboardList size={12} />
+                                              <span>{activeTasks} Aktif</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Check size={12} />
+                                              <span>{doneTasks} Selesai</span>
+                                            </>
+                                          )}
                                         </span>
                                       )}
                                     </div>
@@ -1437,8 +1447,9 @@ export default function TasksPage() {
                                 {getStatusLabel(item.status)}
                               </span>
                               {itemTasks.length > 0 && (
-                                <span className={styles.taskCountBadge}>
-                                  📋 {itemTasks.length} Tugas
+                                <span className={styles.taskCountBadge} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                  <ClipboardList size={12} />
+                                  <span>{itemTasks.length} Tugas</span>
                                 </span>
                               )}
                             </div>
@@ -1899,7 +1910,10 @@ export default function TasksPage() {
 
                 {/* Tambah Tautan Web */}
                 <div style={{ marginTop: '16px', background: 'rgba(255,255,255,0.02)', border: '1px dashed rgba(255,255,255,0.08)', borderRadius: '8px', padding: '12px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#f1f5f9', display: 'block', marginBottom: '8px' }}>🔗 Tambah Tautan Web (Link)</span>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#f1f5f9', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                    <Link2 size={14} color="#818cf8" />
+                    <span>Tambah Tautan Web (Link)</span>
+                  </span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <input 
                       type="text" 
@@ -1955,7 +1969,10 @@ export default function TasksPage() {
                       boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
                       display: 'flex', flexDirection: 'column', textAlign: 'left'
                     }}>
-                      <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#f1f5f9', margin: '0 0 6px 0' }}>⚡ Buat Tautan Ringkas BPS</h3>
+                      <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#f1f5f9', margin: '0 0 6px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <Zap size={16} color="#fbbf24" />
+                        <span>Buat Tautan Ringkas BPS</span>
+                      </h3>
                       <p style={{ fontSize: '12px', color: '#94a3b8', margin: '0 0 16px 0', lineHeight: 1.5 }}>
                         Tautan web ini akan disingkat dan ditambahkan secara otomatis ke daftar lampiran tugas.
                       </p>

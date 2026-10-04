@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { BarChart3 } from 'lucide-react';
 import styles from './page.module.css';
 
 const PHASE_COLORS = [
@@ -179,7 +180,10 @@ export default function GanttChart({ startDate, endDate, phases = [], activePhas
     >
       <div className={styles.ganttHeader}>
         <h4 className={styles.ganttTitle}>
-          <span>📊 Timeline Gantt Chart</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+            <BarChart3 size={18} color="#818cf8" />
+            <span>Timeline Gantt Chart</span>
+          </span>
           <span className={styles.ganttDateBadge}>
             {formatFullDate(start.toISOString().split('T')[0])} - {formatFullDate(end.toISOString().split('T')[0])}
           </span>

@@ -934,7 +934,10 @@ export default function SKPPage() {
       {activeStepTab === 0 && (
         <div className={styles.stepContainer}>
           <div className={styles.setupCard}>
-            <h3>👥 Tambah Tim Kerja Baru</h3>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Users size={18} color="#818cf8" />
+              <span>Tambah Tim Kerja Baru</span>
+            </h3>
             <p className={styles.setupCardDesc}>Tim Kerja adalah divisi utama di lingkungan BPS (misal: Subbagian Umum, Tim Statistik Sosial).</p>
             <form onSubmit={handleAddTeamSubmit} className={styles.inlineForm}>
               <input 
@@ -1010,7 +1013,10 @@ export default function SKPPage() {
       {activeStepTab === 1 && (
         <div className={styles.stepContainer}>
           <div className={styles.setupCard}>
-            <h3>📂 Tambah Proyek Tim Baru</h3>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Folder size={18} color="#38bdf8" />
+              <span>Tambah Proyek Tim Baru</span>
+            </h3>
             <p className={styles.setupCardDesc}>Proyek Tim (Klaster) adalah program kerja strategis yang berada di bawah naungan Tim Kerja induk.</p>
             <form onSubmit={handleAddProjectSubmit} className={styles.projectForm}>
               <div className={styles.formRow}>
@@ -1121,7 +1127,10 @@ export default function SKPPage() {
       {activeStepTab === 2 && (
         <div className={styles.stepContainer}>
           <div className={styles.setupCard}>
-            <h3>📋 Tambah Rencana Kerja SKP Baru</h3>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ClipboardList size={18} color="#10b981" />
+              <span>Tambah Rencana Kerja SKP Baru</span>
+            </h3>
             <p className={styles.setupCardDesc}>Sasaran Kinerja Pegawai individu pegawai yang berinduk pada Proyek Tim tertentu.</p>
             <form onSubmit={handleAddSkpSubmit} className={styles.skpForm}>
               <div className={styles.formRow}>

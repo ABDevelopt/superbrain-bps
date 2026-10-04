@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import styles from './page.module.css';
-import { LogIn, AlertCircle } from 'lucide-react';
+import { LogIn, AlertCircle, BrainCircuit } from 'lucide-react';
 import LoadingScreen from '@/components/LoadingScreen';
 
 export default function LoginPage() {
@@ -39,7 +39,10 @@ export default function LoginPage() {
   return (
     <div className={styles.page}>
       <div className={styles.card}>
-        <div className={styles.logo}>🧠 SuperBrain</div>
+        <div className={styles.logo} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+          <BrainCircuit size={32} color="#818cf8" />
+          <span>SuperBrain</span>
+        </div>
         <h1 className={styles.title}>Selamat Datang</h1>
         <p className={styles.subtitle}>
           Silakan masuk menggunakan akun Google Anda untuk mengakses manajemen kinerja BPS.

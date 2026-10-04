@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
-import { Clock, AlertTriangle, Edit3, X, Move, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { Clock, AlertTriangle, Edit3, X, Move, ChevronLeft, ChevronRight, Check, Lightbulb } from 'lucide-react';
 import styles from './DailyTimeVisualizer.module.css';
 
 const DEFAULT_START_HOUR = 6;
@@ -446,7 +446,7 @@ export default function DailyTimeVisualizer({
       </div>
 
       <div className={styles.tipsBanner}>
-        <span>💡</span>
+        <Lightbulb size={16} color="#eab308" />
         <span>
           <strong>Sesuaikan visual:</strong> Geser balok kegiatan untuk memindahkan jam kerja, atau tarik pegangan di ujung kiri/kanan untuk mengubah jam mulai/selesai.
         </span>

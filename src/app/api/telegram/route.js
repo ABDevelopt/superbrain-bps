@@ -150,14 +150,14 @@ async function handleTelegramWebhook(token, body) {
         if (fileId) scheduleDoc.telegramFileId = fileId;
         docRef = await addDoc(collection(db, 'schedule'), scheduleDoc);
 
-        successMsg = `📅 *Agenda Berhasil Ditambahkan!*\n` +
+        successMsg = `*Agenda Berhasil Ditambahkan!*\n` +
                      `*Acara:* ${payloadData.judul}\n` +
                      `*Tanggal:* ${payloadData.tanggal}\n` +
                      `*Waktu:* ${payloadData.waktu || '09:00'}` +
                      (payloadData.lokasi ? `\n*Tempat:* ${payloadData.lokasi}` : '') +
                      `\n${skpInfo}`;
         if (fileId) {
-          successMsg += `\n📎 _Berkas lampiran terdeteksi dan akan disinkronisasikan ke Google Drive Anda._`;
+          successMsg += `\n_Berkas lampiran terdeteksi dan akan disinkronisasikan ke Google Drive Anda._`;
         }
       } 
       else if (payloadType === 'UPDATE_JADWAL') {
@@ -168,7 +168,7 @@ async function handleTelegramWebhook(token, body) {
         if (snap.data().userId !== userId) throw new Error("Akses ditolak: Anda bukan pemilik jadwal ini.");
         
         await updateDoc(targetRef, payloadData);
-        successMsg = `✅ *Jadwal Diperbarui!*\nJadwal "${payloadData.judul || payloadData.id}" berhasil disesuaikan.`;
+        successMsg = `*Jadwal Diperbarui!*\nJadwal "${payloadData.judul || payloadData.id}" berhasil disesuaikan.`;
       }
       else if (payloadType === 'DELETE_JADWAL') {
         if (!payloadData.id) throw new Error("ID Jadwal tidak ditemukan untuk dihapus.");
@@ -178,7 +178,7 @@ async function handleTelegramWebhook(token, body) {
         if (snap.data().userId !== userId) throw new Error("Akses ditolak: Anda bukan pemilik jadwal ini.");
 
         await deleteDoc(targetRef);
-        successMsg = `🗑️ *Jadwal Dihapus!*\nJadwal dengan ID tersebut berhasil dihapus.`;
+        successMsg = `*Jadwal Dihapus!*\nJadwal dengan ID tersebut berhasil dihapus.`;
       }
       else if (payloadType === 'CREATE_CKP' || payloadType === 'CKP') {
         const ckpDoc = {
@@ -196,7 +196,7 @@ async function handleTelegramWebhook(token, body) {
         if (fileId) ckpDoc.telegramFileId = fileId;
         docRef = await addDoc(collection(db, 'ckp'), ckpDoc);
 
-        successMsg = `✅ *Laporan CKP Ditambahkan!*\n` +
+        successMsg = `*Laporan CKP Ditambahkan!*\n` +
                      `*Kegiatan:* ${payloadData.rincian}\n` +
                      `*Output:* ${payloadData.kuantitas} ${payloadData.satuan}` +
                      `\n${skpInfo}`;
@@ -209,7 +209,7 @@ async function handleTelegramWebhook(token, body) {
         if (snap.data().userId !== userId) throw new Error("Akses ditolak: Anda bukan pemilik catatan CKP ini.");
 
         await updateDoc(targetRef, payloadData);
-        successMsg = `✅ *CKP Diperbarui!*\nCatatan CKP berhasil disesuaikan.`;
+        successMsg = `*CKP Diperbarui!*\nCatatan CKP berhasil disesuaikan.`;
       }
       else if (payloadType === 'DELETE_CKP') {
         if (!payloadData.id) throw new Error("ID CKP tidak ditemukan untuk dihapus.");
@@ -219,7 +219,7 @@ async function handleTelegramWebhook(token, body) {
         if (snap.data().userId !== userId) throw new Error("Akses ditolak: Anda bukan pemilik catatan CKP ini.");
 
         await deleteDoc(targetRef);
-        successMsg = `🗑️ *CKP Dihapus!*\nCatatan CKP berhasil dihapus.`;
+        successMsg = `*CKP Dihapus!*\nCatatan CKP berhasil dihapus.`;
       }
       else if (payloadType === 'CREATE_TASK') {
         const taskDoc = {
@@ -236,11 +236,11 @@ async function handleTelegramWebhook(token, body) {
         if (fileId) taskDoc.telegramFileId = fileId;
         docRef = await addDoc(collection(db, 'tasks'), taskDoc);
         
-        successMsg = `📌 *Tugas Baru Kanban*\n` +
+        successMsg = `*Tugas Baru Kanban*\n` +
                      `*Judul:* ${payloadData.judul}` +
                      `\n${skpInfo}`;
         if (fileId) {
-          successMsg += `\n📎 _Berkas lampiran terdeteksi dan akan disinkronisasikan ke Google Drive Anda._`;
+          successMsg += `\n_Berkas lampiran terdeteksi dan akan disinkronisasikan ke Google Drive Anda._`;
         }
       }
       else if (payloadType === 'UPDATE_TASK') {
@@ -251,7 +251,7 @@ async function handleTelegramWebhook(token, body) {
         if (snap.data().userId !== userId) throw new Error("Akses ditolak: Anda bukan pemilik tugas ini.");
 
         await updateDoc(targetRef, payloadData);
-        successMsg = `✅ *Tugas Diperbarui!*\nPerubahan tugas berhasil disimpan.`;
+        successMsg = `*Tugas Diperbarui!*\nPerubahan tugas berhasil disimpan.`;
       }
       else if (payloadType === 'DELETE_TASK') {
         if (!payloadData.id) throw new Error("ID Tugas tidak ditemukan.");
@@ -261,7 +261,7 @@ async function handleTelegramWebhook(token, body) {
         if (snap.data().userId !== userId) throw new Error("Akses ditolak: Anda bukan pemilik tugas ini.");
 
         await deleteDoc(targetRef);
-        successMsg = `🗑️ *Tugas Dihapus!*\nTugas berhasil dihapus dari Papan Kanban.`;
+        successMsg = `*Tugas Dihapus!*\nTugas berhasil dihapus dari Papan Kanban.`;
       }
       else if (payloadType === 'REPLY_TEXT') {
         successMsg = payloadData.replyMessage || "Pesan diterima.";

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Link2, ExternalLink, Copy, Check, Trash2, Edit3, 
   Search, Plus, TrendingUp, BarChart2, Calendar, 
-  MousePointerClick, ArrowRight, Loader2, Sparkles
+  MousePointerClick, ArrowRight, Loader2, Sparkles, ClipboardList
 } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -238,7 +238,10 @@ export default function ShortLinksPage() {
     <div className={styles.container}>
       <header className={styles.header}>
         <div>
-          <h1 className={styles.title}>🔗 Ringkas Link Bukti Dukung</h1>
+          <h1 className={styles.title} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Link2 size={28} color="#818cf8" />
+            <span>Ringkas Link Bukti Dukung</span>
+          </h1>
           <p className={styles.subtitle}>Buat tautan singkat untuk menyederhanakan file bukti dukung kegiatan BPS Anda</p>
         </div>
       </header>
@@ -281,7 +284,10 @@ export default function ShortLinksPage() {
       <div className={styles.mainGrid}>
         {/* Shortener Box */}
         <div className={styles.shortenerCard}>
-          <h3>✨ Buat Tautan Baru</h3>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Sparkles size={18} color="#a855f7" />
+            <span>Buat Tautan Baru</span>
+          </h3>
           <p className={styles.cardDesc}>Tulis URL panjang bukti dukung Anda dan tentukan slug kustom yang mudah diingat.</p>
 
           <form onSubmit={handleCreate} className={styles.form}>
@@ -333,7 +339,10 @@ export default function ShortLinksPage() {
         {/* Links List */}
         <div className={styles.listCard}>
           <div className={styles.listHeader}>
-            <h3>📋 Daftar Link Singkat Anda</h3>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ClipboardList size={18} color="#38bdf8" />
+              <span>Daftar Link Singkat Anda</span>
+            </h3>
             <div className={styles.searchWrapper}>
               <Search size={16} className={styles.searchIcon} />
               <input 
@@ -429,7 +438,10 @@ export default function ShortLinksPage() {
       {editingLink && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
-            <h3>✏️ Edit URL Tujuan (/s/{editingLink.slug})</h3>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Edit3 size={18} color="#f59e0b" />
+              <span>Edit URL Tujuan (/s/{editingLink.slug})</span>
+            </h3>
             <p className={styles.modalDesc}>Perbarui tautan asli tujuan tanpa mengubah URL singkat /s/{editingLink.slug}.</p>
             
             <form onSubmit={handleUpdate}>

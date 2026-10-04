@@ -11,7 +11,8 @@ import {
   RefreshCw, 
   HelpCircle,
   FileCode2,
-  Sparkles
+  Sparkles,
+  Lightbulb
 } from 'lucide-react';
 import styles from './KipappSyncModal.module.css';
 
@@ -280,8 +281,9 @@ export default function KipappSyncModal({
                 value={manualToken}
                 onChange={(e) => setManualToken(e.target.value)}
               />
-              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '6px' }}>
-                💡 <em>Tip: Pasang folder <code>extension/</code> pada <code>chrome://extensions</code> untuk login otomatis tanpa perlu menyalin token.</em>
+              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Lightbulb size={13} color="#eab308" />
+                <span><em>Tip: Pasang folder <code>extension/</code> pada <code>chrome://extensions</code> untuk login otomatis tanpa perlu menyalin token.</em></span>
               </div>
             </div>
           )}

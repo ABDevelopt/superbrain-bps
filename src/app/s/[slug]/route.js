@@ -97,7 +97,7 @@ export async function GET(request, { params }) {
           </head>
           <body>
             <div class="card">
-              <div class="icon">🔍</div>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 16px;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
               <h1>Tautan Tidak Ditemukan</h1>
               <p>Maaf, tautan singkat <strong>/s/${slug}</strong> tidak terdaftar di sistem atau sudah dihapus.</p>
               <a href="/" class="btn">Kembali ke Beranda</a>

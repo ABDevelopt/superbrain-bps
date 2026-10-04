@@ -97,7 +97,7 @@ export async function GET(request) {
           docId: d.id,
           reminderLabel: triggeredReminder,
           chatIds: destChatIds,
-          msg: `⏰ *Pengingat Jadwal: ${triggeredReminder}*\n\n*Judul:* ${data.judul}\n*Kategori:* ${data.kategori}\n*Waktu:* ${data.tanggal} ${data.waktu}`
+          msg: `*Pengingat Jadwal: ${triggeredReminder}*\n\n*Judul:* ${data.judul}\n*Kategori:* ${data.kategori}\n*Waktu:* ${data.tanggal} ${data.waktu}`
         });
       }
     }
@@ -150,7 +150,7 @@ export async function GET(request) {
           docId: d.id,
           reminderLabel: triggeredReminder,
           chatIds: destChatIds,
-          msg: `⏰ *Pengingat Tugas: ${triggeredReminder}*\n\n*Tugas:* ${data.judul}\n*Deskripsi:* ${data.deskripsi || '-'}\n*Tenggat:* ${data.dueDate}`
+          msg: `*Pengingat Tugas: ${triggeredReminder}*\n\n*Tugas:* ${data.judul}\n*Deskripsi:* ${data.deskripsi || '-'}\n*Tenggat:* ${data.dueDate}`
         });
       }
     }
@@ -218,8 +218,8 @@ export async function GET(request) {
           docNeedsUpdate = true;
           const labelClean = triggerLabel.replace('start-', 'Mulai ').replace('end-', 'Selesai ');
           const msg = triggerType === 'start' 
-            ? `⏰ *Pengingat Pelatihan: Fase Baru Dimulai (${labelClean.replace('Mulai ', '')})*\n\n*Fase:* ${phase.name}\n*Mulai:* ${phase.startDate}\n*Platform:* ${phase.platform || '-'}\n*Keterangan:* ${phase.notes || '-'}`
-            : `⏰ *Pengingat Pelatihan: Fase Berakhir (${labelClean.replace('Selesai ', '')})*\n\n*Fase:* ${phase.name}\n*Tenggat Selesai:* ${phase.endDate}\n*Aplikasi:* ${phase.platform || '-'}\n\n⚠️ Jangan lupa menyelesaikan seluruh checklist kegiatan dan laporan!`;
+            ? `*Pengingat Pelatihan: Fase Baru Dimulai (${labelClean.replace('Mulai ', '')})*\n\n*Fase:* ${phase.name}\n*Mulai:* ${phase.startDate}\n*Platform:* ${phase.platform || '-'}\n*Keterangan:* ${phase.notes || '-'}`
+            : `*Pengingat Pelatihan: Fase Berakhir (${labelClean.replace('Selesai ', '')})*\n\n*Fase:* ${phase.name}\n*Tenggat Selesai:* ${phase.endDate}\n*Aplikasi:* ${phase.platform || '-'}\n\n*Perhatian:* Jangan lupa menyelesaikan seluruh checklist kegiatan dan laporan!`;
 
           messagesToSend.push({
             type: 'training_phase',

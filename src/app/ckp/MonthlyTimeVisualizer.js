@@ -511,8 +511,9 @@ export default function MonthlyTimeVisualizer({
                         </div>
                         <p className={styles.tooltipRincian}>{entry.rincian}</p>
                         {isConflict && (
-                          <div style={{ color: '#f87171', fontSize: '10px', marginTop: '4px', fontWeight: 600 }}>
-                            ⚠️ Terdeteksi bentrok dengan kegiatan lain
+                          <div style={{ color: '#f87171', fontSize: '10px', marginTop: '4px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <AlertCircle size={11} />
+                            <span>Terdeteksi bentrok dengan kegiatan lain</span>
                           </div>
                         )}
                       </div>
