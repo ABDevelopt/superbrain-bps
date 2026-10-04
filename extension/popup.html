@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>SuperBrain KIPAPP Companion</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="header">
+    <div class="brand">
+      <span class="logo">🧠</span>
+      <div>
+        <h3>SuperBrain Bridge</h3>
+        <p>KIPAPP BPS Integrator</p>
+      </div>
+    </div>
+    <span id="status-badge" class="badge badge-disconnected">Terputus</span>
+  </div>
+
+  <div class="user-card" id="user-info-section" style="display: none;">
+    <div class="user-avatar" id="user-initial">YA</div>
+    <div class="user-details">
+      <div class="user-name" id="user-name">-</div>
+      <div class="user-nip" id="user-nip">NIP: -</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="status-box" id="guide-box">
+      <p>💡 <strong>Panduan Cepat:</strong></p>
+      <ol>
+        <li>Buka <a href="https://kipapp.bps.go.id" target="_blank">kipapp.bps.go.id</a> dan login via SSO.</li>
+        <li>Ekstensi ini otomatis menyinkronkan token autentikasi Anda.</li>
+        <li>Buka <a href="https://superbrain-bps.vercel.app/ckp" target="_blank">SuperBrain CKP</a> untuk mulai pengiriman 1-klik!</li>
+      </ol>
+    </div>
+
+    <div class="actions">
+      <button id="btn-open-kipapp" class="btn btn-secondary">Buka KIPAPP BPS</button>
+      <button id="btn-open-superbrain" class="btn btn-primary">Buka SuperBrain CKP</button>
+    </div>
+
+    <div class="footer-stats">
+      <span>Sinkronisasi Terakhir: <strong id="last-sync-time">-</strong></span>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

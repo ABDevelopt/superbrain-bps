@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "name": "SuperBrain KIPAPP BPS Companion",
+  "version": "1.0.0",
+  "description": "Jembatan otomatisasi sinkronisasi kegiatan harian CKP dan butir SKP antara SuperBrain dan KIPAPP BPS (Permen PANRB 6/2022).",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "SuperBrain KIPAPP Companion",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    }
+  },
+  "permissions": [
+    "storage",
+    "cookies"
+  ],
+  "host_permissions": [
+    "https://kipapp.bps.go.id/*",
+    "https://superbrain-bps.vercel.app/*",
+    "http://localhost:3000/*",
+    "http://localhost:3001/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://kipapp.bps.go.id/*"],
+      "js": ["content-kipapp.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://superbrain-bps.vercel.app/*",
+        "http://localhost:3000/*",
+        "http://localhost:3001/*"
+      ],
+      "js": ["content-superbrain.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

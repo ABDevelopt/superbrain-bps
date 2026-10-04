@@ -2,15 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, ClipboardList, Edit3, Calendar, CheckSquare } from 'lucide-react';
+import { Home, ClipboardList, Edit3, Calendar, CheckSquare, Award } from 'lucide-react';
 import styles from './MobileNav.module.css';
 
 const navItems = [
   { href: '/',         icon: <Home size={20} />, label: 'Beranda' },
-  { href: '/schedule', icon: <Calendar size={20} />, label: 'Jadwal' },
-  { href: '/tasks',    icon: <CheckSquare size={20} />, label: 'Papan' },
   { href: '/ckp',      icon: <Edit3 size={20} />, label: 'CKP' },
   { href: '/skp',      icon: <ClipboardList size={20} />, label: 'SKP' },
+  { href: '/evaluasi', icon: <Award size={20} />, label: 'Evaluasi' },
+  { href: '/schedule', icon: <Calendar size={20} />, label: 'Jadwal' },
 ];
 
 export default function MobileNav() {

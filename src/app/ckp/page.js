@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useMemo, useCallback, useEffect, useRef, Suspense } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { useAlert } from '@/contexts/AlertContext';
-import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Clock, Link as LinkIcon, CloudOff, FolderOpen, AlertTriangle, Sparkles, FolderPlus, ExternalLink } from 'lucide-react';
+import { compressFile } from '@/lib/compressor';
+import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Clock, Link as LinkIcon, CloudOff, FolderOpen, AlertTriangle, Sparkles, FolderPlus, ExternalLink, FileArchive, Send } from 'lucide-react';
 import { useSkps } from '@/hooks/useSkps';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,6 +21,7 @@ import { doc, updateDoc, collection, query, where, getDocs, addDoc, serverTimest
 import { db } from '@/lib/firebase';
 import DailyTimeVisualizer, { getEntrySkpIds, getBackgroundForSkps } from './DailyTimeVisualizer';
 import MonthlyTimeVisualizer from './MonthlyTimeVisualizer';
+import KipappSyncModal from './KipappSyncModal';
 
 const SATUAN_OPTIONS = ['Kegiatan', 'Lembar', 'File', 'Dokumen', 'Orang', 'Formulir', 'Lainnya'];
 
@@ -168,63 +171,14 @@ function Toast({ message, visible, onClose }) {
 }
 
 
-const compressImage = (file) => {
-  return new Promise((resolve) => {
-    if (!file.type.startsWith('image/') || file.type === 'image/gif') {
-      resolve(file);
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-
-        const MAX_WIDTH = 1600;
-        const MAX_HEIGHT = 1600;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        ctx.drawImage(img, 0, 0, width, height);
-
-        canvas.toBlob((blob) => {
-          if (!blob) {
-            resolve(file);
-            return;
-          }
-          if (blob.size >= file.size) {
-            resolve(file);
-            return;
-          }
-          const compressedFile = new File([blob], file.name, {
-            type: 'image/jpeg',
-            lastModified: Date.now()
-          });
-          resolve(compressedFile);
-        }, 'image/jpeg', 0.7);
-      };
-      img.onerror = () => resolve(file);
-      img.src = e.target.result;
-    };
-    reader.onerror = () => resolve(file);
-    reader.readAsDataURL(file);
-  });
+const compressImage = async (file) => {
+  try {
+    const res = await compressFile(file);
+    return res?.file || file;
+  } catch (err) {
+    console.error('Compression error:', err);
+    return file;
+  }
 };
 
 const compressMultipleFiles = async (filesList) => {
@@ -2518,8 +2472,8 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
               </div>
             )}
 
-            {/* URL Shortener Toggle */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+            {/* URL Shortener Toggle & Compressor Link */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginTop: '4px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
               <label style={{ 
                 display: 'inline-flex', 
                 alignItems: 'center', 
@@ -2538,6 +2492,10 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
                 <Sparkles size={11} style={{ color: '#818cf8' }} />
                 <span>Otomatis Ringkas Link</span>
               </label>
+
+              <Link href="/compress" target="_blank" style={{ fontSize: '11px', color: '#818cf8', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <FileArchive size={12} /> Kompres Gambar & PDF ↗
+              </Link>
             </div>
           </div>
         </div>
@@ -4630,6 +4588,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
   };
 
   const [showStretchDialog, setShowStretchDialog] = useState(false);
+  const [showKipappModal, setShowKipappModal] = useState(false);
   const [pendingExportType, setPendingExportType] = useState(null);
   const [stretchedEntriesData, setStretchedEntriesData] = useState(null);
   const [hasApelWarning, setHasApelWarning] = useState(false);
@@ -4848,6 +4807,14 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
             <button className={styles.exportBtnMini} onClick={handleExportCKPR} title="Export Excel CKP-R (Realisasi)">CKP-R</button>
             <button className={styles.exportBtnMiniPrimary} onClick={handleExportAll} title="Download 3 Laporan Sekaligus">
               <Download size={14} style={{ marginRight: '6px' }} /> 1 Paket
+            </button>
+            <button 
+              className={styles.exportBtnMiniPrimary} 
+              style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', borderColor: '#6366f1' }} 
+              onClick={() => setShowKipappModal(true)} 
+              title="Sinkronisasi ke KIPAPP BPS (Permen PANRB 6/2022)"
+            >
+              <Send size={14} style={{ marginRight: '6px' }} /> KIPAPP Sync
             </button>
           </div>
         </div>
@@ -5271,6 +5238,15 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
           </div>
         </div>
       )}
+
+      <KipappSyncModal
+        isOpen={showKipappModal}
+        onClose={() => setShowKipappModal(false)}
+        monthEntries={getMonthEntries()}
+        monthName={getMonthName(monthVal - 1)}
+        year={yearVal}
+        skpList={skpData}
+      />
     </div>
   );
 }
