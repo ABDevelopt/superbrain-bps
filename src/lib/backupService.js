@@ -106,6 +106,7 @@ export async function createCloudSnapshot() {
     payload: JSON.stringify(data)
   });
   
+  localStorage.setItem(`last_cloud_backup_${user.uid}`, new Date().toISOString());
   localStorage.setItem('last_cloud_backup', new Date().toISOString());
 }
 

@@ -420,15 +420,18 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('superbrain_custom_satuan');
+      const userKey = user?.uid ? `superbrain_custom_satuan_${user.uid}` : null;
+      const saved = (userKey && localStorage.getItem(userKey)) || localStorage.getItem('superbrain_custom_satuan');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) setCustomSatuanList(parsed);
+      } else {
+        setCustomSatuanList([]);
       }
     } catch (e) {
       console.error('Error loading custom satuan:', e);
     }
-  }, []);
+  }, [user?.uid]);
 
   // User Activity Presets (localStorage)
   const [userPresets, setUserPresets] = useState([]);
@@ -442,15 +445,18 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
 
   useEffect(() => {
     try {
-      const savedPresets = localStorage.getItem('superbrain_user_activity_presets');
+      const userKey = user?.uid ? `superbrain_user_activity_presets_${user.uid}` : null;
+      const savedPresets = (userKey && localStorage.getItem(userKey)) || localStorage.getItem('superbrain_user_activity_presets');
       if (savedPresets) {
         const parsed = JSON.parse(savedPresets);
         if (Array.isArray(parsed)) setUserPresets(parsed);
+      } else {
+        setUserPresets([]);
       }
     } catch (e) {
       console.error('Error loading activity presets:', e);
     }
-  }, []);
+  }, [user?.uid]);
 
   const handleSaveCurrentAsPreset = () => {
     if (!form.rincian.trim()) {
@@ -475,6 +481,9 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
     const updated = [newPreset, ...userPresets];
     setUserPresets(updated);
     try {
+      if (user?.uid) {
+        localStorage.setItem(`superbrain_user_activity_presets_${user.uid}`, JSON.stringify(updated));
+      }
       localStorage.setItem('superbrain_user_activity_presets', JSON.stringify(updated));
     } catch (e) {}
     showAlert(`Template '${name.trim()}' berhasil disimpan!`, 'success');
@@ -485,6 +494,9 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
     const updated = userPresets.filter(p => p.id !== presetId);
     setUserPresets(updated);
     try {
+      if (user?.uid) {
+        localStorage.setItem(`superbrain_user_activity_presets_${user.uid}`, JSON.stringify(updated));
+      }
       localStorage.setItem('superbrain_user_activity_presets', JSON.stringify(updated));
     } catch (e) {}
     showAlert('Template kustom berhasil dihapus.', 'info');
@@ -964,6 +976,9 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
     const updated = Array.from(new Set([...customSatuanList, formatted]));
     setCustomSatuanList(updated);
     try {
+      if (user?.uid) {
+        localStorage.setItem(`superbrain_custom_satuan_${user.uid}`, JSON.stringify(updated));
+      }
       localStorage.setItem('superbrain_custom_satuan', JSON.stringify(updated));
     } catch (e) {
       console.error('Error saving custom satuan:', e);
@@ -978,6 +993,9 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
     const updated = customSatuanList.filter(s => s.toLowerCase() !== unitToDelete.toLowerCase());
     setCustomSatuanList(updated);
     try {
+      if (user?.uid) {
+        localStorage.setItem(`superbrain_custom_satuan_${user.uid}`, JSON.stringify(updated));
+      }
       localStorage.setItem('superbrain_custom_satuan', JSON.stringify(updated));
     } catch (e) {
       console.error('Error deleting custom satuan:', e);
@@ -1923,7 +1941,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
 
       if (needsOfflineSave && savedEntryIds.length > 0) {
         for (const eid of savedEntryIds) {
-          await savePendingUpload(eid, null, null, 'ckp', offlineFiles, offlinePresensiFile);
+          await savePendingUpload(eid, null, null, 'ckp', offlineFiles, offlinePresensiFile, user?.uid);
         }
         showAlert(offlineErrorMsg);
         if (onPendingChange) onPendingChange();
@@ -6478,7 +6496,7 @@ function TabRekapTriwulanan({ entries }) {
 function CKPPageInner() {
   const searchParams = useSearchParams();
   const { showAlert } = useAlert();
-  const { accessToken, loginWithGoogle } = useAuth();
+  const { accessToken, user, loginWithGoogle } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const [openingFolder, setOpeningFolder] = useState(false);
   const { skpData } = useSkps();
@@ -6973,7 +6991,7 @@ function CKPPageInner() {
     setToastVisible(true);
 
     // Telegram Notification
-    const chatId = localStorage.getItem('telegramChatId');
+    const chatId = (user?.uid && localStorage.getItem('telegramChatId_' + user.uid)) || localStorage.getItem('telegramChatId');
     if (chatId) {
       try {
         const formSkpIds = getEntrySkpIds(formData);
@@ -6992,7 +7010,7 @@ function CKPPageInner() {
     }
 
     return docRef?.id;
-  }, [addDocument, skpData]);
+  }, [addDocument, skpData, user]);
 
   const hideToast = useCallback(() => setToastVisible(false), []);
 
@@ -7002,10 +7020,10 @@ function CKPPageInner() {
   const [isSyncing, setIsSyncing] = useState(false);
 
   const fetchPendingUploads = useCallback(async () => {
-    const list = await getPendingUploads();
+    const list = await getPendingUploads(user?.uid);
     const ckpList = list.filter(item => !item.type || item.type === 'ckp');
     setPendingUploads(ckpList || []);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchPendingUploads();
@@ -7025,7 +7043,7 @@ function CKPPageInner() {
     let successCount = 0;
     
     try {
-      const list = await getPendingUploads();
+      const list = await getPendingUploads(user?.uid);
       const ckpList = list.filter(item => !item.type || item.type === 'ckp');
       if (!ckpList || ckpList.length === 0) {
         setIsSyncing(false);

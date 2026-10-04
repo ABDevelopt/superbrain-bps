@@ -7,8 +7,10 @@ import { useChatAction } from '@/contexts/ChatActionContext';
 import { useAIContext } from '@/contexts/AIContext';
 import { useFirestore } from '@/hooks/useFirestore';
 import { useSkps } from '@/hooks/useSkps';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function AIChatbot() {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Halo! Saya SuperBrain AI Global. Anda bisa melampirkan file atau menyuruh saya untuk mencatat jadwal, tugas, dan CKP.' }
@@ -27,6 +29,13 @@ export default function AIChatbot() {
   const { docs: tasks = [] } = useFirestore('tasks');
   const { docs: schedule = [] } = useFirestore('schedule');
   const { docs: ckp = [] } = useFirestore('ckp');
+
+  // Reset chat messages when user changes or logs out
+  useEffect(() => {
+    setMessages([
+      { role: 'assistant', content: 'Halo! Saya SuperBrain AI Global. Anda bisa melampirkan file atau menyuruh saya untuk mencatat jadwal, tugas, dan CKP.' }
+    ]);
+  }, [user?.uid]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

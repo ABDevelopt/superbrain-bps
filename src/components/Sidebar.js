@@ -52,12 +52,19 @@ export default function Sidebar({ isOpen = true, onToggle }) {
           {user?.photoURL ? (
             <img src={user.photoURL} alt="Avatar" style={{width: '100%', height: '100%', borderRadius: '50%'}} />
           ) : (
-            'YA'
+            (() => {
+              if (user?.displayName) {
+                const parts = user.displayName.trim().split(/\s+/);
+                return (parts.length >= 2 ? parts[0][0] + parts[1][0] : user.displayName.substring(0, 2)).toUpperCase();
+              }
+              if (user?.email) return user.email.substring(0, 2).toUpperCase();
+              return 'SB';
+            })()
           )}
         </div>
         <div className={styles.userInfo}>
-          <div className={styles.userName}>{user?.displayName || 'Yahya Abdurrohman'}</div>
-          <div className={styles.userUnit}>BPS Kab. Penajam Paser Utara</div>
+          <div className={styles.userName}>{user?.displayName || user?.email?.split('@')[0] || 'Pengguna'}</div>
+          <div className={styles.userUnit}>{user?.email || 'Pegawai BPS'}</div>
         </div>
       </div>
 

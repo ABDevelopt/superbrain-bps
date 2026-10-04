@@ -2,13 +2,21 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { doc, setDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { useAuth } from '@/contexts/AuthContext';
 
 const UndoRedoContext = createContext({});
 
 export function UndoRedoProvider({ children }) {
+  const { user } = useAuth();
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
   const [toast, setToast] = useState(null);
+
+  useEffect(() => {
+    // Clear undo/redo history whenever user changes or logs out
+    setUndoStack([]);
+    setRedoStack([]);
+  }, [user?.uid]);
 
   const showToast = (msg) => {
     setToast(msg);

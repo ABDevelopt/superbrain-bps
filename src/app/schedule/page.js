@@ -230,7 +230,7 @@ function EventCard({ event, onToggle, onEdit, onDelete, onJadikanCKP, ckpCount =
 }
 
 export default function SchedulePage() {
-  const { accessToken, loginWithGoogle } = useAuth();
+  const { accessToken, user, loginWithGoogle } = useAuth();
   const router = useRouter();
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
@@ -281,10 +281,10 @@ export default function SchedulePage() {
   };
 
   const fetchPendingUploads = useCallback(async () => {
-    const list = await getPendingUploads();
+    const list = await getPendingUploads(user?.uid);
     const scheduleList = list.filter(item => item.type === 'schedule');
     setPendingUploads(scheduleList || []);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchPendingUploads();
@@ -778,7 +778,7 @@ export default function SchedulePage() {
 
       if (needsOfflineSave) {
         for (const item of offlineFiles) {
-          await savePendingUpload(`${docRef.id}_${item.idx}`, item.file, item.customFileName, 'schedule');
+          await savePendingUpload(`${docRef.id}_${item.idx}`, item.file, item.customFileName, 'schedule', null, null, user?.uid);
         }
         alert('Beberapa lampiran disimpan secara lokal karena kendala koneksi/sesi Google Drive.');
         fetchPendingUploads();
@@ -819,7 +819,7 @@ export default function SchedulePage() {
     }
 
     // Telegram Notification
-    const chatId = localStorage.getItem('telegramChatId');
+    const chatId = (user?.uid && localStorage.getItem('telegramChatId_' + user.uid)) || localStorage.getItem('telegramChatId');
     if (chatId) {
       try {
         const reminderStr = Array.isArray(formData.reminders) ? formData.reminders.join(', ') : '';
@@ -886,7 +886,7 @@ export default function SchedulePage() {
 
         if (needsOfflineSave) {
           for (const item of offlineFiles) {
-            await savePendingUpload(`${id}_${item.idx}`, item.file, item.customFileName, 'schedule');
+            await savePendingUpload(`${id}_${item.idx}`, item.file, item.customFileName, 'schedule', null, null, user?.uid);
           }
           alert('Beberapa lampiran disimpan secara lokal karena kendala koneksi/sesi Google Drive.');
           fetchPendingUploads();
@@ -926,7 +926,7 @@ export default function SchedulePage() {
     let successCount = 0;
     
     try {
-      const list = await getPendingUploads();
+      const list = await getPendingUploads(user?.uid);
       const scheduleList = list.filter(item => item.type === 'schedule');
       if (scheduleList.length === 0) return;
       

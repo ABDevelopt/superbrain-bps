@@ -293,7 +293,7 @@ export default function Dashboard() {
             <div className={styles.greetingBlock}>
               <h1 className={styles.greeting}>
                 Selamat {greeting},{' '}
-                <span className={styles.nama}>{user?.displayName?.split(' ')[0] || 'Yahya'}!</span>
+                <span className={styles.nama}>{user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'Rekan BPS'}!</span>
               </h1>
               <p className={styles.tanggal}>
                 <span className={styles.calendarIcon}><Calendar size={16} /></span>
@@ -308,7 +308,14 @@ export default function Dashboard() {
                 {user?.photoURL ? (
                   <img src={user.photoURL} alt="Avatar" style={{width: '100%', height: '100%', borderRadius: '50%'}} />
                 ) : (
-                  'YA'
+                  (() => {
+                    if (user?.displayName) {
+                      const parts = user.displayName.trim().split(/\s+/);
+                      return (parts.length >= 2 ? parts[0][0] + parts[1][0] : user.displayName.substring(0, 2)).toUpperCase();
+                    }
+                    if (user?.email) return user.email.substring(0, 2).toUpperCase();
+                    return 'SB';
+                  })()
                 )}
               </div>
             </div>

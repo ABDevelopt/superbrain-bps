@@ -15,24 +15,27 @@ const dbPromise = (typeof window !== 'undefined') ? openDB(DB_NAME, 2, {
   },
 }) : null;
 
-export async function savePendingUpload(id, file, customFileName, type = 'ckp', files = null, presensiFile = null) {
+export async function savePendingUpload(id, file, customFileName, type = 'ckp', files = null, presensiFile = null, userId = null) {
   if (!dbPromise) return;
   const db = await dbPromise;
   await db.put(STORE_NAME, {
-    id, // this will be the entry id
-    file, // the Blob/File object
+    id, // entry id
+    file, // Blob/File object
     customFileName,
     files, // array of { file, customFileName } for multifile
     presensiFile, // { file, customFileName } for attendance proof
     type,
+    userId: userId || null,
     timestamp: Date.now()
   });
 }
 
-export async function getPendingUploads() {
+export async function getPendingUploads(userId = null) {
   if (!dbPromise) return [];
   const db = await dbPromise;
-  return await db.getAll(STORE_NAME);
+  const all = await db.getAll(STORE_NAME);
+  if (!userId) return all;
+  return all.filter(item => item.userId === userId);
 }
 
 export async function removePendingUpload(id) {
@@ -41,19 +44,20 @@ export async function removePendingUpload(id) {
   await db.delete(STORE_NAME, id);
 }
 
-export async function getPendingUploadCount() {
+export async function getPendingUploadCount(userId = null) {
   if (!dbPromise) return 0;
-  const db = await dbPromise;
-  return await db.count(STORE_NAME);
+  const items = await getPendingUploads(userId);
+  return items.length;
 }
 
 // ===== Offline-First Draft Activities Support =====
-export async function saveDraftActivity(activity) {
+export async function saveDraftActivity(activity, userId = null) {
   if (!dbPromise) return;
   const db = await dbPromise;
   const item = {
     ...activity,
     id: activity.id || `draft_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+    userId: userId || activity.userId || null,
     updatedAt: Date.now(),
     isDraft: true
   };
@@ -61,10 +65,12 @@ export async function saveDraftActivity(activity) {
   return item;
 }
 
-export async function getDraftActivities() {
+export async function getDraftActivities(userId = null) {
   if (!dbPromise) return [];
   const db = await dbPromise;
-  return await db.getAll(DRAFTS_STORE);
+  const all = await db.getAll(DRAFTS_STORE);
+  if (!userId) return all;
+  return all.filter(item => item.userId === userId);
 }
 
 export async function removeDraftActivity(id) {
@@ -73,9 +79,17 @@ export async function removeDraftActivity(id) {
   await db.delete(DRAFTS_STORE, id);
 }
 
-export async function clearDraftActivities() {
+export async function clearDraftActivities(userId = null) {
   if (!dbPromise) return;
   const db = await dbPromise;
-  await db.clear(DRAFTS_STORE);
+  if (!userId) {
+    await db.clear(DRAFTS_STORE);
+    return;
+  }
+  const all = await db.getAll(DRAFTS_STORE);
+  for (const item of all) {
+    if (item.userId === userId) {
+      await db.delete(DRAFTS_STORE, item.id);
+    }
+  }
 }
-

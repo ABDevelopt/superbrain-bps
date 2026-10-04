@@ -16,23 +16,16 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [accessToken, setAccessToken] = useState(null);
 
-  // Retrieve persisted token on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedToken = localStorage.getItem('sb_google_access_token');
-      if (storedToken) {
-        setAccessToken(storedToken);
-      }
-    }
-  }, []);
-
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
       
-      // If user logs out, clear token
-      if (!currentUser) {
+      if (currentUser && typeof window !== 'undefined') {
+        // Retrieve token specifically scoped to this user
+        const userToken = localStorage.getItem(`sb_google_access_token_${currentUser.uid}`) || localStorage.getItem('sb_google_access_token');
+        setAccessToken(userToken || null);
+      } else {
         setAccessToken(null);
         if (typeof window !== 'undefined') {
           localStorage.removeItem('sb_google_access_token');
@@ -59,6 +52,9 @@ export function AuthProvider({ children }) {
         setAccessToken(credential.accessToken);
         if (typeof window !== 'undefined') {
           localStorage.setItem('sb_google_access_token', credential.accessToken);
+          if (result.user?.uid) {
+            localStorage.setItem(`sb_google_access_token_${result.user.uid}`, credential.accessToken);
+          }
         }
         return credential.accessToken;
       }
@@ -70,10 +66,16 @@ export function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
+      const uid = user?.uid;
       await signOut(auth);
       setAccessToken(null);
+      setUser(null);
       if (typeof window !== 'undefined') {
         localStorage.removeItem('sb_google_access_token');
+        if (uid) {
+          localStorage.removeItem(`sb_google_access_token_${uid}`);
+        }
+        sessionStorage.removeItem('ckp_prefill');
       }
     } catch (error) {
       console.error("Error signing out:", error);

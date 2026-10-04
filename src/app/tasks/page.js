@@ -36,7 +36,7 @@ function getRoleIcon(iconName, size = 14) {
 }
 
 export default function TasksPage() {
-  const { accessToken, loginWithGoogle } = useAuth();
+  const { accessToken, user, loginWithGoogle } = useAuth();
   const router = useRouter();
 
   // Tab Utama: 0 = Papan Kanban, 1 = Pemetaan SKP
@@ -66,10 +66,10 @@ export default function TasksPage() {
   const [isSyncing, setIsSyncing] = useState(false);
 
   const fetchPendingUploads = useCallback(async () => {
-    const list = await getPendingUploads();
+    const list = await getPendingUploads(user?.uid);
     const tasksList = list.filter(item => item.type === 'tasks');
     setPendingUploads(tasksList || []);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchPendingUploads();
@@ -213,7 +213,7 @@ export default function TasksPage() {
     let successCount = 0;
     
     try {
-      const list = await getPendingUploads();
+      const list = await getPendingUploads(user?.uid);
       const tasksList = list.filter(item => item.type === 'tasks');
       if (tasksList.length === 0) return;
       
@@ -377,6 +377,10 @@ export default function TasksPage() {
   }, [tasks, accessToken, updateTask]);
 
   useEffect(() => {
+    if (!user) {
+      setIsLoaded(true);
+      return;
+    }
     const localTasks = localStorage.getItem('bps_superbrain_tasks');
     if (localTasks) {
       try {
@@ -386,7 +390,7 @@ export default function TasksPage() {
           parsed.forEach(task => {
             const taskRef = doc(collection(db, 'tasks'));
             const { id, ...dataToUpload } = task;
-            batch.set(taskRef, dataToUpload);
+            batch.set(taskRef, { ...dataToUpload, userId: user.uid });
           });
           batch.commit().then(() => {
             localStorage.removeItem('bps_superbrain_tasks');
@@ -395,7 +399,7 @@ export default function TasksPage() {
       } catch(e) { console.error(e); }
     }
     setIsLoaded(true);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -667,7 +671,7 @@ export default function TasksPage() {
 
         if (needsOfflineSave && offlineFilesToSave.length > 0) {
           for (const item of offlineFilesToSave) {
-            await savePendingUpload(savedTaskId + '_' + item.idx, item.file, item.customFileName, 'tasks');
+            await savePendingUpload(savedTaskId + '_' + item.idx, item.file, item.customFileName, 'tasks', null, null, user?.uid);
           }
           alert('Beberapa lampiran tugas disimpan secara lokal karena kendala koneksi/sesi Google Drive.');
           fetchPendingUploads();

@@ -23,17 +23,28 @@ export default function SettingsPage() {
 
   useEffect(() => {
     setMounted(true);
-    const saved = localStorage.getItem('telegramChatId');
-    if (saved) {
-      setSavedChatId(saved);
-      setChatId(saved);
+    if (!user) {
+      setSavedChatId('');
+      setChatId('');
+      return;
     }
     
-    const lastBackup = localStorage.getItem('last_cloud_backup');
-    if (lastBackup) {
-      setLastCloudBackup(new Date(lastBackup).toLocaleString('id-ID'));
+    const userChatId = localStorage.getItem(`telegramChatId_${user.uid}`) || localStorage.getItem('telegramChatId');
+    if (userChatId) {
+      setSavedChatId(userChatId);
+      setChatId(userChatId);
+    } else {
+      setSavedChatId('');
+      setChatId('');
     }
-  }, []);
+    
+    const userBackupStr = localStorage.getItem(`last_cloud_backup_${user.uid}`) || localStorage.getItem('last_cloud_backup');
+    if (userBackupStr) {
+      setLastCloudBackup(new Date(userBackupStr).toLocaleString('id-ID'));
+    } else {
+      setLastCloudBackup('Belum pernah');
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -46,6 +57,7 @@ export default function SettingsPage() {
           const dbChatId = snap.docs[0].id;
           setChatId(dbChatId);
           setSavedChatId(dbChatId);
+          localStorage.setItem(`telegramChatId_${user.uid}`, dbChatId);
           localStorage.setItem('telegramChatId', dbChatId);
         }
       } catch (err) {
@@ -71,6 +83,7 @@ export default function SettingsPage() {
           userId: user.uid,
           updatedAt: new Date().toISOString()
         });
+        localStorage.setItem(`telegramChatId_${user.uid}`, trimmed);
         localStorage.setItem('telegramChatId', trimmed);
         setSavedChatId(trimmed);
         showAlert('Chat ID berhasil disimpan! Notifikasi Telegram sudah aktif.');
@@ -83,6 +96,7 @@ export default function SettingsPage() {
         if (savedChatId) {
           await deleteDoc(doc(db, 'telegram_mappings', savedChatId));
         }
+        localStorage.removeItem(`telegramChatId_${user.uid}`);
         localStorage.removeItem('telegramChatId');
         setSavedChatId('');
         showAlert('Integrasi Telegram dimatikan.');
@@ -250,13 +264,20 @@ export default function SettingsPage() {
                 {user?.photoURL ? (
                   <img src={user.photoURL} alt="Avatar" style={{width: '100%', height: '100%', borderRadius: '50%'}} />
                 ) : (
-                  user?.displayName?.substring(0, 2).toUpperCase() || 'YA'
+                  (() => {
+                    if (user?.displayName) {
+                      const parts = user.displayName.trim().split(/\s+/);
+                      return (parts.length >= 2 ? parts[0][0] + parts[1][0] : user.displayName.substring(0, 2)).toUpperCase();
+                    }
+                    if (user?.email) return user.email.substring(0, 2).toUpperCase();
+                    return 'SB';
+                  })()
                 )}
               </div>
               <div className={styles.profileInfo}>
-                <div className={styles.profileName}>{user?.displayName || 'Yahya Abdurrohman'}</div>
-                <div className={styles.profileEmail}>{user?.email || 'yahya@bps.go.id'}</div>
-                <div className={styles.profileRole}>BPS Kab. Penajam Paser Utara</div>
+                <div className={styles.profileName}>{user?.displayName || user?.email?.split('@')[0] || 'Pengguna SuperBrain'}</div>
+                <div className={styles.profileEmail}>{user?.email || 'Belum terhubung'}</div>
+                <div className={styles.profileRole}>Pegawai BPS</div>
               </div>
             </div>
           </div>
