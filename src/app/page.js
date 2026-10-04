@@ -5,6 +5,7 @@ import { Calendar, BarChart2, Users, FileText, CheckCircle, File, ClipboardList,
 import Link from 'next/link';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { useFirestore } from '@/hooks/useFirestore';
 import { useSkps } from '@/hooks/useSkps';
 import SmartSuggestions from '@/components/SmartSuggestions';
@@ -81,6 +82,7 @@ const QUICK_ACTIONS = [
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { profile } = useUserProfile();
   const { skpData } = useSkps();
   const { docs: ckpDocs, loading: ckpLoading } = useFirestore('ckp');
   const { docs: scheduleDocs, loading: scheduleLoading } = useFirestore('schedule');
@@ -293,7 +295,7 @@ export default function Dashboard() {
             <div className={styles.greetingBlock}>
               <h1 className={styles.greeting}>
                 Selamat {greeting},{' '}
-                <span className={styles.nama}>{user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'Rekan BPS'}!</span>
+                <span className={styles.nama}>{profile?.displayName?.split(' ')[0] || user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'Rekan BPS'}!</span>
               </h1>
               <p className={styles.tanggal}>
                 <span className={styles.calendarIcon}><Calendar size={16} /></span>
@@ -309,9 +311,10 @@ export default function Dashboard() {
                   <img src={user.photoURL} alt="Avatar" style={{width: '100%', height: '100%', borderRadius: '50%'}} />
                 ) : (
                   (() => {
-                    if (user?.displayName) {
-                      const parts = user.displayName.trim().split(/\s+/);
-                      return (parts.length >= 2 ? parts[0][0] + parts[1][0] : user.displayName.substring(0, 2)).toUpperCase();
+                    const name = profile?.displayName || user?.displayName;
+                    if (name) {
+                      const parts = name.trim().split(/\s+/);
+                      return (parts.length >= 2 ? parts[0][0] + parts[1][0] : name.substring(0, 2)).toUpperCase();
                     }
                     if (user?.email) return user.email.substring(0, 2).toUpperCase();
                     return 'SB';

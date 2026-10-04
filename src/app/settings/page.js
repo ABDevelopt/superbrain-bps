@@ -6,12 +6,14 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { Settings as SettingsIcon, Send, User, Bell, Shield, LogOut, Database, Cloud, UploadCloud, DownloadCloud, CheckCircle2, Sun, Moon, Monitor } from 'lucide-react';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { exportToJSON, createCloudSnapshot, restoreFromCloudSnapshot, restoreFromBackupData } from '@/lib/backupService';
 import { db } from '@/lib/firebase';
 import { doc, setDoc, deleteDoc, getDocs, collection, query, where } from 'firebase/firestore';
 
 export default function SettingsPage() {
   const { user, logout } = useAuth();
+  const { profile, updateProfile, loading: profileLoading } = useUserProfile();
   const { showAlert } = useAlert();
   const { theme, mode, setMode } = useTheme();
   const [chatId, setChatId] = useState('');
@@ -20,6 +22,44 @@ export default function SettingsPage() {
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [isDeletingJuly, setIsDeletingJuly] = useState(false);
   const [lastCloudBackup, setLastCloudBackup] = useState('Belum pernah');
+
+  // Multi-account profile form state
+  const [formDisplayName, setFormDisplayName] = useState('');
+  const [formNip, setFormNip] = useState('');
+  const [formJabatan, setFormJabatan] = useState('');
+  const [formSatker, setFormSatker] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  useEffect(() => {
+    if (profile) {
+      setFormDisplayName(profile.displayName || user?.displayName || '');
+      setFormNip(profile.nip || '');
+      setFormJabatan(profile.jabatan || 'Pegawai BPS');
+      setFormSatker(profile.satker || 'BPS');
+    } else if (user) {
+      setFormDisplayName(user.displayName || '');
+    }
+  }, [profile, user]);
+
+  const handleSaveProfile = async (e) => {
+    e?.preventDefault();
+    if (!user) return;
+    setIsSavingProfile(true);
+    try {
+      await updateProfile({
+        displayName: formDisplayName.trim(),
+        nip: formNip.trim(),
+        jabatan: formJabatan.trim(),
+        satker: formSatker.trim()
+      });
+      showAlert('Data profil berhasil diperbarui ke database cloud!', 'success');
+    } catch (err) {
+      console.error('Failed to save profile:', err);
+      showAlert('Gagal menyimpan profil: ' + err.message);
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -275,11 +315,81 @@ export default function SettingsPage() {
                 )}
               </div>
               <div className={styles.profileInfo}>
-                <div className={styles.profileName}>{user?.displayName || user?.email?.split('@')[0] || 'Pengguna SuperBrain'}</div>
+                <div className={styles.profileName}>{formDisplayName || profile?.displayName || user?.displayName || user?.email?.split('@')[0] || 'Pengguna SuperBrain'}</div>
                 <div className={styles.profileEmail}>{user?.email || 'Belum terhubung'}</div>
-                <div className={styles.profileRole}>Pegawai BPS</div>
+                <div className={styles.profileRole}>{(formJabatan || profile?.jabatan || 'Pegawai BPS')} • {(formSatker || profile?.satker || 'BPS')}</div>
               </div>
             </div>
+
+            <form onSubmit={handleSaveProfile} style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid var(--surface-border)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                    Nama Lengkap
+                  </label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={formDisplayName}
+                    onChange={(e) => setFormDisplayName(e.target.value)}
+                    placeholder="Nama Pegawai"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                    NIP (Nomor Induk Pegawai)
+                  </label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={formNip}
+                    onChange={(e) => setFormNip(e.target.value)}
+                    placeholder="19xxxxxxxxxxxxxxxx"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                    Jabatan Fungsional / Posisi
+                  </label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={formJabatan}
+                    onChange={(e) => setFormJabatan(e.target.value)}
+                    placeholder="Contoh: Statistisi Ahli Pertama"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                    Satuan Kerja (Satker)
+                  </label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={formSatker}
+                    onChange={(e) => setFormSatker(e.target.value)}
+                    placeholder="Contoh: BPS Kab. Penajam Paser Utara"
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                <button
+                  type="submit"
+                  disabled={isSavingProfile}
+                  className={`${styles.btn} ${styles.btnPrimary}`}
+                >
+                  {isSavingProfile ? 'Menyimpan...' : 'Simpan Profil'}
+                </button>
+              </div>
+            </form>
           </div>
         </section>
 

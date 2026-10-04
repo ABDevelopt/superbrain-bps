@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Home, ClipboardList, Edit3, Calendar, BrainCircuit, LogOut, PanelLeftClose, PanelLeftOpen, Settings, CheckSquare, Link2, FileArchive } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import ConfirmDialog from './ConfirmDialog';
 import ThemeToggle from './ThemeToggle';
 import { useState } from 'react';
@@ -23,6 +24,7 @@ const navItems = [
 export default function Sidebar({ isOpen = true, onToggle }) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { profile } = useUserProfile();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const isActive = (href) => {
@@ -63,8 +65,8 @@ export default function Sidebar({ isOpen = true, onToggle }) {
           )}
         </div>
         <div className={styles.userInfo}>
-          <div className={styles.userName}>{user?.displayName || user?.email?.split('@')[0] || 'Pengguna'}</div>
-          <div className={styles.userUnit}>{user?.email || 'Pegawai BPS'}</div>
+          <div className={styles.userName}>{profile?.displayName || user?.displayName || user?.email?.split('@')[0] || 'Pengguna'}</div>
+          <div className={styles.userUnit}>{profile?.satker || profile?.jabatan || user?.email || 'Pegawai BPS'}</div>
         </div>
       </div>
 

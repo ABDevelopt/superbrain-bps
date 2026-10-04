@@ -8,6 +8,7 @@ import { useAlert } from '@/contexts/AlertContext';
 import { compressFile, formatBytes } from '@/lib/compressor';
 import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Clock, Link as LinkIcon, CloudOff, FolderOpen, AlertTriangle, Sparkles, FolderPlus, ExternalLink, FileArchive, Send, Palmtree, Repeat, Plus, Tag } from 'lucide-react';
 import { useSkps } from '@/hooks/useSkps';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFirestore } from '@/hooks/useFirestore';
@@ -352,6 +353,7 @@ const compressMultipleFiles = async (filesList) => compressMultipleFilesWithMeta
 
 function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit, entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday, checkDl, onToggleDl, onPendingChange, skpData, onEdit }) {
   const { accessToken, user, loginWithGoogle } = useAuth();
+  const { profile, saveCustomSatuan, saveActivityPresets } = useUserProfile();
   const { showAlert } = useAlert();
   const [mounted, setMounted] = useState(false);
   const [showSchedulePicker, setShowSchedulePicker] = useState(false);
@@ -419,6 +421,10 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
   }, [isCompressActive]);
 
   useEffect(() => {
+    if (profile?.customSatuan && Array.isArray(profile.customSatuan) && profile.customSatuan.length > 0) {
+      setCustomSatuanList(profile.customSatuan);
+      return;
+    }
     try {
       const userKey = user?.uid ? `superbrain_custom_satuan_${user.uid}` : null;
       const saved = (userKey && localStorage.getItem(userKey)) || localStorage.getItem('superbrain_custom_satuan');
@@ -431,9 +437,9 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
     } catch (e) {
       console.error('Error loading custom satuan:', e);
     }
-  }, [user?.uid]);
+  }, [user?.uid, profile?.customSatuan]);
 
-  // User Activity Presets (localStorage)
+  // User Activity Presets (localStorage & Firestore)
   const [userPresets, setUserPresets] = useState([]);
   
   // Salin Kegiatan dari Hari Sebelumnya
@@ -444,6 +450,10 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
   const [isCopyingPrevDay, setIsCopyingPrevDay] = useState(false);
 
   useEffect(() => {
+    if (profile?.activityPresets && Array.isArray(profile.activityPresets) && profile.activityPresets.length > 0) {
+      setUserPresets(profile.activityPresets);
+      return;
+    }
     try {
       const userKey = user?.uid ? `superbrain_user_activity_presets_${user.uid}` : null;
       const savedPresets = (userKey && localStorage.getItem(userKey)) || localStorage.getItem('superbrain_user_activity_presets');
@@ -456,7 +466,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
     } catch (e) {
       console.error('Error loading activity presets:', e);
     }
-  }, [user?.uid]);
+  }, [user?.uid, profile?.activityPresets]);
 
   const handleSaveCurrentAsPreset = () => {
     if (!form.rincian.trim()) {
@@ -480,6 +490,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
     };
     const updated = [newPreset, ...userPresets];
     setUserPresets(updated);
+    saveActivityPresets(updated);
     try {
       if (user?.uid) {
         localStorage.setItem(`superbrain_user_activity_presets_${user.uid}`, JSON.stringify(updated));
@@ -493,6 +504,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
     e.stopPropagation();
     const updated = userPresets.filter(p => p.id !== presetId);
     setUserPresets(updated);
+    saveActivityPresets(updated);
     try {
       if (user?.uid) {
         localStorage.setItem(`superbrain_user_activity_presets_${user.uid}`, JSON.stringify(updated));
@@ -975,6 +987,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
     const formatted = val.charAt(0).toUpperCase() + val.slice(1);
     const updated = Array.from(new Set([...customSatuanList, formatted]));
     setCustomSatuanList(updated);
+    saveCustomSatuan(updated);
     try {
       if (user?.uid) {
         localStorage.setItem(`superbrain_custom_satuan_${user.uid}`, JSON.stringify(updated));
@@ -992,6 +1005,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
   const handleDeleteCustomSatuan = (unitToDelete) => {
     const updated = customSatuanList.filter(s => s.toLowerCase() !== unitToDelete.toLowerCase());
     setCustomSatuanList(updated);
+    saveCustomSatuan(updated);
     try {
       if (user?.uid) {
         localStorage.setItem(`superbrain_custom_satuan_${user.uid}`, JSON.stringify(updated));

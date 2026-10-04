@@ -2,60 +2,118 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper: pastikan user sudah login
+    // Helper: pastikan request memiliki auth token yang valid
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Helper: data yang AKAN ditulis harus milik user yang login
-    function isOwner() {
-      return request.resource.data.userId == request.auth.uid;
-    }
-
-    // Helper: dokumen yang ADA milik user yang login
-    // ATAU dokumen lama yang belum punya field userId (untuk migrasi legacy data)
+    // Helper: kepemilikan dokumen yang sudah ada (untuk read, update, delete)
     function isDocOwner() {
-      return !('userId' in resource.data)
-          || resource.data.userId == null
-          || resource.data.userId == ''
-          || resource.data.userId == request.auth.uid;
+      return isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        // Fallback backward-compatible untuk dokumen transisi tanpa userId
+        (!('userId' in resource.data) || resource.data.userId == null || resource.data.userId == '')
+      );
     }
 
-    // ─── Koleksi utama (tasks, schedule, ckp, dinas_lapangan, holidays) ─────
-    match /{collection}/{docId} {
-      allow read:   if isAuthenticated() && isDocOwner();
-      allow create: if isAuthenticated() && isOwner();
-      allow update: if isAuthenticated() && isDocOwner();
-      allow delete: if isAuthenticated() && isDocOwner();
+    // Helper: data baru wajib mencantumkan userId pembuat yang sesuai
+    function isOwner() {
+      return isAuthenticated() && request.resource.data.userId == request.auth.uid;
     }
 
-    // ─── Koleksi backups (cloud snapshot) ────────────────────────────────────
-    // Dokumen ID = uid user, jadi hanya user itu yang bisa akses
-    match /backups/{userId} {
+    // ─── Profil Pengguna & Preferensi Multiakun ──────────────────────────────
+    match /users/{userId} {
       allow read, write: if isAuthenticated() && request.auth.uid == userId;
     }
 
-    // ─── Koleksi skp (per-user SKP items) ───────────────────────────────────
-    match /skp/{docId} {
-      allow read:   if isAuthenticated() && isDocOwner();
-      allow create: if isAuthenticated() && isOwner();
-      allow update: if isAuthenticated() && isDocOwner();
-      allow delete: if isAuthenticated() && isDocOwner();
+    // ─── Koleksi Catatan CKP (Capaian Kinerja Pegawai) ───────────────────────
+    match /ckp/{docId} {
+      allow read:   if isDocOwner();
+      allow create: if isOwner();
+      allow update: if isDocOwner() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isDocOwner();
     }
 
-    // ─── Koleksi training_programs ──────────────────────────────────────────
+    // ─── Koleksi Jadwal Kegiatan & Kalender ──────────────────────────────────
+    match /schedule/{docId} {
+      allow read:   if isDocOwner();
+      allow create: if isOwner();
+      allow update: if isDocOwner() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isDocOwner();
+    }
+
+    // ─── Koleksi Tugas & Manajemen Kanban ────────────────────────────────────
+    match /tasks/{docId} {
+      allow read:   if isDocOwner();
+      allow create: if isOwner();
+      allow update: if isDocOwner() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isDocOwner();
+    }
+
+    // ─── Koleksi SKP, Tim Kerja, dan Proyek ──────────────────────────────────
+    match /skps/{docId} {
+      allow read:   if isDocOwner();
+      allow create: if isOwner();
+      allow update: if isDocOwner() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isDocOwner();
+    }
+
+    match /teams/{docId} {
+      allow read:   if isDocOwner();
+      allow create: if isOwner();
+      allow update: if isDocOwner() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isDocOwner();
+    }
+
+    match /projects/{docId} {
+      allow read:   if isDocOwner();
+      allow create: if isOwner();
+      allow update: if isDocOwner() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isDocOwner();
+    }
+
+    // ─── Koleksi Kalender Cuti/Libur & Dinas Lapangan ────────────────────────
+    match /holidays/{docId} {
+      allow read:   if isDocOwner();
+      allow create: if isOwner();
+      allow update: if isDocOwner() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isDocOwner();
+    }
+
+    match /dinas_lapangan/{docId} {
+      allow read:   if isDocOwner();
+      allow create: if isOwner();
+      allow update: if isDocOwner() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isDocOwner();
+    }
+
+    // ─── Koleksi Pelatihan & Pengembangan Mandiri ────────────────────────────
     match /training_programs/{docId} {
-      allow read:   if isAuthenticated() && isDocOwner();
-      allow create: if isAuthenticated() && isOwner();
-      allow update: if isAuthenticated() && isDocOwner();
-      allow delete: if isAuthenticated() && isDocOwner();
+      allow read:   if isDocOwner();
+      allow create: if isOwner();
+      allow update: if isDocOwner() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isDocOwner();
     }
 
-    // ─── Short links (bisa dibaca publik untuk redirect) ────────────────────
+    // ─── Pemetaan Chat ID Telegram per Pengguna ──────────────────────────────
+    match /telegram_mappings/{chatId} {
+      allow read:   if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // ─── Tautan Singkat Berkas Dukung (Short Links) ──────────────────────────
     match /short_links/{docId} {
-      allow read: if true; // publik untuk redirect
+      allow read:   if true; // Publik untuk kebutuhan redirect link
       allow create: if isAuthenticated() && isOwner();
-      allow update, delete: if isAuthenticated() && isDocOwner();
+      allow update: if isDocOwner() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isDocOwner();
+    }
+
+    // ─── Pencadangan Snapshot Cloud (Backups) ────────────────────────────────
+    match /backups/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
     }
   }
 }
