@@ -64,8 +64,6 @@ const CAPTURE_MODES = [
   { id: 'quick', label: 'QUICK SNAP', desc: 'Jepret cepat ber-watermark' },
 ];
 
-const ASPECT_RATIOS = ['3:4', '9:16', '1:1', 'FULL'];
-
 export default function CameraPage() {
   const router = useRouter();
   const { user, accessToken, loginWithGoogle } = useAuth();
@@ -88,7 +86,6 @@ export default function CameraPage() {
   const [flashSupported, setFlashSupported] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
   const [gridActive, setGridActive] = useState(true);
-  const [aspectRatio, setAspectRatio] = useState('3:4');
   const [timerSeconds, setTimerSeconds] = useState(0); // 0 (off), 3, 10
   const [countdownVal, setCountdownVal] = useState(null);
   const [permissionError, setPermissionError] = useState(null);
@@ -429,13 +426,6 @@ export default function CameraPage() {
     }
   };
 
-  // Toggle Aspect Ratio
-  const handleToggleAspect = () => {
-    const currIdx = ASPECT_RATIOS.indexOf(aspectRatio);
-    const nextIdx = (currIdx + 1) % ASPECT_RATIOS.length;
-    setAspectRatio(ASPECT_RATIOS[nextIdx]);
-  };
-
   // Toggle Timer (Off -> 3s -> 10s)
   const handleToggleTimer = () => {
     if (timerSeconds === 0) setTimerSeconds(3);
@@ -515,39 +505,23 @@ export default function CameraPage() {
     const petugasLine = `Petugas: ${namaPetugas}${nipPetugas} | ${satkerPetugas}`;
 
     let detailLine = '';
-    let modeBadgeText = 'DOKUMENTASI RESMI';
     if (mode === 'ckp') {
-      modeBadgeText = 'BUKTI FISIK CKP';
       detailLine = `Kegiatan: ${currentForm.rincian || 'Dokumentasi Bukti Dukung CKP'}${currentForm.jumlah ? ` (${currentForm.jumlah} ${currentForm.satuan || 'Kegiatan'})` : ''}`;
     } else if (mode === 'field') {
-      modeBadgeText = 'DINAS LAPANGAN';
       detailLine = `Kegiatan: ${currentForm.namaSurvei || 'Pemeriksaan Lapangan'}${currentForm.lokasiWilayah ? ` | Lokasi: ${currentForm.lokasiWilayah}` : ''}`;
     } else if (mode === 'schedule') {
-      modeBadgeText = 'DOKUMENTASI AGENDA';
       const sc = (schedules || []).find((s) => s.id === currentForm.selectedScheduleId);
       detailLine = `Kegiatan: ${sc ? sc.judul : currentForm.judulJadwal || 'Kegiatan Rapat / Dinas'}`;
     } else if (mode === 'video') {
-      modeBadgeText = 'VIDEO LAPANGAN';
       detailLine = `Kegiatan: ${currentForm.catatanRingkas || 'Perekaman Lapangan'}`;
     } else {
-      modeBadgeText = 'QUICK SNAP';
       detailLine = `Kegiatan: ${currentForm.catatanRingkas || 'Dokumentasi Lapangan'}`;
     }
 
     const now = customTime || new Date();
-    const dateStr = now.toLocaleDateString('id-ID', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    });
-    const timeStr = now.toLocaleTimeString('id-ID', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    });
-    const dateTimeLine = `Waktu: ${dateStr}, ${timeStr} WIB`;
+    const dateStr = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+    const dateTimeLine = `Waktu: ${dateStr} ${timeStr} WIB`;
 
     let coordsLine = 'Lokasi: Menunggu Sinyal GPS...';
     if (currentCoords) {
@@ -557,22 +531,19 @@ export default function CameraPage() {
 
     // Proportional dimensions for CKP full-width geotag bottom banner
     const fontSize = Math.max(14, Math.round(width * 0.024));
-    const smallFontSize = Math.max(12, Math.round(fontSize * 0.82));
-    const lineGap = Math.round(fontSize * 1.44);
-    const paddingX = Math.max(18, Math.round(width * 0.026));
-    const padTop = Math.max(12, Math.round(fontSize * 0.85));
-    const padBottom = Math.max(16, Math.round(fontSize * 1.05));
+    const lineGap = Math.round(fontSize * 1.48);
+    const paddingX = Math.max(20, Math.round(width * 0.026));
+    const paddingTop = Math.max(14, Math.round(fontSize * 0.9));
+    const paddingBottom = Math.max(18, Math.round(fontSize * 1.15));
 
-    // Calculate bar height covering header badge + 4 data rows
-    const pillH = Math.round(smallFontSize * 1.85);
-    const pillR = Math.round(pillH / 2);
-    const barHeight = padTop + pillH + Math.round(lineGap * 4.2) + padBottom;
+    // Calculate bar height covering 4 clean data lines: Waktu, Lokasi, Kegiatan, Petugas
+    const barHeight = paddingTop + (lineGap * 3) + fontSize + paddingBottom;
     const barY = height - barHeight;
 
     ctx.save();
 
     // 1. Full-Width Dark Translucent Geotag Bar (CKP Geotag Signature Style)
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.72)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.68)';
     ctx.fillRect(0, barY, width, barHeight);
 
     // 2. Top Accent Line (Subtle white separator line)
@@ -585,90 +556,40 @@ export default function CameraPage() {
 
     // 3. Top Accent BPS Amber Stripe
     ctx.fillStyle = '#fbbf24';
-    ctx.fillRect(0, barY, Math.round(width * 0.16), Math.max(2, Math.round(width * 0.003)));
+    ctx.fillRect(0, barY, Math.min(120, Math.round(width * 0.12)), Math.max(2, Math.round(width * 0.003)));
 
-    let curY = barY + padTop;
-
-    // Header Row: BADAN PUSAT STATISTIK & Mode Pill
-    ctx.font = `bold ${smallFontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
-    const bpsText = 'BADAN PUSAT STATISTIK';
-    const bpsW = ctx.measureText(bpsText).width + Math.round(14 * (width / 1100));
-
-    // BPS Pill
-    ctx.fillStyle = 'rgba(251, 191, 36, 0.22)';
-    drawRoundedRect(ctx, paddingX, curY, bpsW, pillH, pillR);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(251, 191, 36, 0.65)';
-    ctx.lineWidth = 1;
-    drawRoundedRect(ctx, paddingX, curY, bpsW, pillH, pillR);
-    ctx.stroke();
-
-    ctx.fillStyle = '#fbbf24';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(bpsText, paddingX + Math.round(7 * (width / 1100)), curY + (pillH / 2));
-
-    // Mode Pill
-    const modeX = paddingX + bpsW + Math.round(8 * (width / 1100));
-    const modeW = ctx.measureText(modeBadgeText).width + Math.round(14 * (width / 1100));
-    if (modeX + modeW < width - paddingX - 110) {
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
-      drawRoundedRect(ctx, modeX, curY, modeW, pillH, pillR);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-      ctx.stroke();
-
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText(modeBadgeText, modeX + Math.round(7 * (width / 1100)), curY + (pillH / 2));
-    }
-
-    // GPS Status (Right)
-    const gpsText = currentCoords ? 'GPS TERKUNCI' : 'GPS MENCARI';
-    const gpsW = ctx.measureText(gpsText).width + Math.round(20 * (width / 1100));
-    const gpsX = width - paddingX - gpsW;
-    if (gpsX > modeX + modeW + 10) {
-      ctx.fillStyle = currentCoords ? 'rgba(56, 189, 248, 0.16)' : 'rgba(251, 191, 36, 0.16)';
-      drawRoundedRect(ctx, gpsX, curY, gpsW, pillH, pillR);
-      ctx.fill();
-      ctx.strokeStyle = currentCoords ? 'rgba(56, 189, 248, 0.55)' : 'rgba(251, 191, 36, 0.55)';
-      ctx.stroke();
-
-      ctx.fillStyle = currentCoords ? '#38bdf8' : '#fbbf24';
-      ctx.fillText(gpsText, gpsX + Math.round(10 * (width / 1100)), curY + (pillH / 2));
-    }
-
-    // Content Rows
-    curY += pillH + Math.round(lineGap * 0.82);
-    ctx.textBaseline = 'alphabetic';
+    // Shadow for crisp legibility over light or dark backgrounds
     ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
     ctx.shadowBlur = 3;
     ctx.shadowOffsetY = 1;
 
-    // Row 1: Waktu
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `600 ${fontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
-    ctx.fillText(dateTimeLine, paddingX, curY);
+    let textY = barY + paddingTop + fontSize;
+    const maxChars = Math.max(20, Math.floor((width - (paddingX * 2)) / (fontSize * 0.58)));
 
-    // Row 2: Lokasi
-    curY += lineGap;
+    // Line 1: Waktu
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `600 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+    ctx.fillText(dateTimeLine, paddingX, textY);
+
+    // Line 2: Lokasi (GPS)
+    textY += lineGap;
     ctx.fillStyle = '#38bdf8';
     ctx.font = `600 ${fontSize}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-    ctx.fillText(coordsLine, paddingX, curY);
+    ctx.fillText(coordsLine, paddingX, textY);
 
-    // Row 3: Kegiatan
-    curY += lineGap;
+    // Line 3: Kegiatan
+    textY += lineGap;
     ctx.fillStyle = '#ffffff';
-    ctx.font = `500 ${fontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
-    const maxDetailChar = Math.max(10, Math.floor((width - (paddingX * 2)) / (fontSize * 0.58)));
-    const truncatedDetail = detailLine.length > maxDetailChar ? `${detailLine.substring(0, maxDetailChar - 3)}...` : detailLine;
-    ctx.fillText(truncatedDetail, paddingX, curY);
+    ctx.font = `500 ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+    const truncatedDetail = detailLine.length > maxChars ? `${detailLine.substring(0, maxChars - 3)}...` : detailLine;
+    ctx.fillText(truncatedDetail, paddingX, textY);
 
-    // Row 4: Petugas
-    curY += lineGap;
+    // Line 4: Petugas
+    textY += lineGap;
     ctx.fillStyle = '#cbd5e1';
-    ctx.font = `500 ${smallFontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
-    const maxPetugasChar = Math.max(10, Math.floor((width - (paddingX * 2)) / (smallFontSize * 0.58)));
-    const truncatedPetugas = petugasLine.length > maxPetugasChar ? `${petugasLine.substring(0, maxPetugasChar - 3)}...` : petugasLine;
-    ctx.fillText(truncatedPetugas, paddingX, curY);
+    ctx.font = `500 ${Math.max(12, Math.round(fontSize * 0.88))}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
+    const truncatedPetugas = petugasLine.length > maxChars ? `${petugasLine.substring(0, maxChars - 3)}...` : petugasLine;
+    ctx.fillText(truncatedPetugas, paddingX, textY);
 
     ctx.restore();
   };
@@ -1438,14 +1359,6 @@ export default function CameraPage() {
     return form.catatanRingkas || 'Ketuk untuk tambah Catatan Cepat';
   };
 
-  // Determine aspect frame class
-  const getFrameClass = () => {
-    if (aspectRatio === 'FULL') return styles.frameFull;
-    if (aspectRatio === '9:16') return styles.frame169;
-    if (aspectRatio === '1:1') return styles.frame11;
-    return styles.frame34;
-  };
-
   // Filter gallery items
   const filteredGalleryMedia = galleryMedia.filter((item) => {
     if (galleryFilter === 'all') return true;
@@ -1504,102 +1417,40 @@ export default function CameraPage() {
         </div>
       )}
 
-      {/* Main Samsung Native Camera Viewport */}
+      {/* Main Fullscreen Camera & In-Place Preview Viewport */}
       {(!permissionError || cameraActive) && (
         <>
-          {/* Top Control Bar (CKP Geotag Header Design) */}
-          <header className={styles.topBar}>
-            <div className={styles.cameraTitle}>
-              <div className={styles.cameraTitleIcon}>
-                <Camera size={18} color="#fff" />
-              </div>
-              <span>Kamera Geotag</span>
-            </div>
+          {/* Edge-to-Edge Fullscreen Viewfinder (Video Stream or Captured Preview) */}
+          {watermarkedUrl ? (
+            <img
+              src={watermarkedUrl}
+              alt="Pratinjau Foto"
+              className={styles.cameraViewfinder}
+              style={{ objectFit: 'contain', background: '#000' }}
+            />
+          ) : videoReviewUrl ? (
+            <video
+              src={videoReviewUrl}
+              controls
+              autoPlay
+              playsInline
+              className={styles.cameraViewfinder}
+              style={{ objectFit: 'contain', background: '#000' }}
+            />
+          ) : (
+            <video
+              ref={videoRef}
+              playsInline
+              autoPlay
+              muted
+              className={`${styles.cameraViewfinder} ${isFrontCamera ? styles.cameraViewfinderFlipped : ''}`}
+              onClick={handleViewfinderTap}
+            />
+          )}
 
-            <div className={styles.cameraTopActions}>
-              {/* Aspect Ratio */}
-              <button
-                type="button"
-                onClick={handleToggleAspect}
-                className={styles.cameraCloseBtn}
-                title="Ganti Rasio Bidang Kamera"
-                style={{ fontSize: '11px', fontWeight: 700 }}
-              >
-                {aspectRatio}
-              </button>
-
-              {/* Torch / Flash Toggle */}
-              {flashSupported && !isFrontCamera && (
-                <button
-                  type="button"
-                  onClick={handleToggleFlash}
-                  className={`${styles.cameraCloseBtn} ${flashOn ? styles.flashBtnActive : ''}`}
-                  title={flashOn ? 'Matikan Lampu Kilat' : 'Nyalakan Lampu Kilat'}
-                >
-                  {flashOn ? <Zap size={18} color="#fbbf24" fill="#fbbf24" /> : <ZapOff size={18} />}
-                </button>
-              )}
-
-              {/* 3x3 Grid Toggle */}
-              <button
-                type="button"
-                onClick={() => setGridActive(!gridActive)}
-                className={`${styles.cameraCloseBtn} ${gridActive ? styles.btnActiveStyle : ''}`}
-                title="Garis Bantu Komposisi 3x3"
-              >
-                <Grid size={18} />
-              </button>
-
-              {/* Timer Toggle */}
-              {activeMode !== 'video' && (
-                <button
-                  type="button"
-                  onClick={handleToggleTimer}
-                  className={`${styles.cameraCloseBtn} ${timerSeconds > 0 ? styles.btnActiveStyle : ''}`}
-                  title="Timer Otomatis"
-                >
-                  <TimerIcon size={18} />
-                  {timerSeconds > 0 && (
-                    <span style={{ fontSize: '10px', fontWeight: 800, marginLeft: '-4px' }}>
-                      {timerSeconds}s
-                    </span>
-                  )}
-                </button>
-              )}
-
-              {/* Settings / Task Form Sheet */}
-              <button
-                type="button"
-                onClick={() => setFormSheetOpen(true)}
-                className={styles.cameraCloseBtn}
-                title="Rincian Kegiatan CKP & Parameter"
-              >
-                <SlidersHorizontal size={18} />
-              </button>
-
-              {/* Close Button -> Back to /ckp */}
-              <button
-                type="button"
-                onClick={() => router.push('/ckp')}
-                className={styles.cameraCloseBtn}
-                title="Tutup & Kembali ke Menu CKP"
-              >
-                <X size={20} />
-              </button>
-            </div>
-          </header>
-
-          {/* Viewfinder Main Viewport */}
-          <div className={styles.viewfinderArea}>
-            <div className={getFrameClass()} onClick={handleViewfinderTap}>
-              <video
-                ref={videoRef}
-                playsInline
-                autoPlay
-                muted
-                className={`${styles.videoElement} ${isFrontCamera ? styles.videoElementFlipped : ''}`}
-              />
-
+          {/* Live Camera Overlays */}
+          {!watermarkedUrl && !videoReviewUrl && (
+            <>
               {/* Framing Corner Guides (Signature CKP Geotag Viewfinder) */}
               <div className={styles.cameraGuide}>
                 <div className={styles.cameraGuideInner}>
@@ -1629,13 +1480,6 @@ export default function CameraPage() {
                 </div>
               )}
 
-              {/* Level Horizon Line Indicator */}
-              <div className={styles.levelIndicator}>
-                <div className={styles.levelLineLeft} />
-                <div className={styles.levelCenterDot} />
-                <div className={styles.levelLineRight} />
-              </div>
-
               {/* Live Video Recording HUD */}
               {isRecording && (
                 <div className={styles.recordingHud}>
@@ -1645,182 +1489,311 @@ export default function CameraPage() {
                 </div>
               )}
 
-              {/* Real-Time Geotag Watermark HUD Badge */}
-              <div className={styles.hudBadge}>
-                <div className={styles.hudBadgeTop}>
-                  <span className={styles.hudBadgeBpsPill}>BPS RI</span>
-                  <span className={styles.hudBadgeTitle}>DOKUMENTASI RESMI</span>
-                </div>
-                <div className={styles.hudBadgeMetaRow}>
-                  <span className={styles.hudBadgeCoord}>
-                    {coords ? `Lat ${coords.lat.toFixed(5)}, Lon ${coords.lon.toFixed(5)}` : 'GPS: Mencari Sinyal...'}
-                  </span>
-                  <span className={styles.hudBadgeTime}>
-                    {currentTimeStr}
-                  </span>
-                </div>
-              </div>
-
               {/* Timer Countdown Big Number Overlay */}
               {countdownVal !== null && (
                 <div className={styles.countdownOverlay}>
                   <div className={styles.countdownNumber}>{countdownVal}</div>
                 </div>
               )}
+            </>
+          )}
 
-              {/* Floating Task Pill: Parameter Preview */}
+          {/* Top Floating Control Bar */}
+          <header className={styles.topBar}>
+            <div className={styles.cameraTitle}>
+              <div className={styles.cameraTitleIcon}>
+                <Camera size={18} color="#fff" />
+              </div>
+              <span>
+                {watermarkedUrl
+                  ? 'Pratinjau Foto'
+                  : videoReviewUrl
+                  ? 'Pratinjau Video'
+                  : 'Kamera Geotag'}
+              </span>
+            </div>
+
+            <div className={styles.cameraTopActions}>
+              {!watermarkedUrl && !videoReviewUrl && (
+                <>
+                  {/* Torch / Flash Toggle */}
+                  {flashSupported && !isFrontCamera && (
+                    <button
+                      type="button"
+                      onClick={handleToggleFlash}
+                      className={`${styles.cameraCloseBtn} ${flashOn ? styles.flashBtnActive : ''}`}
+                      title={flashOn ? 'Matikan Lampu Kilat' : 'Nyalakan Lampu Kilat'}
+                    >
+                      {flashOn ? <Zap size={18} color="#fbbf24" fill="#fbbf24" /> : <ZapOff size={18} />}
+                    </button>
+                  )}
+
+                  {/* 3x3 Grid Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => setGridActive(!gridActive)}
+                    className={`${styles.cameraCloseBtn} ${gridActive ? styles.btnActiveStyle : ''}`}
+                    title="Garis Bantu Komposisi 3x3"
+                  >
+                    <Grid size={18} />
+                  </button>
+
+                  {/* Timer Toggle */}
+                  {activeMode !== 'video' && (
+                    <button
+                      type="button"
+                      onClick={handleToggleTimer}
+                      className={`${styles.cameraCloseBtn} ${timerSeconds > 0 ? styles.btnActiveStyle : ''}`}
+                      title="Timer Otomatis"
+                    >
+                      <TimerIcon size={18} />
+                      {timerSeconds > 0 && (
+                        <span style={{ fontSize: '10px', fontWeight: 800, marginLeft: '-4px' }}>
+                          {timerSeconds}s
+                        </span>
+                      )}
+                    </button>
+                  )}
+
+                  {/* Settings / Task Form Sheet */}
+                  <button
+                    type="button"
+                    onClick={() => setFormSheetOpen(true)}
+                    className={styles.cameraCloseBtn}
+                    title="Rincian Kegiatan CKP & Parameter"
+                  >
+                    <SlidersHorizontal size={18} />
+                  </button>
+                </>
+              )}
+
+              {/* Close Button: Retakes in preview, or returns to /ckp in live mode */}
               <button
                 type="button"
-                className={styles.taskPill}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setFormSheetOpen(true);
+                onClick={() => {
+                  if (watermarkedUrl) {
+                    handleRetake();
+                  } else if (videoReviewUrl) {
+                    handleDiscardVideo();
+                  } else {
+                    router.push('/ckp');
+                  }
                 }}
-                title="Buka Lembar Parameter & Rincian Tugas"
+                className={styles.cameraCloseBtn}
+                title={watermarkedUrl || videoReviewUrl ? 'Batal & Ambil Ulang' : 'Tutup & Kembali ke Menu CKP'}
               >
-                <span className={styles.taskPillDot} />
-                <span className={styles.taskPillText}>{getActiveTaskLabel()}</span>
-                <SlidersHorizontal size={14} color="#fbbf24" />
+                <X size={20} />
               </button>
             </div>
-          </div>
+          </header>
 
-          {/* Bottom Section: Zoom, Modes, Hint, Shutter */}
-          <div className={styles.bottomSection}>
-            {/* Lens Quick Pills */}
-            {!isFrontCamera && (
-              <div className={styles.zoomContainer}>
-                <div className={styles.lensPill}>
-                  <button
-                    type="button"
-                    onClick={() => handleLensSelect('0.5x')}
-                    className={`${styles.lensBtn} ${cameraLens === '0.5x' ? styles.lensBtnActive : ''}`}
-                  >
-                    0.5
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleLensSelect('1x')}
-                    className={`${styles.lensBtn} ${cameraLens === '1x' && zoomLevel <= 1 ? styles.lensBtnActive : ''}`}
-                  >
-                    1.0
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleZoomChange(2)}
-                    className={`${styles.lensBtn} ${zoomLevel >= 2 ? styles.lensBtnActive : ''}`}
-                  >
-                    2.0
-                  </button>
-                </div>
-              </div>
-            )}
+          {/* Lens Quick Pills (0.5x / 1.0x / 2.0x) */}
+          {!watermarkedUrl && !videoReviewUrl && !isFrontCamera && (
+            <div className={styles.lensPill}>
+              <button
+                type="button"
+                onClick={() => handleLensSelect('0.5x')}
+                className={`${styles.lensBtn} ${cameraLens === '0.5x' ? styles.lensBtnActive : ''}`}
+              >
+                0.5
+              </button>
+              <button
+                type="button"
+                onClick={() => handleLensSelect('1x')}
+                className={`${styles.lensBtn} ${cameraLens === '1x' && zoomLevel <= 1 ? styles.lensBtnActive : ''}`}
+              >
+                1.0
+              </button>
+              <button
+                type="button"
+                onClick={() => handleZoomChange(2)}
+                className={`${styles.lensBtn} ${zoomLevel >= 2 ? styles.lensBtnActive : ''}`}
+              >
+                2.0
+              </button>
+            </div>
+          )}
 
-            {/* Camera Zoom Slider */}
-            {zoomCaps && (
-              <div className={styles.cameraZoomBar}>
-                <span className={styles.cameraZoomLabel}>
-                  {zoomLevel.toFixed(1)}×
-                </span>
-                <input
-                  type="range"
-                  min={zoomCaps.min || 1}
-                  max={Math.min(zoomCaps.max || 5, 5)}
-                  step={zoomCaps.step || 0.1}
-                  value={zoomLevel}
-                  onChange={(e) => handleZoomChange(parseFloat(e.target.value))}
-                  className={styles.cameraZoomSlider}
-                />
-              </div>
-            )}
+          {/* Camera Zoom Slider */}
+          {!watermarkedUrl && !videoReviewUrl && zoomCaps && (
+            <div className={styles.cameraZoomBar}>
+              <span className={styles.cameraZoomLabel}>
+                {zoomLevel.toFixed(1)}×
+              </span>
+              <input
+                type="range"
+                min={zoomCaps.min || 1}
+                max={Math.min(zoomCaps.max || 5, 5)}
+                step={zoomCaps.step || 0.1}
+                value={zoomLevel}
+                onChange={(e) => handleZoomChange(parseFloat(e.target.value))}
+                className={styles.cameraZoomSlider}
+              />
+            </div>
+          )}
 
-            {/* Mode Carousel */}
+          {/* Mode Carousel */}
+          {!watermarkedUrl && !videoReviewUrl && !isRecording && (
             <nav className={styles.modeCarousel}>
               {CAPTURE_MODES.map((mode) => (
                 <button
                   key={mode.id}
                   type="button"
-                  onClick={() => {
-                    if (isRecording) return;
-                    setActiveMode(mode.id);
-                  }}
+                  onClick={() => setActiveMode(mode.id)}
                   className={`${styles.modeItem} ${activeMode === mode.id ? styles.modeItemActive : ''}`}
                 >
                   {mode.label}
                 </button>
               ))}
             </nav>
+          )}
 
-            {/* Camera Hint (CKP Signature) */}
-            <div className={styles.cameraHint}>
-              {activeMode === 'video'
-                ? isRecording
-                  ? 'Sedang merekam video ber-geotag...'
-                  : 'Tekan tombol bulat merah untuk merekam video'
-                : 'Tekan tombol bulat untuk mengambil foto'}
-            </div>
+          {/* Camera Hint (CKP Signature) */}
+          <div className={styles.cameraHint}>
+            {watermarkedUrl
+              ? 'Tinjau foto sebelum disimpan'
+              : videoReviewUrl
+              ? 'Tinjau video sebelum disimpan'
+              : activeMode === 'video'
+              ? isRecording
+                ? 'Sedang merekam video ber-geotag...'
+                : 'Tekan tombol bulat merah untuk merekam video'
+              : 'Tekan tombol bulat untuk mengambil foto'}
+          </div>
 
-            {/* Shutter Row (CKP Controls) */}
-            <footer className={styles.shutterRow}>
-              {/* Gallery Button */}
+          {/* Secondary Quick Action Bar (Download & Draft CKP) in Preview */}
+          {watermarkedUrl && (
+            <div className={styles.previewSecondaryBar}>
               <button
                 type="button"
-                onClick={() => setGalleryOpen(true)}
-                className={styles.galleryBtn}
-                title="Buka Galeri Geotagging"
+                onClick={handleDownloadLocal}
+                className={styles.btnSecondaryCompact}
+                disabled={isUploading}
+                title="Unduh Langsung ke Galeri HP"
               >
-                {latestThumbnail ? (
-                  <div className={styles.galleryThumbWrapper}>
-                    <img
-                      src={latestThumbnail}
-                      alt="Thumbnail Terakhir"
-                      className={styles.galleryThumbImg}
-                      onError={() => setLatestThumbnail(null)}
-                    />
-                  </div>
-                ) : (
-                  <div className={styles.galleryEmptyIcon}>
-                    <ImageIcon size={20} color="#ffffff" />
-                  </div>
-                )}
+                <Download size={14} /> Unduh
               </button>
-
-              {/* Shutter Button (CKP Outer Ring + Inner White Circle) */}
               <button
                 type="button"
-                onClick={handleShutterClick}
-                disabled={isProcessing}
-                className={styles.cameraShutterOuter}
-                title={
-                  activeMode === 'video'
-                    ? isRecording
-                      ? 'Hentikan Perekaman Video'
-                      : 'Mulai Rekam Video'
-                    : 'Ambil Foto Geotag'
-                }
+                onClick={handleSaveAsCkpDraft}
+                className={styles.btnSecondaryCompact}
+                disabled={isUploading}
+                title="Simpan sementara sebagai Draft CKP"
               >
-                <div
-                  className={`${styles.cameraShutterInner} ${
+                <FileText size={14} /> Draft CKP
+              </button>
+            </div>
+          )}
+          {videoReviewUrl && (
+            <div className={styles.previewSecondaryBar}>
+              <button
+                type="button"
+                onClick={handleDownloadVideo}
+                className={styles.btnSecondaryCompact}
+                disabled={isUploading}
+                title="Unduh Video ke HP"
+              >
+                <Download size={14} /> Unduh Video
+              </button>
+            </div>
+          )}
+
+          {/* Bottom Controls Bar: Shutter Controls (Live) OR Preview Actions (Captured) */}
+          <div className={styles.cameraBottomBar}>
+            {watermarkedUrl || videoReviewUrl ? (
+              <div className={styles.cameraPreviewActions}>
+                <button
+                  type="button"
+                  onClick={watermarkedUrl ? handleRetake : handleDiscardVideo}
+                  className={`${styles.cameraActionBtn} ${styles.cameraActionCancel}`}
+                  disabled={isUploading}
+                  title="Ambil Ulang"
+                >
+                  <RotateCcw size={18} />
+                  Ambil Ulang
+                </button>
+                <button
+                  type="button"
+                  onClick={watermarkedUrl ? handleSubmitAndUpload : handleSubmitVideo}
+                  className={`${styles.cameraActionBtn} ${styles.cameraActionConfirm}`}
+                  disabled={isUploading}
+                  title={watermarkedUrl ? 'Gunakan Foto' : 'Gunakan Video'}
+                >
+                  {isUploading ? (
+                    <>
+                      <RefreshCw size={18} className="spin" />
+                      Menyimpan...
+                    </>
+                  ) : (
+                    <>
+                      <Check size={18} />
+                      {watermarkedUrl ? 'Gunakan Foto' : 'Gunakan Video'}
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* Gallery Button */}
+                <button
+                  type="button"
+                  onClick={() => setGalleryOpen(true)}
+                  className={styles.galleryBtn}
+                  title="Buka Galeri Geotagging"
+                >
+                  {latestThumbnail ? (
+                    <div className={styles.galleryThumbWrapper}>
+                      <img
+                        src={latestThumbnail}
+                        alt="Thumbnail Terakhir"
+                        className={styles.galleryThumbImg}
+                        onError={() => setLatestThumbnail(null)}
+                      />
+                    </div>
+                  ) : (
+                    <div className={styles.galleryEmptyIcon}>
+                      <ImageIcon size={20} color="#ffffff" />
+                    </div>
+                  )}
+                </button>
+
+                {/* Shutter Button (CKP Outer Ring + Inner White Circle) */}
+                <button
+                  type="button"
+                  onClick={handleShutterClick}
+                  disabled={isProcessing}
+                  className={styles.cameraShutterOuter}
+                  title={
                     activeMode === 'video'
                       ? isRecording
-                        ? styles.shutterVideoRecording
-                        : styles.shutterVideoReady
-                      : ''
-                  }`}
-                />
-              </button>
+                        ? 'Hentikan Perekaman Video'
+                        : 'Mulai Rekam Video'
+                      : 'Ambil Foto Geotag'
+                  }
+                >
+                  <div
+                    className={`${styles.cameraShutterInner} ${
+                      activeMode === 'video'
+                        ? isRecording
+                          ? styles.shutterVideoRecording
+                          : styles.shutterVideoReady
+                        : ''
+                    }`}
+                  />
+                </button>
 
-              {/* Flip Camera Button */}
-              <button
-                type="button"
-                onClick={handleFlipCamera}
-                disabled={isRecording}
-                className={styles.flipBtn}
-                title="Ganti Kamera Depan/Belakang"
-              >
-                <RefreshCw size={20} />
-              </button>
-            </footer>
+                {/* Flip Camera Button */}
+                <button
+                  type="button"
+                  onClick={handleFlipCamera}
+                  disabled={isRecording}
+                  className={styles.flipBtn}
+                  title="Ganti Kamera Depan/Belakang"
+                >
+                  <RefreshCw size={20} />
+                </button>
+              </>
+            )}
           </div>
         </>
       )}
@@ -2082,215 +2055,6 @@ export default function CameraPage() {
         </div>
       )}
 
-      {/* Review Screen Overlay: PHOTO */}
-      {watermarkedUrl && (
-        <div className={styles.reviewOverlay}>
-          <header className={styles.reviewHeader}>
-            <span className={styles.reviewTitle}>Pratinjau Hasil Jepretan</span>
-            <button onClick={handleRetake} className={styles.iconBtn} title="Batal & Ulangi">
-              <X size={22} />
-            </button>
-          </header>
-
-          <div className={styles.reviewImageWrapper}>
-            <img src={watermarkedUrl} alt="Watermarked Preview" className={styles.reviewImage} />
-          </div>
-
-          <footer className={styles.reviewFooter}>
-            <div className={styles.reviewMetaSummary}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <MapPin size={13} color="#38bdf8" />
-                <span>
-                  {coords
-                    ? `Lat ${coords.lat.toFixed(5)}, Lon ${coords.lon.toFixed(5)}`
-                    : 'Tanpa GPS'}
-                </span>
-                {coords && (
-                  <button
-                    type="button"
-                    onClick={handleCopyCoords}
-                    style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}
-                    title="Salin Koordinat"
-                  >
-                    {copiedCoords ? <Check size={12} color="#4ade80" /> : <Copy size={12} />}
-                  </button>
-                )}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Clock size={13} color="#fbbf24" />
-                <span>{currentTimeStr}</span>
-              </div>
-              {compressedInfo && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4ade80' }}>
-                  <Sparkles size={13} />
-                  <span>{formatBytes(compressedInfo.compressedSize)}</span>
-                </div>
-              )}
-            </div>
-
-            <div className={styles.cameraPreviewActions}>
-              <button
-                type="button"
-                onClick={handleRetake}
-                className={`${styles.cameraActionBtn} ${styles.cameraActionCancel}`}
-                disabled={isUploading}
-                title="Ambil Ulang Foto"
-              >
-                <RotateCcw size={17} />
-                Ambil Ulang
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSubmitAndUpload}
-                className={`${styles.cameraActionBtn} ${styles.cameraActionConfirm}`}
-                disabled={isUploading}
-                title="Gunakan dan Simpan Foto"
-              >
-                {isUploading ? (
-                  <>
-                    <RefreshCw size={17} className="spin" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  <>
-                    <Check size={17} />
-                    Gunakan Foto
-                  </>
-                )}
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: 'center' }}>
-              <button
-                type="button"
-                onClick={handleDownloadLocal}
-                className={styles.btnSecondary}
-                disabled={isUploading}
-                title="Unduh Langsung ke Galeri HP"
-                style={{ flex: 1, padding: '9px 12px', fontSize: '13px' }}
-              >
-                <Download size={14} />
-                Unduh
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSaveAsCkpDraft}
-                className={styles.btnSecondary}
-                disabled={isUploading}
-                title="Simpan sementara sebagai Draft CKP"
-                style={{ flex: 1, padding: '9px 12px', fontSize: '13px', color: '#fbbf24', borderColor: 'rgba(251, 191, 36, 0.4)' }}
-              >
-                <FileText size={14} />
-                Draft CKP
-              </button>
-            </div>
-          </footer>
-        </div>
-      )}
-
-      {/* Review Screen Overlay: VIDEO */}
-      {videoReviewUrl && (
-        <div className={styles.reviewOverlay}>
-          <header className={styles.reviewHeader}>
-            <span className={styles.reviewTitle}>Pratinjau Hasil Video Lapangan</span>
-            <button onClick={handleDiscardVideo} className={styles.iconBtn} title="Batal & Hapus">
-              <X size={22} />
-            </button>
-          </header>
-
-          <div className={styles.reviewImageWrapper}>
-            <video
-              src={videoReviewUrl}
-              controls
-              autoPlay
-              playsInline
-              className={styles.reviewVideo}
-            />
-          </div>
-
-          <footer className={styles.reviewFooter}>
-            <div className={styles.reviewMetaSummary}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <MapPin size={13} color="#38bdf8" />
-                <span>
-                  {coords
-                    ? `Lat ${coords.lat.toFixed(5)}, Lon ${coords.lon.toFixed(5)}`
-                    : 'Tanpa GPS'}
-                </span>
-                {coords && (
-                  <button
-                    type="button"
-                    onClick={handleCopyCoords}
-                    style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}
-                    title="Salin Koordinat"
-                  >
-                    {copiedCoords ? <Check size={12} color="#4ade80" /> : <Copy size={12} />}
-                  </button>
-                )}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Clock size={13} color="#fbbf24" />
-                <span>Durasi: {formatSeconds(recordingDuration)}</span>
-              </div>
-              {videoReviewBlob && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4ade80' }}>
-                  <Sparkles size={13} />
-                  <span>Ukuran: {formatBytes(videoReviewBlob.size)}</span>
-                </div>
-              )}
-            </div>
-
-            <div className={styles.cameraPreviewActions}>
-              <button
-                type="button"
-                onClick={handleDiscardVideo}
-                className={`${styles.cameraActionBtn} ${styles.cameraActionCancel}`}
-                disabled={isUploading}
-                title="Hapus rekaman dan rekam ulang"
-              >
-                <RotateCcw size={17} />
-                Ambil Ulang
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSubmitVideo}
-                className={`${styles.cameraActionBtn} ${styles.cameraActionConfirm}`}
-                disabled={isUploading}
-                title="Simpan Video ke Sistem"
-              >
-                {isUploading ? (
-                  <>
-                    <RefreshCw size={17} className="spin" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  <>
-                    <Check size={17} />
-                    Gunakan Video
-                  </>
-                )}
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: 'center' }}>
-              <button
-                type="button"
-                onClick={handleDownloadVideo}
-                className={styles.btnSecondary}
-                disabled={isUploading}
-                title="Unduh Video ke HP"
-                style={{ flex: 1, padding: '9px 12px', fontSize: '13px' }}
-              >
-                <Download size={14} />
-                Unduh Video
-              </button>
-            </div>
-          </footer>
-        </div>
-      )}
 
       {/* FULLSCREEN GEOTAGGING MEDIA GALLERY MODAL */}
       {galleryOpen && (
