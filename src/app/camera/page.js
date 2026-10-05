@@ -33,7 +33,12 @@ import {
   Copy,
   Settings,
   SlidersHorizontal,
-  Timer as TimerIcon
+  Timer as TimerIcon,
+  Video as VideoIcon,
+  Play,
+  Square,
+  Trash2,
+  Map as MapIcon
 } from 'lucide-react';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,13 +47,20 @@ import { useSkps } from '@/hooks/useSkps';
 import { useFirestore } from '@/hooks/useFirestore';
 import { useAlert } from '@/contexts/AlertContext';
 import { uploadFileToDrive, getOrCreateFolder } from '@/lib/drive';
-import { savePendingUpload, saveDraftActivity } from '@/lib/localdb';
+import {
+  savePendingUpload,
+  saveDraftActivity,
+  saveCameraMedia,
+  getCameraMedia,
+  removeCameraMedia
+} from '@/lib/localdb';
 import { compressImage, formatBytes } from '@/lib/compressor';
 
 const CAPTURE_MODES = [
   { id: 'ckp', label: 'BUKTI CKP', desc: 'Tautkan ke butir SKP & kegiatan harian' },
   { id: 'field', label: 'DINAS LAPANGAN', desc: 'Survei, sensus, supervisi lapangan' },
   { id: 'schedule', label: 'JADWAL', desc: 'Presensi & dokumentasi agenda' },
+  { id: 'video', label: 'VIDEO', desc: 'Rekam video tugas lapangan ber-geotag' },
   { id: 'quick', label: 'QUICK SNAP', desc: 'Jepret cepat ber-watermark' },
 ];
 
@@ -83,6 +95,16 @@ export default function CameraPage() {
   const [showShutterFlash, setShowShutterFlash] = useState(false);
   const [focusRing, setFocusRing] = useState(null); // { x, y }
 
+  // Video recording states
+  const mediaRecorderRef = useRef(null);
+  const recordedChunksRef = useRef([]);
+  const recordingTimerRef = useRef(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0); // in seconds
+  const [videoReviewBlob, setVideoReviewBlob] = useState(null);
+  const [videoReviewUrl, setVideoReviewUrl] = useState(null);
+  const [videoThumbnailUrl, setVideoThumbnailUrl] = useState(null);
+
   // GPS Geotag states
   const [coords, setCoords] = useState(null);
   const [gpsAccuracy, setGpsAccuracy] = useState(null);
@@ -111,7 +133,7 @@ export default function CameraPage() {
     // Schedule Mode
     selectedScheduleId: '',
     judulJadwal: '',
-    // Quick Mode
+    // Quick & Video Mode
     catatanRingkas: ''
   });
 
@@ -123,36 +145,30 @@ export default function CameraPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [compressedInfo, setCompressedInfo] = useState(null);
 
-  // Recent captures history
-  const [recentPhotos, setRecentPhotos] = useState([]);
-  const [showHistory, setShowHistory] = useState(false);
+  // Geotag Media Gallery states
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryMedia, setGalleryMedia] = useState([]);
+  const [galleryFilter, setGalleryFilter] = useState('all'); // all, photo, video, ckp, field, schedule
+  const [selectedMediaDetail, setSelectedMediaDetail] = useState(null);
+  const [latestThumbnail, setLatestThumbnail] = useState(null);
 
-  // Load persistent history on mount
-  useEffect(() => {
+  // Refresh persistent media from IndexedDB
+  const refreshGalleryMedia = useCallback(async () => {
     try {
-      const saved = localStorage.getItem('superbrain_recent_camera_photos');
-      if (saved) {
-        setRecentPhotos(JSON.parse(saved));
+      const items = await getCameraMedia(user?.uid);
+      setGalleryMedia(items);
+      if (items.length > 0 && items[0].thumbnailUrl) {
+        setLatestThumbnail(items[0].thumbnailUrl);
       }
-    } catch (_) {}
-  }, []);
+    } catch (e) {
+      console.warn('Failed to load camera media from IndexedDB:', e);
+    }
+  }, [user?.uid]);
 
-  // Save persistent history helper
-  const saveRecentPhotos = (photos) => {
-    setRecentPhotos(photos);
-    try {
-      const persistent = photos.slice(0, 20).map((p) => ({
-        id: p.id,
-        title: p.title,
-        fileName: p.fileName,
-        driveLink: p.driveLink,
-        isOffline: p.isOffline,
-        time: p.time,
-        coords: p.coords
-      }));
-      localStorage.setItem('superbrain_recent_camera_photos', JSON.stringify(persistent));
-    } catch (_) {}
-  };
+  // Load gallery on mount
+  useEffect(() => {
+    refreshGalleryMedia();
+  }, [refreshGalleryMedia]);
 
   // Real-time clock updater
   useEffect(() => {
@@ -360,6 +376,7 @@ export default function CameraPage() {
 
   // Flip Camera (Front / Rear)
   const handleFlipCamera = () => {
+    if (isRecording) return;
     const nextFront = !isFrontCamera;
     setIsFrontCamera(nextFront);
     setCameraLens('1x');
@@ -367,6 +384,7 @@ export default function CameraPage() {
 
   // Switch Lens (1x / 0.5x)
   const handleLensSelect = (lens) => {
+    if (isRecording) return;
     if (lens === cameraLens) return;
     setCameraLens(lens);
   };
@@ -627,9 +645,116 @@ export default function CameraPage() {
     }
   };
 
-  // Handle Shutter click (honoring active timer)
+  // ===== VIDEO RECORDING CONTROLS =====
+  const startVideoRecording = async () => {
+    if (!streamRef.current) return;
+    try {
+      recordedChunksRef.current = [];
+
+      // Acquire audio track if possible to combine with video
+      let recordingStream = streamRef.current;
+      try {
+        const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const audioTrack = audioStream.getAudioTracks()[0];
+        if (audioTrack) {
+          recordingStream = new MediaStream([
+            ...streamRef.current.getVideoTracks(),
+            audioTrack
+          ]);
+        }
+      } catch (audioErr) {
+        console.warn('Audio stream not available or denied, recording video muted:', audioErr);
+      }
+
+      // Check supported MIME type
+      const mimeTypes = [
+        'video/webm;codecs=vp9,opus',
+        'video/webm;codecs=vp8,opus',
+        'video/webm',
+        'video/mp4'
+      ];
+      const selectedMime = mimeTypes.find((m) => typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(m)) || '';
+
+      const recorder = new MediaRecorder(recordingStream, selectedMime ? { mimeType: selectedMime } : undefined);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        const finalMime = recorder.mimeType || 'video/webm';
+        const blob = new Blob(recordedChunksRef.current, { type: finalMime });
+        setVideoReviewBlob(blob);
+        const url = URL.createObjectURL(blob);
+        setVideoReviewUrl(url);
+
+        // Generate quick thumbnail from current video frame
+        if (videoRef.current) {
+          try {
+            const thumbCanvas = document.createElement('canvas');
+            thumbCanvas.width = 320;
+            thumbCanvas.height = 240;
+            const tCtx = thumbCanvas.getContext('2d');
+            tCtx.drawImage(videoRef.current, 0, 0, 320, 240);
+            const thumbData = thumbCanvas.toDataURL('image/jpeg', 0.7);
+            setVideoThumbnailUrl(thumbData);
+          } catch (_) {}
+        }
+
+        // Clean up audio track if any
+        recordingStream.getAudioTracks().forEach((track) => track.stop());
+      };
+
+      recorder.start(1000); // 1-second chunks
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      // Start duration ticker
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration((prev) => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.error('Failed to start video recording:', err);
+      showAlert('Gagal memulai perekaman video: ' + err.message);
+    }
+  };
+
+  const stopVideoRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+        recordingTimerRef.current = null;
+      }
+    }
+  };
+
+  // Format seconds to mm:ss
+  const formatSeconds = (sec) => {
+    const mins = Math.floor(sec / 60);
+    const secs = sec % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
+  // Handle Shutter click (honoring active timer & video mode)
   const handleShutterClick = () => {
     if (isProcessing) return;
+
+    // In VIDEO mode: toggle recording
+    if (activeMode === 'video') {
+      if (isRecording) {
+        stopVideoRecording();
+      } else {
+        startVideoRecording();
+      }
+      return;
+    }
+
+    // In PHOTO modes: honor timer
     if (timerSeconds > 0) {
       let count = timerSeconds;
       setCountdownVal(count);
@@ -666,7 +791,7 @@ export default function CameraPage() {
     }
   };
 
-  // Retake or discard preview
+  // Retake or discard photo preview
   const handleRetake = () => {
     if (watermarkedUrl) {
       URL.revokeObjectURL(watermarkedUrl);
@@ -677,7 +802,18 @@ export default function CameraPage() {
     setCompressedInfo(null);
   };
 
-  // Download directly to local storage
+  // Discard video preview
+  const handleDiscardVideo = () => {
+    if (videoReviewUrl) {
+      URL.revokeObjectURL(videoReviewUrl);
+    }
+    setVideoReviewBlob(null);
+    setVideoReviewUrl(null);
+    setVideoThumbnailUrl(null);
+    setRecordingDuration(0);
+  };
+
+  // Download photo directly to local storage
   const handleDownloadLocal = () => {
     if (!watermarkedBlob) return;
     const link = document.createElement('a');
@@ -687,6 +823,18 @@ export default function CameraPage() {
     link.click();
     document.body.removeChild(link);
     showAlert('Foto berhasil diunduh ke penyimpanan perangkat Anda!');
+  };
+
+  // Download video directly to local storage
+  const handleDownloadVideo = () => {
+    if (!videoReviewBlob) return;
+    const link = document.createElement('a');
+    link.href = videoReviewUrl;
+    link.download = `Video_Dokumentasi_BPS_${Date.now()}.webm`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showAlert('Video berhasil diunduh ke penyimpanan perangkat Anda!');
   };
 
   // Save as Draft CKP (so user can fill details later)
@@ -738,6 +886,25 @@ export default function CameraPage() {
       };
 
       await saveDraftActivity(draftPayload, user.uid);
+
+      // Save to Geotag Gallery IndexedDB
+      await saveCameraMedia({
+        id: `photo_${timestampId}`,
+        type: 'photo',
+        blob: watermarkedBlob,
+        thumbnailUrl: watermarkedUrl,
+        title: draftTitle,
+        fileName,
+        mode: activeMode,
+        coords: coords ? { lat: coords.lat, lon: coords.lon, accuracy: coords.accuracy } : null,
+        timestamp: timestampId,
+        timeFormatted: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+        driveLink: null,
+        isOffline: true,
+        size: watermarkedBlob.size
+      }, user.uid);
+
+      refreshGalleryMedia();
       showAlert('Foto dan koordinat geotag berhasil disimpan sebagai Draft CKP! Anda dapat melengkapi rincian tugasnya nanti di menu CKP Harian.', 'success');
       handleRetake();
     } catch (err) {
@@ -748,7 +915,7 @@ export default function CameraPage() {
     }
   };
 
-  // Submit and Upload to SuperBrain System (Drive & Firestore & Offline Queue)
+  // Submit and Upload PHOTO to SuperBrain System (Drive & Firestore & Offline Queue & Gallery)
   const handleSubmitAndUpload = async () => {
     if (!watermarkedBlob || !user) {
       showAlert('Silakan login terlebih dahulu untuk menyimpan data ke SuperBrain.');
@@ -784,6 +951,15 @@ export default function CameraPage() {
     const baseEntryId = `cam_${timestampId}`;
     let ckpRecord = null;
     let scheduleRecord = null;
+
+    const mediaTitle =
+      activeMode === 'ckp'
+        ? form.rincian || 'Dokumentasi Bukti CKP'
+        : activeMode === 'field'
+        ? form.namaSurvei || 'Dinas Lapangan'
+        : activeMode === 'schedule'
+        ? form.judulJadwal || 'Lampiran Jadwal'
+        : 'Quick Snap';
 
     if (activeMode === 'ckp') {
       const selectedSkp = skpData.find((s) => String(s.id) === String(form.skpId));
@@ -869,7 +1045,7 @@ export default function CameraPage() {
       };
     }
 
-    // 3. Save to Firestore and/or IndexedDB
+    // 3. Save to Firestore, IndexedDB Pending Queue, and Geotag Gallery
     try {
       if (ckpRecord) {
         await addCkpDoc(ckpRecord);
@@ -884,30 +1060,28 @@ export default function CameraPage() {
         isSavedOffline = true;
       }
 
-      // Add to session captures list and persist
-      const newCapture = {
+      // Save to Geotag Media Gallery
+      await saveCameraMedia({
         id: baseEntryId,
-        title:
-          activeMode === 'ckp'
-            ? form.rincian || 'Bukti CKP'
-            : activeMode === 'field'
-            ? form.namaSurvei || 'Dinas Lapangan'
-            : activeMode === 'schedule'
-            ? form.judulJadwal || 'Lampiran Jadwal'
-            : 'Quick Snap',
+        type: 'photo',
+        blob: watermarkedBlob,
+        thumbnailUrl: watermarkedUrl,
+        title: mediaTitle,
         fileName,
-        previewUrl: watermarkedUrl,
+        mode: activeMode,
+        coords: coords ? { lat: coords.lat, lon: coords.lon, accuracy: coords.accuracy } : null,
+        timestamp: timestampId,
+        timeFormatted: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
         driveLink,
         isOffline: isSavedOffline,
-        time: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-        coords: coords ? `${coords.lat.toFixed(5)}, ${coords.lon.toFixed(5)}` : null
-      };
+        size: watermarkedBlob.size
+      }, user.uid);
 
-      saveRecentPhotos([newCapture, ...recentPhotos]);
+      await refreshGalleryMedia();
 
       showAlert(
         isSavedOffline
-          ? 'Foto dan data berhasil disimpan di perangkat (Mode Offline). Akan disinkronkan ke Google Drive saat online.'
+          ? 'Foto berhasil disimpan di Galeri Geotagging & Antrean Lokal. Akan disinkronkan ke Google Drive saat online.'
           : 'Foto ber-watermark berhasil disimpan ke sistem SuperBrain dan diunggah ke Google Drive!'
       );
 
@@ -918,6 +1092,97 @@ export default function CameraPage() {
       showAlert('Gagal menyimpan ke sistem: ' + saveErr.message);
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  // Submit and Save VIDEO to SuperBrain System & Geotag Gallery
+  const handleSubmitVideo = async () => {
+    if (!videoReviewBlob || !user) {
+      showAlert('Silakan login terlebih dahulu untuk menyimpan video.');
+      return;
+    }
+
+    setIsUploading(true);
+    const now = new Date();
+    const todayYMD = now.toISOString().split('T')[0];
+    const timestampId = Date.now();
+    const fileName = `Video_BPS_${todayYMD}_${timestampId}.webm`;
+    const finalFile = new File([videoReviewBlob], fileName, { type: 'video/webm' });
+
+    let driveLink = null;
+    let isSavedOffline = false;
+
+    // Upload to Google Drive if OAuth token is present
+    if (accessToken && navigator.onLine) {
+      try {
+        const rootFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
+        const subFolderId = await getOrCreateFolder(accessToken, 'Video Lapangan', rootFolderId);
+        driveLink = await uploadFileToDrive(finalFile, accessToken, subFolderId, fileName);
+      } catch (driveErr) {
+        console.warn('Google Drive direct video upload failed, saving locally:', driveErr);
+      }
+    }
+
+    const baseEntryId = `vid_${timestampId}`;
+    const videoTitle = form.catatanRingkas || form.rincian || 'Video Dokumentasi Lapangan';
+
+    try {
+      // If offline or Drive unavailable, queue file
+      if (!driveLink) {
+        await savePendingUpload(baseEntryId, finalFile, fileName, 'ckp', null, null, user.uid);
+        isSavedOffline = true;
+      }
+
+      // Save to Geotag Media Gallery
+      await saveCameraMedia({
+        id: baseEntryId,
+        type: 'video',
+        blob: videoReviewBlob,
+        thumbnailUrl: videoThumbnailUrl || null,
+        title: videoTitle,
+        fileName,
+        mode: 'video',
+        duration: recordingDuration,
+        coords: coords ? { lat: coords.lat, lon: coords.lon, accuracy: coords.accuracy } : null,
+        timestamp: timestampId,
+        timeFormatted: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+        driveLink,
+        isOffline: isSavedOffline,
+        size: videoReviewBlob.size
+      }, user.uid);
+
+      await refreshGalleryMedia();
+
+      showAlert(
+        isSavedOffline
+          ? 'Video berhasil disimpan di Galeri Geotagging lokal.'
+          : 'Video berhasil disimpan dan diunggah ke Google Drive!'
+      );
+
+      handleDiscardVideo();
+    } catch (err) {
+      console.error('Error saving video:', err);
+      showAlert('Gagal menyimpan video: ' + err.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Delete media item from Geotag Gallery
+  const handleDeleteGalleryItem = async (mediaId, e) => {
+    if (e) e.stopPropagation();
+    if (window.confirm('Apakah Anda yakin ingin menghapus media ini dari Galeri Geotagging?')) {
+      try {
+        await removeCameraMedia(mediaId);
+        if (selectedMediaDetail && selectedMediaDetail.id === mediaId) {
+          setSelectedMediaDetail(null);
+        }
+        await refreshGalleryMedia();
+        showAlert('Media berhasil dihapus dari galeri.');
+      } catch (err) {
+        console.error('Delete media error:', err);
+        showAlert('Gagal menghapus media: ' + err.message);
+      }
     }
   };
 
@@ -936,6 +1201,9 @@ export default function CameraPage() {
       const sc = scheduleDocs.find((s) => s.id === form.selectedScheduleId);
       return sc ? sc.judul : form.judulJadwal || 'Ketuk untuk pilih Agenda Hari Ini';
     }
+    if (activeMode === 'video') {
+      return form.catatanRingkas ? `Video: ${form.catatanRingkas}` : 'Mode Perekaman Video Ber-Geotag';
+    }
     return form.catatanRingkas || 'Ketuk untuk tambah Catatan Cepat';
   };
 
@@ -946,6 +1214,17 @@ export default function CameraPage() {
     if (aspectRatio === '1:1') return styles.frame11;
     return styles.frame34;
   };
+
+  // Filter gallery items
+  const filteredGalleryMedia = galleryMedia.filter((item) => {
+    if (galleryFilter === 'all') return true;
+    if (galleryFilter === 'photo') return item.type === 'photo';
+    if (galleryFilter === 'video') return item.type === 'video';
+    if (galleryFilter === 'ckp') return item.mode === 'ckp';
+    if (galleryFilter === 'field') return item.mode === 'field';
+    if (galleryFilter === 'schedule') return item.mode === 'schedule';
+    return true;
+  });
 
   return (
     <div className={styles.cameraContainer}>
@@ -1018,19 +1297,21 @@ export default function CameraPage() {
                 <Settings size={20} />
               </button>
 
-              <button
-                type="button"
-                onClick={handleToggleTimer}
-                className={`${styles.iconBtn} ${timerSeconds > 0 ? styles.iconBtnActive : ''}`}
-                title="Timer Otomatis"
-              >
-                <TimerIcon size={20} />
-                {timerSeconds > 0 && (
-                  <span style={{ fontSize: '10px', fontWeight: 800, marginLeft: '-4px' }}>
-                    {timerSeconds}s
-                  </span>
-                )}
-              </button>
+              {activeMode !== 'video' && (
+                <button
+                  type="button"
+                  onClick={handleToggleTimer}
+                  className={`${styles.iconBtn} ${timerSeconds > 0 ? styles.iconBtnActive : ''}`}
+                  title="Timer Otomatis"
+                >
+                  <TimerIcon size={20} />
+                  {timerSeconds > 0 && (
+                    <span style={{ fontSize: '10px', fontWeight: 800, marginLeft: '-4px' }}>
+                      {timerSeconds}s
+                    </span>
+                  )}
+                </button>
+              )}
             </div>
 
             <div className={styles.topBarRight}>
@@ -1125,6 +1406,15 @@ export default function CameraPage() {
                 <div className={styles.levelLineRight} />
               </div>
 
+              {/* Live Video Recording HUD */}
+              {isRecording && (
+                <div className={styles.recordingHud}>
+                  <span className={styles.recordingDot} />
+                  <span>REC</span>
+                  <span>{formatSeconds(recordingDuration)}</span>
+                </div>
+              )}
+
               {/* Real-Time Geotag Watermark HUD Badge */}
               <div className={styles.hudBadge}>
                 <span className={styles.hudBadgeTitle}>BADAN PUSAT STATISTIK</span>
@@ -1197,7 +1487,10 @@ export default function CameraPage() {
                 <button
                   key={mode.id}
                   type="button"
-                  onClick={() => setActiveMode(mode.id)}
+                  onClick={() => {
+                    if (isRecording) return;
+                    setActiveMode(mode.id);
+                  }}
                   className={`${styles.modeItem} ${activeMode === mode.id ? styles.modeItemActive : ''}`}
                 >
                   {mode.label}
@@ -1210,32 +1503,47 @@ export default function CameraPage() {
               {/* Gallery / Recent Snap Thumbnail Button */}
               <button
                 type="button"
-                onClick={() => setShowHistory(true)}
+                onClick={() => setGalleryOpen(true)}
                 className={styles.galleryBtn}
-                title="Buka Galeri Foto Sesi Lapangan"
+                title="Buka Galeri Geotagging Lapangan"
               >
-                {recentPhotos.length > 0 && recentPhotos[0].previewUrl ? (
-                  <img src={recentPhotos[0].previewUrl} alt="Thumbnail" className={styles.galleryThumbImg} />
+                {latestThumbnail ? (
+                  <img src={latestThumbnail} alt="Thumbnail" className={styles.galleryThumbImg} />
                 ) : (
                   <ImageIcon size={22} color="#ffffff" />
                 )}
               </button>
 
-              {/* Samsung Shutter Button */}
+              {/* Samsung Shutter Button (Adapts to Photo / Video / Recording) */}
               <button
                 type="button"
                 onClick={handleShutterClick}
                 disabled={isProcessing}
-                className={styles.shutterBtn}
-                title="Ambil Foto Dokumentasi Resmi"
+                className={`${styles.shutterBtn} ${isRecording ? styles.shutterRecordingBtn : ''}`}
+                title={
+                  activeMode === 'video'
+                    ? isRecording
+                      ? 'Hentikan Perekaman Video'
+                      : 'Mulai Rekam Video'
+                    : 'Ambil Foto Dokumentasi Resmi'
+                }
               >
-                <div className={styles.shutterInner} />
+                {activeMode === 'video' ? (
+                  isRecording ? (
+                    <div className={styles.shutterRecordingInner} />
+                  ) : (
+                    <div className={styles.shutterVideoInner} />
+                  )
+                ) : (
+                  <div className={styles.shutterInner} />
+                )}
               </button>
 
               {/* Flip Camera Button */}
               <button
                 type="button"
                 onClick={handleFlipCamera}
+                disabled={isRecording}
                 className={styles.flipBtn}
                 title="Putar ke Kamera Depan / Belakang"
               >
@@ -1405,13 +1713,13 @@ export default function CameraPage() {
                 </>
               )}
 
-              {/* Mode: Quick Snap */}
-              {activeMode === 'quick' && (
+              {/* Mode: Video / Quick Snap */}
+              {(activeMode === 'quick' || activeMode === 'video') && (
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Catatan Ringkas (Opsional)</label>
+                  <label className={styles.formLabel}>Catatan / Topik Rekaman</label>
                   <input
                     type="text"
-                    placeholder="Contoh: Dokumentasi cepat arsip kegiatan..."
+                    placeholder="Contoh: Pengecekan sampel batas SLS..."
                     value={form.catatanRingkas}
                     onChange={(e) => setForm({ ...form, catatanRingkas: e.target.value })}
                     className={styles.formInput}
@@ -1426,7 +1734,7 @@ export default function CameraPage() {
                 onClick={() => setFormSheetOpen(false)}
                 className={styles.sheetApplyBtn}
               >
-                Terapkan Parameter & Siap Ambil Foto
+                Terapkan Parameter & Siap Merekam
               </button>
             </div>
           </div>
@@ -1472,20 +1780,20 @@ export default function CameraPage() {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>Ambil dari Galeri HP</div>
-                  <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Pilih foto yang sudah diambil untuk diberi watermark</div>
+                  <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>Buka Galeri Geotagging</div>
+                  <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Lihat semua foto dan video lapangan yang tersimpan</div>
                 </div>
                 <button
                   type="button"
                   onClick={() => {
                     setShowSettings(false);
-                    fileInputRef.current?.click();
+                    setGalleryOpen(true);
                   }}
                   className={styles.btnSecondary}
                   style={{ flex: 'none', padding: '8px 14px' }}
                 >
-                  <ImageIcon size={15} />
-                  Pilih Berkas
+                  <MapPin size={15} />
+                  Buka Galeri
                 </button>
               </div>
             </div>
@@ -1503,7 +1811,7 @@ export default function CameraPage() {
         </div>
       )}
 
-      {/* Review Screen Overlay (Post-Capture Preview) */}
+      {/* Review Screen Overlay: PHOTO */}
       {watermarkedUrl && (
         <div className={styles.reviewOverlay}>
           <header className={styles.reviewHeader}>
@@ -1607,78 +1915,332 @@ export default function CameraPage() {
         </div>
       )}
 
-      {/* History / Recent Photos Modal */}
-      {showHistory && (
-        <div className={styles.historyModal} onClick={() => setShowHistory(false)}>
-          <div className={styles.historyCard} onClick={(e) => e.stopPropagation()}>
-            <header className={styles.historyHeader}>
-              <span className={styles.historyTitle}>
-                <Layers size={18} color="#ffc72c" />
-                Foto Sesi Lapangan ({recentPhotos.length})
-              </span>
-              <button onClick={() => setShowHistory(false)} className={styles.sheetCloseBtn}>
-                <X size={18} />
-              </button>
-            </header>
+      {/* Review Screen Overlay: VIDEO */}
+      {videoReviewUrl && (
+        <div className={styles.reviewOverlay}>
+          <header className={styles.reviewHeader}>
+            <span className={styles.reviewTitle}>Pratinjau Hasil Video Lapangan</span>
+            <button onClick={handleDiscardVideo} className={styles.iconBtn} title="Batal & Hapus">
+              <X size={22} />
+            </button>
+          </header>
 
-            <div className={styles.historyList}>
-              {recentPhotos.length === 0 ? (
-                <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.84rem', margin: '30px 0' }}>
-                  Belum ada foto yang diambil pada sesi ini.
+          <div className={styles.reviewImageWrapper}>
+            <video
+              src={videoReviewUrl}
+              controls
+              autoPlay
+              playsInline
+              className={styles.reviewVideo}
+            />
+          </div>
+
+          <footer className={styles.reviewFooter}>
+            <div className={styles.reviewMetaSummary}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <MapPin size={13} color="#38bdf8" />
+                <span>
+                  {coords
+                    ? `Lat ${coords.lat.toFixed(5)}, Lon ${coords.lon.toFixed(5)}`
+                    : 'Tanpa GPS'}
+                </span>
+                {coords && (
+                  <button
+                    type="button"
+                    onClick={handleCopyCoords}
+                    style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}
+                    title="Salin Koordinat"
+                  >
+                    {copiedCoords ? <Check size={12} color="#4ade80" /> : <Copy size={12} />}
+                  </button>
+                )}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Clock size={13} color="#ffc72c" />
+                <span>Durasi: {formatSeconds(recordingDuration)}</span>
+              </div>
+              {videoReviewBlob && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4ade80' }}>
+                  <Sparkles size={13} />
+                  <span>Ukuran: {formatBytes(videoReviewBlob.size)}</span>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.reviewButtonGroup}>
+              <button
+                type="button"
+                onClick={handleDiscardVideo}
+                className={styles.btnSecondary}
+                disabled={isUploading}
+                title="Hapus rekaman dan rekam ulang"
+              >
+                <RotateCcw size={15} />
+                Ulangi
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDownloadVideo}
+                className={styles.btnSecondary}
+                disabled={isUploading}
+                title="Unduh Video ke HP"
+              >
+                <Download size={15} />
+                Unduh Video
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSubmitVideo}
+                className={styles.btnPrimary}
+                disabled={isUploading}
+              >
+                {isUploading ? (
+                  <>
+                    <RefreshCw size={15} className="spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    <UploadCloud size={15} />
+                    Simpan Video
+                  </>
+                )}
+              </button>
+            </div>
+          </footer>
+        </div>
+      )}
+
+      {/* FULLSCREEN GEOTAGGING MEDIA GALLERY MODAL */}
+      {galleryOpen && (
+        <div className={styles.galleryModal}>
+          <header className={styles.galleryHeader}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setGalleryOpen(false)}
+                className={styles.iconBtn}
+                title="Kembali ke Kamera"
+              >
+                <ArrowLeft size={22} />
+              </button>
+              <span className={styles.galleryTitle}>
+                <MapPin size={20} color="#ffc72c" />
+                Galeri Geotagging Lapangan
+              </span>
+            </div>
+            <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 600 }}>
+              {filteredGalleryMedia.length} Media
+            </span>
+          </header>
+
+          {/* Filter Bar */}
+          <div className={styles.galleryFilterBar}>
+            {[
+              { id: 'all', label: 'Semua' },
+              { id: 'photo', label: 'Foto Geotag' },
+              { id: 'video', label: 'Video' },
+              { id: 'ckp', label: 'Bukti CKP' },
+              { id: 'field', label: 'Dinas Lapangan' },
+              { id: 'schedule', label: 'Jadwal' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setGalleryFilter(tab.id)}
+                className={`${styles.galleryFilterPill} ${galleryFilter === tab.id ? styles.galleryFilterPillActive : ''}`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Gallery Media Grid */}
+          <div className={styles.galleryBody}>
+            {filteredGalleryMedia.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '60px 20px', color: '#94a3b8' }}>
+                <Camera size={44} style={{ opacity: 0.35, marginBottom: '12px' }} />
+                <p style={{ fontSize: '0.92rem', fontWeight: 600, color: '#e2e8f0' }}>Belum ada media geotagging tersimpan.</p>
+                <p style={{ fontSize: '0.78rem', maxWidth: '320px', margin: '8px auto' }}>
+                  Ambil foto atau rekam video di lapangan untuk melihat dokumentasi ber-geotag di sini.
                 </p>
-              ) : (
-                recentPhotos.map((item) => (
-                  <div key={item.id} className={styles.historyItem}>
-                    {item.previewUrl ? (
-                      <img src={item.previewUrl} alt={item.title} className={styles.historyThumb} />
-                    ) : (
-                      <div className={styles.historyThumb} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Camera size={22} color="#64748b" />
-                      </div>
-                    )}
-                    <div className={styles.historyInfo}>
-                      <div className={styles.historyItemTitle}>{item.title}</div>
-                      <div className={styles.historyItemMeta}>
-                        Pukul {item.time} {item.coords && `• ${item.coords}`}
-                      </div>
-                      <div>
-                        {item.driveLink ? (
-                          <span className={styles.badgeSuccess}>Tersimpan di Google Drive</span>
-                        ) : item.isOffline ? (
-                          <span className={styles.badgeOffline}>Antrean Offline Lokal</span>
-                        ) : (
-                          <span className={styles.badgeSuccess}>Tersimpan di Sistem</span>
-                        )}
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      {item.driveLink && (
-                        <a
-                          href={item.driveLink}
-                          target="_blank"
-                          rel="noreferrer"
-                          className={styles.iconBtn}
-                          style={{ width: '32px', height: '32px', background: 'rgba(255,255,255,0.08)' }}
-                          title="Buka di Google Drive"
-                        >
-                          <ExternalLink size={14} />
-                        </a>
+              </div>
+            ) : (
+              <div className={styles.galleryGrid}>
+                {filteredGalleryMedia.map((item) => {
+                  const previewSrc = item.thumbnailUrl || (item.blob ? URL.createObjectURL(item.blob) : '');
+                  return (
+                    <div
+                      key={item.id}
+                      className={styles.galleryCard}
+                      onClick={() => setSelectedMediaDetail(item)}
+                    >
+                      {item.type === 'video' ? (
+                        <>
+                          {previewSrc ? (
+                            <img src={previewSrc} alt={item.title} className={styles.galleryCardThumb} />
+                          ) : (
+                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1c1f2b' }}>
+                              <VideoIcon size={24} color="#ef4444" />
+                            </div>
+                          )}
+                          <span className={styles.galleryCardVideoBadge}>
+                            <Play size={10} fill="#ffffff" />
+                            {item.duration ? formatSeconds(item.duration) : 'VID'}
+                          </span>
+                        </>
+                      ) : (
+                        <img src={previewSrc} alt={item.title} className={styles.galleryCardThumb} />
                       )}
+
                       {item.coords && (
-                        <a
-                          href={`https://www.google.com/maps?q=${item.coords.replace(/\s+/g, '')}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className={styles.iconBtn}
-                          style={{ width: '32px', height: '32px', background: 'rgba(255,255,255,0.08)' }}
-                          title="Lihat Titik di Google Maps"
-                        >
-                          <MapPin size={14} />
-                        </a>
+                        <span className={styles.galleryCardGpsBadge}>
+                          <MapPin size={11} />
+                        </span>
                       )}
                     </div>
-                  </div>
-                ))
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* FULL MEDIA DETAIL VIEWER MODAL */}
+      {selectedMediaDetail && (
+        <div className={styles.detailModal}>
+          <header className={styles.detailHeader}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setSelectedMediaDetail(null)}
+                className={styles.iconBtn}
+                title="Kembali ke Galeri"
+              >
+                <ArrowLeft size={22} />
+              </button>
+              <span className={styles.detailTitle}>{selectedMediaDetail.title}</span>
+            </div>
+            <button
+              type="button"
+              onClick={(e) => handleDeleteGalleryItem(selectedMediaDetail.id, e)}
+              className={styles.actionBtnDanger}
+              title="Hapus media ini"
+            >
+              <Trash2 size={16} />
+            </button>
+          </header>
+
+          <div className={styles.detailMediaWrapper}>
+            {selectedMediaDetail.type === 'video' ? (
+              <video
+                src={selectedMediaDetail.blob ? URL.createObjectURL(selectedMediaDetail.blob) : ''}
+                controls
+                autoPlay
+                playsInline
+                className={styles.detailVideo}
+              />
+            ) : (
+              <img
+                src={selectedMediaDetail.thumbnailUrl || (selectedMediaDetail.blob ? URL.createObjectURL(selectedMediaDetail.blob) : '')}
+                alt={selectedMediaDetail.title}
+                className={styles.detailImage}
+              />
+            )}
+          </div>
+
+          {/* Sliding Metadata & Actions Sheet */}
+          <div className={styles.detailInfoSheet}>
+            <div className={styles.detailInfoRow}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '0.94rem', color: '#ffffff' }}>
+                  {selectedMediaDetail.title}
+                </div>
+                <div className={styles.detailMeta}>
+                  <span>Waktu: {selectedMediaDetail.timeFormatted || 'Hari Ini'}</span>
+                  <span>•</span>
+                  <span>Ukuran: {formatBytes(selectedMediaDetail.size || 0)}</span>
+                </div>
+              </div>
+
+              {selectedMediaDetail.driveLink ? (
+                <span className={styles.badgeSuccess}>Tersimpan di Drive</span>
+              ) : selectedMediaDetail.isOffline ? (
+                <span className={styles.badgeOffline}>Lokal Perangkat</span>
+              ) : null}
+            </div>
+
+            {/* Geotag info */}
+            {selectedMediaDetail.coords && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: '10px', background: 'rgba(255,255,255,0.05)', fontSize: '0.78rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <MapPin size={14} color="#38bdf8" />
+                  <span>
+                    Lat {selectedMediaDetail.coords.lat?.toFixed(5)}, Lon {selectedMediaDetail.coords.lon?.toFixed(5)}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const text = `${selectedMediaDetail.coords.lat?.toFixed(6)}, ${selectedMediaDetail.coords.lon?.toFixed(6)}`;
+                      navigator.clipboard.writeText(text);
+                      showAlert(`Koordinat disalin: ${text}`);
+                    }}
+                    className={styles.iconBtn}
+                    style={{ width: '28px', height: '28px', background: 'rgba(255,255,255,0.1)' }}
+                    title="Salin Koordinat"
+                  >
+                    <Copy size={13} />
+                  </button>
+                  <a
+                    href={`https://www.google.com/maps?q=${selectedMediaDetail.coords.lat},${selectedMediaDetail.coords.lon}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={styles.iconBtn}
+                    style={{ width: '28px', height: '28px', background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8' }}
+                    title="Buka di Google Maps"
+                  >
+                    <ExternalLink size={13} />
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* Action buttons */}
+            <div className={styles.detailActions}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!selectedMediaDetail.blob) return;
+                  const link = document.createElement('a');
+                  link.href = URL.createObjectURL(selectedMediaDetail.blob);
+                  link.download = selectedMediaDetail.fileName || `Media_BPS_${Date.now()}.${selectedMediaDetail.type === 'video' ? 'webm' : 'jpg'}`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  showAlert('Berkas berhasil diunduh ke perangkat.');
+                }}
+                className={styles.actionBtnOutline}
+              >
+                <Download size={14} />
+                Unduh ke HP
+              </button>
+
+              {selectedMediaDetail.driveLink && (
+                <a
+                  href={selectedMediaDetail.driveLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={styles.actionBtnOutline}
+                  style={{ textDecoration: 'none' }}
+                >
+                  <ExternalLink size={14} />
+                  Buka Drive
+                </a>
               )}
             </div>
           </div>
