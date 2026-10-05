@@ -722,7 +722,7 @@ export default function CameraPage() {
         tanggal: todayYMD,
         skpId: form.skpId || 'none',
         skpIds: form.skpId ? [Number(form.skpId)] : [],
-        skpJudul: selectedSkp ? selectedSkp.rencanaKinerja : '',
+        skpJudul: selectedSkp ? (selectedSkp.nama || selectedSkp.rencanaKinerja || '') : '',
         rincian: form.rincian || 'Dokumentasi Bukti Dukung Lapangan',
         jumlah: Number(form.jumlah) || 1,
         satuan: form.satuan || 'Dokumen',
@@ -1130,11 +1130,14 @@ export default function CameraPage() {
                         className={styles.formSelect}
                       >
                         <option value="">-- Tanpa Kaitan SKP Spesifik --</option>
-                        {skpData.map((skp) => (
-                          <option key={skp.id} value={skp.id}>
-                            #{skp.id} - {skp.rencanaKinerja.substring(0, 50)}...
-                          </option>
-                        ))}
+                        {skpData.map((skp) => {
+                          const skpTitle = skp.nama || skp.rencanaKinerja || `SKP #${skp.id}`;
+                          return (
+                            <option key={skp.id} value={skp.id}>
+                              #{skp.id} - {skpTitle.length > 50 ? skpTitle.substring(0, 50) + '...' : skpTitle}
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
 

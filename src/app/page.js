@@ -404,7 +404,8 @@ export default function Dashboard() {
                 <div className={styles.eventList}>
                   {upcomingSchedules.map(ev => {
                     const d = new Date(ev.tanggal + 'T00:00:00');
-                    const tgl = `${d.getDate()} ${BULAN[d.getMonth()].substring(0, 3)}`;
+                    const bulanName = !isNaN(d.getTime()) && BULAN[d.getMonth()] ? BULAN[d.getMonth()].substring(0, 3) : '';
+                    const tgl = !isNaN(d.getTime()) ? `${d.getDate()} ${bulanName}` : (ev.tanggal || '');
                     const isToday = ev.tanggal === todayYMD;
                     const colorMap = {
                       Deadline: '#ef4444',

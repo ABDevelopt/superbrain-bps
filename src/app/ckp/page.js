@@ -2755,61 +2755,64 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
                 const curIds = Array.isArray(form.skpIds) ? form.skpIds.map(Number) : (form.skpId && form.skpId !== 'none' ? [Number(form.skpId)] : []);
                 const selectedItems = curIds.map(id => skpData.find(s => Number(s.id) === id)).filter(Boolean);
                 if (selectedItems.length > 0) {
-                  return selectedItems.map(item => (
-                    <span 
-                      key={item.id}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        background: 'rgba(99, 102, 241, 0.2)',
-                        border: '1px solid rgba(99, 102, 241, 0.4)',
-                        color: '#c7d2fe',
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
+                  return selectedItems.map(item => {
+                    const itemLabel = item.nama || item.rencanaKinerja || (`SKP #${item.id}`);
+                    return (
                       <span 
+                        key={item.id}
                         style={{
-                          background: getColorForSkp(item.id),
-                          color: '#fff',
-                          padding: '1px 5px',
-                          borderRadius: '3px',
-                          fontSize: '10px'
-                        }}
-                      >
-                        #{item.id}
-                      </span>
-                      <span>{item.nama.length > 25 ? item.nama.substring(0, 25) + '...' : item.nama}</span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const next = curIds.filter(x => x !== Number(item.id));
-                          setForm(prev => ({
-                            ...prev,
-                            skpIds: next,
-                            skpId: next.length > 0 ? String(next[0]) : ''
-                          }));
-                        }}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: '#f87171',
-                          cursor: 'pointer',
-                          display: 'flex',
+                          display: 'inline-flex',
                           alignItems: 'center',
-                          padding: 0
+                          gap: '5px',
+                          background: 'rgba(99, 102, 241, 0.2)',
+                          border: '1px solid rgba(99, 102, 241, 0.4)',
+                          color: '#c7d2fe',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          padding: '3px 8px',
+                          borderRadius: '6px',
                         }}
-                        title="Hapus butir SKP ini"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <X size={12} />
-                      </button>
-                    </span>
-                  ));
+                        <span 
+                          style={{
+                            background: getColorForSkp(item.id),
+                            color: '#fff',
+                            padding: '1px 5px',
+                            borderRadius: '3px',
+                            fontSize: '10px'
+                          }}
+                        >
+                          #{item.id}
+                        </span>
+                        <span>{itemLabel.length > 25 ? itemLabel.substring(0, 25) + '...' : itemLabel}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const next = curIds.filter(x => x !== Number(item.id));
+                            setForm(prev => ({
+                              ...prev,
+                              skpIds: next,
+                              skpId: next.length > 0 ? String(next[0]) : ''
+                            }));
+                          }}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#f87171',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: 0
+                          }}
+                          title="Hapus butir SKP ini"
+                        >
+                          <X size={12} />
+                        </button>
+                      </span>
+                    );
+                  });
                 }
                 if (form.skpId === 'none') {
                   return <span style={{ fontStyle: 'italic', color: '#94a3b8', fontSize: '13px' }}>Tidak terkait SKP</span>;
@@ -4667,7 +4670,7 @@ function TabRekapHarian({ entries, onEdit, onDelete, deleteDocument, updateDocum
                   >
                     <option value="">— Pilih SKP —</option>
                     {skpData.map(s => (
-                      <option key={s.id} value={s.id}>{s.id}. {s.nama}</option>
+                      <option key={s.id} value={s.id}>{s.id}. {s.nama || s.rencanaKinerja || ('SKP #' + s.id)}</option>
                     ))}
                   </select>
                 )}
@@ -6498,7 +6501,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
                   >
                     <option value="">— Pilih SKP —</option>
                     {skpData.map(s => (
-                      <option key={s.id} value={s.id}>{s.id}. {s.nama}</option>
+                      <option key={s.id} value={s.id}>{s.id}. {s.nama || s.rencanaKinerja || ('SKP #' + s.id)}</option>
                     ))}
                   </select>
                 )}

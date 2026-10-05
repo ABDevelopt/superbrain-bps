@@ -77,7 +77,8 @@ export function useUserProfile() {
             await setDoc(userDocRef, initialData, { merge: true });
             setProfile(initialData);
           } catch (err) {
-            console.error('Failed to initialize user document:', err);
+            console.warn('Failed to initialize user document in Firestore, falling back to local state:', err.message);
+            setProfile(initialData);
             setError(err);
           } finally {
             setLoading(false);
@@ -85,8 +86,31 @@ export function useUserProfile() {
         }
       },
       (err) => {
-        console.error('Firestore user profile subscription error:', err);
+        console.warn('Firestore user profile subscription notice (using local profile fallback):', err.message);
         setError(err);
+        setProfile((prev) => {
+          if (prev) return prev;
+          try {
+            const cached = localStorage.getItem(`superbrain_user_profile_${user.uid}`);
+            if (cached) return JSON.parse(cached);
+          } catch (e) {}
+          return {
+            uid: user.uid,
+            email: user.email || '',
+            displayName: user.displayName || user.email?.split('@')[0] || 'Pegawai BPS',
+            photoURL: user.photoURL || '',
+            nip: '',
+            jabatan: 'Pegawai BPS',
+            satker: 'BPS',
+            timKerjaDefault: 'Subbagian Umum',
+            customSatuan: [],
+            activityPresets: [],
+            preferences: {
+              theme: 'system',
+              compressProof: true,
+            },
+          };
+        });
         setLoading(false);
       }
     );
@@ -103,7 +127,12 @@ export function useUserProfile() {
       updatedAt: serverTimestamp(),
     };
 
-    await setDoc(userDocRef, payload, { merge: true });
+    try {
+      await setDoc(userDocRef, payload, { merge: true });
+    } catch (cloudErr) {
+      console.warn('Could not sync profile to cloud Firestore, saving to local device cache:', cloudErr.message);
+    }
+
     setProfile((prev) => {
       const updated = { ...(prev || {}), ...payload };
       try {
@@ -117,10 +146,14 @@ export function useUserProfile() {
   const saveCustomSatuan = useCallback(async (customSatuanList) => {
     if (!user?.uid) return;
     const userDocRef = doc(db, 'users', user.uid);
-    await setDoc(userDocRef, {
-      customSatuan: customSatuanList,
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
+    try {
+      await setDoc(userDocRef, {
+        customSatuan: customSatuanList,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+    } catch (cloudErr) {
+      console.warn('Could not sync custom satuan to cloud Firestore, saving to local cache:', cloudErr.message);
+    }
 
     try {
       localStorage.setItem(`superbrain_custom_satuan_${user.uid}`, JSON.stringify(customSatuanList));
@@ -131,10 +164,14 @@ export function useUserProfile() {
   const saveActivityPresets = useCallback(async (presetsList) => {
     if (!user?.uid) return;
     const userDocRef = doc(db, 'users', user.uid);
-    await setDoc(userDocRef, {
-      activityPresets: presetsList,
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
+    try {
+      await setDoc(userDocRef, {
+        activityPresets: presetsList,
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+    } catch (cloudErr) {
+      console.warn('Could not sync activity presets to cloud Firestore, saving to local cache:', cloudErr.message);
+    }
 
     try {
       localStorage.setItem(`superbrain_user_activity_presets_${user.uid}`, JSON.stringify(presetsList));

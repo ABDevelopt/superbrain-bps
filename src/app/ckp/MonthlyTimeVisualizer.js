@@ -339,10 +339,14 @@ export default function MonthlyTimeVisualizer({
                 style={{
                   backgroundColor: getColorForSkp(skpId === 'non-skp' ? null : skpId)
                 }}
-                title={skpItem ? skpItem.nama : ''}
+                title={skpItem ? (skpItem.nama || skpItem.rencanaKinerja || '') : ''}
               >
                 {skpId === 'non-skp' ? 'Non-SKP' : `SKP #${skpId}`}
-                {skpItem?.nama && <span style={{ opacity: 0.85, fontWeight: 400 }}>— {skpItem.nama.substring(0, 20)}...</span>}
+                {(skpItem?.nama || skpItem?.rencanaKinerja) && (
+                  <span style={{ opacity: 0.85, fontWeight: 400 }}>
+                    — {(skpItem.nama || skpItem.rencanaKinerja).substring(0, 20)}...
+                  </span>
+                )}
               </span>
             );
           })}
