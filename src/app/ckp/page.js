@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { useAlert } from '@/contexts/AlertContext';
 import { compressFile, formatBytes } from '@/lib/compressor';
-import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Clock, Link as LinkIcon, CloudOff, FolderOpen, AlertTriangle, Sparkles, FolderPlus, ExternalLink, FileArchive, Send, Palmtree, Repeat, Plus, Tag } from 'lucide-react';
+import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Clock, Link as LinkIcon, CloudOff, FolderOpen, AlertTriangle, Sparkles, FolderPlus, ExternalLink, FileArchive, Send, Palmtree, Repeat, Plus, Tag, FileText } from 'lucide-react';
 import { useSkps } from '@/hooks/useSkps';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import styles from './page.module.css';

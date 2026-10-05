@@ -17,6 +17,14 @@ export function AuthProvider({ children }) {
   const [accessToken, setAccessToken] = useState(null);
 
   useEffect(() => {
+    const handleTokenExpired = () => {
+      setAccessToken(null);
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('sb_google_token_expired', handleTokenExpired);
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
@@ -33,7 +41,12 @@ export function AuthProvider({ children }) {
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('sb_google_token_expired', handleTokenExpired);
+      }
+    };
   }, []);
 
   const loginWithGoogle = async () => {

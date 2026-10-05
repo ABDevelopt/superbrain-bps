@@ -1,3 +1,19 @@
+export const handleGoogleTokenExpired = () => {
+  if (typeof window !== 'undefined') {
+    try {
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('sb_google_access_token')) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+    } catch (e) {}
+    window.dispatchEvent(new CustomEvent('sb_google_token_expired'));
+  }
+};
+
 export const fetchGCalEvents = async (accessToken, timeMin, timeMax) => {
   if (!accessToken) return [];
   try {
@@ -20,9 +36,7 @@ export const fetchGCalEvents = async (accessToken, timeMin, timeMax) => {
 
     if (!res.ok) {
       if (res.status === 401) {
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('sb_google_access_token');
-        }
+        handleGoogleTokenExpired();
         console.warn('Google Calendar access token is invalid or expired. Persisted token cleared.');
         return [];
       }
@@ -108,9 +122,7 @@ export const createGCalEvent = async (accessToken, appEvent) => {
     });
     if (!res.ok) {
       if (res.status === 401) {
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('sb_google_access_token');
-        }
+        handleGoogleTokenExpired();
         console.warn('Google Calendar access token is invalid or expired. Persisted token cleared.');
         return null;
       }
@@ -137,9 +149,7 @@ export const updateGCalEvent = async (accessToken, gcalEventId, appEvent) => {
     });
     if (!res.ok) {
       if (res.status === 401) {
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('sb_google_access_token');
-        }
+        handleGoogleTokenExpired();
         console.warn('Google Calendar access token is invalid or expired. Persisted token cleared.');
         return;
       }
@@ -161,9 +171,7 @@ export const deleteGCalEvent = async (accessToken, gcalEventId) => {
     });
     if (!res.ok) {
       if (res.status === 401) {
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('sb_google_access_token');
-        }
+        handleGoogleTokenExpired();
         console.warn('Google Calendar access token is invalid or expired. Persisted token cleared.');
         return;
       }
