@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, ClipboardList, Edit3, Calendar, BrainCircuit, LogOut, PanelLeftClose, PanelLeftOpen, Settings, CheckSquare, Link2, FileArchive } from 'lucide-react';
+import { Home, ClipboardList, Edit3, Calendar, BrainCircuit, LogOut, PanelLeftClose, PanelLeftOpen, Settings, CheckSquare, Link2, FileArchive, Camera } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -12,6 +12,7 @@ import { useState } from 'react';
 
 const navItems = [
   { href: '/',         icon: <Home size={20} />, label: 'Dashboard' },
+  { href: '/camera',   icon: <Camera size={20} />, label: 'Kamera Lapangan' },
   { href: '/schedule', icon: <Calendar size={20} />, label: 'Jadwal & Agenda' },
   { href: '/tasks',    icon: <CheckSquare size={20} />, label: 'Papan & Peta Kerja' },
   { href: '/ckp',      icon: <Edit3 size={20} />, label: 'CKP Harian' },

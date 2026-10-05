@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar, BarChart2, Users, FileText, CheckCircle, File, ClipboardList, TrendingUp, Zap, Clock, History, Rocket, Send, Settings, CheckSquare } from 'lucide-react';
+import { Calendar, BarChart2, Users, FileText, CheckCircle, File, ClipboardList, TrendingUp, Zap, Clock, History, Rocket, Send, Settings, CheckSquare, Camera } from 'lucide-react';
 import Link from 'next/link';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
@@ -76,6 +76,7 @@ const MOCK_ACTIVITIES = [
 
 const QUICK_ACTIONS = [
   { id: 'catat', label: '+ Catat Kegiatan', href: '/ckp', warna: 'primary' },
+  { id: 'kamera', label: 'Kamera Lapangan', href: '/camera', warna: 'purple' },
   { id: 'skp', label: 'Lihat SKP', href: '/skp', warna: 'cyan' },
   { id: 'jadwal', label: 'Lihat Jadwal', href: '/schedule', warna: 'emerald' },
 ];
@@ -303,6 +304,9 @@ export default function Dashboard() {
               </p>
             </div>
             <div className={styles.headerActions}>
+              <Link href="/camera" className={styles.settingsMobileBtn} title="Kamera Lapangan">
+                <Camera size={20} />
+              </Link>
               <Link href="/settings" className={styles.settingsMobileBtn} title="Pengaturan">
                 <Settings size={20} />
               </Link>
