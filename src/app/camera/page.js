@@ -1445,7 +1445,7 @@ export default function CameraPage() {
               >
                 <span className={styles.taskPillDot} />
                 <span className={styles.taskPillText}>{getActiveTaskLabel()}</span>
-                <SlidersHorizontal size={14} color="#ffc72c" />
+                <SlidersHorizontal size={14} color="#fbbf24" />
               </button>
             </div>
           </div>
@@ -1561,7 +1561,7 @@ export default function CameraPage() {
             <div className={styles.sheetHandle} />
             <div className={styles.sheetHeader}>
               <span className={styles.sheetTitle}>
-                <SlidersHorizontal size={18} color="#ffc72c" />
+                <SlidersHorizontal size={18} color="#fbbf24" />
                 Parameter {CAPTURE_MODES.find((m) => m.id === activeMode)?.label}
               </span>
               <button
@@ -1748,7 +1748,7 @@ export default function CameraPage() {
             <div className={styles.sheetHandle} />
             <div className={styles.sheetHeader}>
               <span className={styles.sheetTitle}>
-                <Settings size={18} color="#ffc72c" />
+                <Settings size={18} color="#fbbf24" />
                 Pengaturan Kamera SuperBrain
               </span>
               <button
@@ -1846,7 +1846,7 @@ export default function CameraPage() {
                 )}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Clock size={13} color="#ffc72c" />
+                <Clock size={13} color="#fbbf24" />
                 <span>{currentTimeStr}</span>
               </div>
               {compressedInfo && (
@@ -1886,7 +1886,7 @@ export default function CameraPage() {
                 className={styles.btnSecondary}
                 disabled={isUploading}
                 title="Simpan sementara sebagai Draft CKP"
-                style={{ color: '#ffc72c', borderColor: 'rgba(255, 199, 44, 0.4)' }}
+                style={{ color: '#fbbf24', borderColor: 'rgba(251, 191, 36, 0.4)' }}
               >
                 <FileText size={15} />
                 Draft CKP
@@ -1956,7 +1956,7 @@ export default function CameraPage() {
                 )}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Clock size={13} color="#ffc72c" />
+                <Clock size={13} color="#fbbf24" />
                 <span>Durasi: {formatSeconds(recordingDuration)}</span>
               </div>
               {videoReviewBlob && (
@@ -2027,7 +2027,7 @@ export default function CameraPage() {
                 <ArrowLeft size={22} />
               </button>
               <span className={styles.galleryTitle}>
-                <MapPin size={20} color="#ffc72c" />
+                <MapPin size={20} color="#fbbf24" />
                 Galeri Geotagging Lapangan
               </span>
             </div>

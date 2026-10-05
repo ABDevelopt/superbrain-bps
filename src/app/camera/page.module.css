@@ -1,14 +1,18 @@
 /* src/app/camera/page.module.css */
-/* Native Samsung Galaxy / One UI Camera Styling */
+/* ==========================================================================
+   SuperBrain Camera — Premium Liquid Glass Design System
+   Modern, Minimalist, Ultra-Responsive (Zero-Vertical-Scroll, 100dvh)
+   ========================================================================== */
 
+/* ─── Main Camera Canvas ─────────────────────────────────────────────────── */
 .cameraContainer {
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
   height: 100dvh;
-  background: #000000;
-  color: #ffffff;
+  background: radial-gradient(circle at 50% 12%, rgba(20, 29, 47, 0.4) 0%, #030508 72%);
+  color: #f8fafc;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -18,103 +22,149 @@
   touch-action: manipulation;
   z-index: 9999;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: -0.01em;
 }
 
-/* ─── Top Control Bar (Samsung Quick Settings) ─────────────────────────── */
+/* ─── Top Control Bar (Floating Liquid Glass) ────────────────────────────── */
 .topBar {
   width: 100%;
-  height: 56px;
-  min-height: 56px;
+  height: 60px;
+  min-height: 60px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0) 100%);
+  background: linear-gradient(180deg, rgba(3, 5, 8, 0.8) 0%, rgba(3, 5, 8, 0.35) 75%, rgba(3, 5, 8, 0) 100%);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
   z-index: 30;
 }
 
-.topBarLeft, .topBarRight {
+.topBarLeft,
+.topBarRight {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
+/* Liquid Glass Circular Control Button */
 .iconBtn {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  background: transparent;
-  border: none;
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.22), 0 4px 12px rgba(0, 0, 0, 0.3);
+  color: #f1f5f9;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   padding: 0;
 }
 
+.iconBtn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.26);
+  transform: translateY(-1px);
+}
+
 .iconBtn:active {
-  transform: scale(0.9);
-  background: rgba(255, 255, 255, 0.15);
+  transform: scale(0.92);
+  background: rgba(255, 255, 255, 0.2);
 }
 
+/* Active State: Liquid Amber Glow */
 .iconBtnActive {
-  color: #ffc72c !important;
+  background: rgba(251, 191, 36, 0.18) !important;
+  border-color: rgba(251, 191, 36, 0.55) !important;
+  color: #fbbf24 !important;
+  box-shadow: 0 0 16px rgba(251, 191, 36, 0.35), inset 0 1px 1.5px rgba(255, 255, 255, 0.35) !important;
 }
 
+/* Aspect Ratio Liquid Glass Capsule */
 .aspectPill {
-  padding: 4px 10px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
-  font-size: 0.74rem;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: #f8fafc;
+  font-size: 0.72rem;
   font-weight: 700;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  letter-spacing: 0.6px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 4px 12px rgba(0, 0, 0, 0.25);
   cursor: pointer;
-  letter-spacing: 0.5px;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.aspectPill:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.28);
 }
 
 .aspectPill:active {
-  background: rgba(255, 255, 255, 0.25);
+  transform: scale(0.94);
+  background: rgba(255, 255, 255, 0.22);
 }
 
+/* Liquid Glass GPS Indicator Pill */
 .gpsIndicator {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 9px;
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  font-size: 0.7rem;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 9999px;
+  background: rgba(8, 12, 20, 0.62);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.18), 0 4px 12px rgba(0, 0, 0, 0.3);
+  font-size: 0.68rem;
   font-weight: 700;
+  letter-spacing: 0.4px;
+  color: #e2e8f0;
   cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gpsIndicator:active {
+  transform: scale(0.94);
 }
 
 .gpsDotGreen {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #22c55e;
-  box-shadow: 0 0 6px #22c55e;
+  background: #10b981;
+  box-shadow: 0 0 10px #10b981, 0 0 3px #10b981;
 }
 
 .gpsDotYellow {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #facc15;
-  box-shadow: 0 0 6px #facc15;
-  animation: pulse 1s infinite;
+  background: #fbbf24;
+  box-shadow: 0 0 10px #fbbf24;
+  animation: liquidPulse 1.4s infinite ease-in-out;
 }
 
 .gpsDotRed {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #ef4444;
+  background: #f43f5e;
+  box-shadow: 0 0 10px #f43f5e;
+}
+
+@keyframes liquidPulse {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  50% { transform: scale(1.25); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.7; }
 }
 
 /* ─── Viewfinder Main Area ──────────────────────────────────────────────── */
@@ -142,9 +192,9 @@
   max-width: calc(100dvh * 3 / 4);
   aspect-ratio: 3 / 4;
   position: relative;
-  border-radius: 18px;
+  border-radius: 22px;
   overflow: hidden;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 .frame169 {
@@ -153,17 +203,19 @@
   max-width: calc(100dvh * 9 / 16);
   aspect-ratio: 9 / 16;
   position: relative;
-  border-radius: 18px;
+  border-radius: 22px;
   overflow: hidden;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 .frame11 {
   width: 100%;
-  max-width: min(100vw, calc(100dvh - 200px));
+  max-width: min(100vw, calc(100dvh - 210px));
   aspect-ratio: 1 / 1;
   position: relative;
-  border-radius: 18px;
+  border-radius: 22px;
   overflow: hidden;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 .videoElement {
@@ -177,7 +229,7 @@
   transform: scaleX(-1);
 }
 
-/* 3x3 Grid Overlay */
+/* 3x3 Composition Grid */
 .gridOverlay {
   position: absolute;
   inset: 0;
@@ -190,7 +242,7 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.16);
 }
 
 .gridH1 { top: 33.33%; }
@@ -201,7 +253,7 @@
   top: 0;
   bottom: 0;
   width: 1px;
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.16);
 }
 
 .gridV1 { left: 33.33%; }
@@ -217,81 +269,92 @@
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  opacity: 0.45;
+  opacity: 0.55;
   z-index: 6;
 }
 
 .levelLineLeft, .levelLineRight {
-  width: 40px;
+  width: 44px;
   height: 1.5px;
-  background: #ffffff;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8));
+}
+
+.levelLineRight {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.8), transparent);
 }
 
 .levelCenterDot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #ffd000;
-  margin: 0 10px;
+  background: #fbbf24;
+  box-shadow: 0 0 8px #fbbf24;
+  margin: 0 8px;
 }
 
-/* Tap to Focus Ring (Samsung Yellow) */
+/* Focus Ring: Liquid Glass Target */
 .focusRing {
   position: absolute;
-  width: 68px;
-  height: 68px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
-  border: 2px solid #ffd000;
-  box-shadow: 0 0 10px rgba(255, 208, 0, 0.6);
+  border: 2px solid #fbbf24;
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.5), inset 0 0 12px rgba(251, 191, 36, 0.25);
   pointer-events: none;
   z-index: 25;
   transform: translate(-50%, -50%);
-  animation: focusPulse 0.4s ease-out forwards;
+  animation: liquidFocus 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes focusPulse {
-  0% { transform: translate(-50%, -50%) scale(1.3); opacity: 0; }
-  50% { transform: translate(-50%, -50%) scale(0.95); opacity: 1; }
+@keyframes liquidFocus {
+  0% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+  60% { transform: translate(-50%, -50%) scale(0.96); opacity: 1; }
   100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
 }
 
-/* Floating Task Pill (Active parameter info) */
+/* Floating Task Pill (Liquid Glass Island) */
 .taskPill {
   position: absolute;
-  bottom: 16px;
+  bottom: 18px;
   left: 50%;
   transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 14px;
-  border-radius: 20px;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #ffffff;
+  padding: 7px 16px;
+  border-radius: 9999px;
+  background: rgba(10, 15, 26, 0.68);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.26), 0 8px 28px rgba(0, 0, 0, 0.55);
+  color: #f8fafc;
   font-size: 0.76rem;
   font-weight: 600;
   cursor: pointer;
   z-index: 15;
   max-width: 88%;
   white-space: nowrap;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.taskPill:hover, .taskPill:active {
-  background: rgba(20, 24, 33, 0.85);
-  border-color: #ffc72c;
-  transform: translateX(-50%) scale(1.02);
+.taskPill:hover {
+  background: rgba(16, 22, 38, 0.85);
+  border-color: rgba(251, 191, 36, 0.5);
+  transform: translateX(-50%) translateY(-2px);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.35), 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(251, 191, 36, 0.2);
+}
+
+.taskPill:active {
+  transform: translateX(-50%) scale(0.97);
 }
 
 .taskPillDot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #ffc72c;
+  background: #fbbf24;
+  box-shadow: 0 0 8px #fbbf24;
   flex-shrink: 0;
 }
 
@@ -301,35 +364,39 @@
   white-space: nowrap;
 }
 
-/* Real-Time Geotag HUD Badge (Bottom-left of viewfinder) */
+/* Real-Time Geotag HUD Badge (Frosted Liquid Glass Chip) */
 .hudBadge {
   position: absolute;
   top: 14px;
   left: 14px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 6px 10px;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  gap: 3px;
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: rgba(6, 10, 18, 0.62);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2), 0 8px 24px rgba(0, 0, 0, 0.45);
   pointer-events: none;
   z-index: 10;
-  max-width: 240px;
+  max-width: 250px;
 }
 
 .hudBadgeTitle {
   font-size: 0.66rem;
   font-weight: 800;
   color: #38bdf8;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
+  text-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
 }
 
 .hudBadgeMeta {
-  font-size: 0.64rem;
-  color: #e2e8f0;
+  font-size: 0.63rem;
+  color: #f1f5f9;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: -0.2px;
 }
 
 /* Shutter Flash Animation */
@@ -339,11 +406,11 @@
   background: #ffffff;
   z-index: 50;
   pointer-events: none;
-  animation: flashOut 0.22s ease-out forwards;
+  animation: flashOut 0.24s ease-out forwards;
 }
 
 @keyframes flashOut {
-  0% { opacity: 0.9; }
+  0% { opacity: 0.95; }
   100% { opacity: 0; }
 }
 
@@ -355,34 +422,38 @@
   align-items: center;
   justify-content: center;
   z-index: 45;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(3, 5, 8, 0.35);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   pointer-events: none;
 }
 
 .countdownNumber {
-  font-size: 6rem;
+  font-size: 6.5rem;
   font-weight: 900;
-  color: #ffd000;
-  text-shadow: 0 0 40px rgba(255, 208, 0, 0.8);
-  animation: countPulse 0.9s ease-in-out infinite;
+  color: #fbbf24;
+  text-shadow: 0 0 48px rgba(251, 191, 36, 0.7), 0 0 20px rgba(0, 0, 0, 0.8);
+  animation: liquidCountPulse 0.9s ease-in-out infinite;
 }
 
-@keyframes countPulse {
-  0% { transform: scale(0.8); opacity: 0.7; }
-  50% { transform: scale(1.15); opacity: 1; }
-  100% { transform: scale(1); opacity: 0.8; }
+@keyframes liquidCountPulse {
+  0% { transform: scale(0.85); opacity: 0.75; }
+  50% { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.85; }
 }
 
-/* ─── Bottom Section (Controls, Modes, Shutter) ─────────────────────────── */
+/* ─── Bottom Section (Liquid Glass Control Deck) ────────────────────────── */
 .bottomSection {
   width: 100%;
   display: flex;
   flex-direction: column;
-  background: #000000;
+  background: linear-gradient(180deg, rgba(3, 5, 8, 0) 0%, rgba(3, 5, 8, 0.8) 30%, #030508 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   z-index: 30;
 }
 
-/* Zoom & Lens Pills */
+/* Zoom & Lens Capsule */
 .zoomContainer {
   display: flex;
   align-items: center;
@@ -394,11 +465,13 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 6px;
-  border-radius: 20px;
-  background: rgba(30, 30, 30, 0.75);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  padding: 4px 6px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.22), 0 6px 20px rgba(0, 0, 0, 0.4);
 }
 
 .lensBtn {
@@ -407,28 +480,33 @@
   border-radius: 50%;
   border: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.74rem;
   font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lensBtn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .lensBtnActive {
-  background: #ffffff !important;
-  color: #000000 !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: #030508 !important;
+  box-shadow: 0 2px 10px rgba(255, 255, 255, 0.4), inset 0 1px 1px #ffffff;
 }
 
-/* Mode Carousel (Samsung One UI signature) */
+/* Mode Carousel (Minimalist Fluid Selector) */
 .modeCarousel {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 22px;
+  gap: 24px;
   padding: 10px 16px;
   overflow-x: auto;
   scrollbar-width: none;
@@ -443,27 +521,27 @@
 .modeItem {
   background: transparent;
   border: none;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.9px;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.52);
   cursor: pointer;
-  padding: 6px 2px;
+  padding: 6px 4px;
   position: relative;
   white-space: nowrap;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .modeItem:hover {
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.88);
 }
 
 .modeItemActive {
-  color: #ffc72c !important;
+  color: #fbbf24 !important;
   font-weight: 800;
-  font-size: 0.84rem;
-  text-shadow: 0 0 10px rgba(255, 199, 44, 0.4);
+  font-size: 0.82rem;
+  text-shadow: 0 0 14px rgba(251, 191, 36, 0.4);
 }
 
 .modeItemActive::after {
@@ -472,10 +550,11 @@
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 14px;
-  height: 2px;
-  background: #ffc72c;
-  border-radius: 2px;
+  width: 16px;
+  height: 2.5px;
+  background: #fbbf24;
+  border-radius: 9999px;
+  box-shadow: 0 0 8px #fbbf24;
 }
 
 /* Shutter Row */
@@ -486,28 +565,36 @@
   align-items: center;
   justify-content: space-around;
   padding: 0 24px 14px;
-  background: #000000;
+  background: transparent;
 }
 
-/* Gallery Thumbnail Button */
+/* Gallery Thumbnail Button (Liquid Glass Frame) */
 .galleryBtn {
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
-  border: 2px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.3), 0 6px 20px rgba(0, 0, 0, 0.4);
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #ffffff;
+  color: #f8fafc;
   padding: 0;
-  transition: transform 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.galleryBtn:hover {
+  border-color: rgba(255, 255, 255, 0.45);
+  transform: scale(1.05);
 }
 
 .galleryBtn:active {
-  transform: scale(0.9);
+  transform: scale(0.92);
 }
 
 .galleryThumbImg {
@@ -516,83 +603,165 @@
   object-fit: cover;
 }
 
-/* Iconic Samsung Shutter Button */
+/* Iconic Dual-Ring Liquid Glass Shutter Button */
 .shutterBtn {
-  width: 76px;
-  height: 76px;
+  width: 78px;
+  height: 78px;
   border-radius: 50%;
-  border: 3.5px solid #ffffff;
-  background: transparent;
+  border: 3.5px solid rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.12), 0 10px 32px rgba(0, 0, 0, 0.55), inset 0 0 12px rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   padding: 0;
-  transition: transform 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease;
 }
 
 .shutterBtn:active {
-  transform: scale(0.9);
+  transform: scale(0.92);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1), 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 .shutterInner {
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: #ffffff;
+  background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.4), inset 0 2px 2px #ffffff;
   transition: all 0.15s ease;
 }
 
 .shutterBtn:active .shutterInner {
-  background: #e2e8f0;
-  transform: scale(0.96);
+  background: #cbd5e1;
+  transform: scale(0.94);
 }
 
-/* Flip Camera Button */
+/* Video Shutter (Liquid Ruby) */
+.shutterVideoInner {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+  box-shadow: 0 4px 20px rgba(244, 63, 94, 0.5), inset 0 1px 1.5px rgba(255, 255, 255, 0.4);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.shutterRecordingInner {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
+  box-shadow: 0 0 16px rgba(244, 63, 94, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.shutterRecordingBtn {
+  border-color: #f43f5e !important;
+  box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.25), 0 10px 32px rgba(244, 63, 94, 0.4) !important;
+  animation: liquidRecordPulse 1.4s infinite ease-in-out;
+}
+
+@keyframes liquidRecordPulse {
+  0% { box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.3), 0 0 20px rgba(244, 63, 94, 0.3); }
+  50% { box-shadow: 0 0 0 8px rgba(244, 63, 94, 0.1), 0 0 32px rgba(244, 63, 94, 0.5); }
+  100% { box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.3), 0 0 20px rgba(244, 63, 94, 0.3); }
+}
+
+/* Flip Camera Button (Frosted Liquid Glass Disc) */
 .flipBtn {
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.25), 0 6px 20px rgba(0, 0, 0, 0.4);
+  color: #f8fafc;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   padding: 0;
-  transition: all 0.25s ease;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.flipBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.32);
 }
 
 .flipBtn:active {
   transform: scale(0.9) rotate(180deg);
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.24);
 }
 
-/* ─── Samsung Bottom Sheet for Mode Parameters ─────────────────────────── */
+/* Live Video Recording HUD Badge */
+.recordingHud {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 9999px;
+  background: rgba(18, 5, 8, 0.78);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(244, 63, 94, 0.45);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.25), 0 6px 24px rgba(244, 63, 94, 0.35);
+  z-index: 20;
+  color: #ffffff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.recordingDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f43f5e;
+  box-shadow: 0 0 10px #f43f5e;
+  animation: liquidPulse 1s infinite;
+}
+
+/* ─── Liquid Glass Bottom Sheet (Parameters & Settings) ─────────────────── */
 .sheetOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(3, 5, 8, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   z-index: 100;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  animation: fadeIn 0.2s ease-out;
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .sheetCard {
-  background: #181a20;
+  background: rgba(13, 17, 26, 0.88);
+  backdrop-filter: blur(36px) saturate(200%);
+  -webkit-backdrop-filter: blur(36px) saturate(200%);
   border-radius: 28px 28px 0 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.7), inset 0 1px 1.5px rgba(255, 255, 255, 0.25);
   max-height: 82vh;
   max-height: 82dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes slideUp {
@@ -606,10 +775,11 @@
 }
 
 .sheetHandle {
-  width: 38px;
+  width: 36px;
   height: 4.5px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.3);
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
   margin: 12px auto 6px;
 }
 
@@ -622,9 +792,9 @@
 }
 
 .sheetTitle {
-  font-size: 0.96rem;
+  font-size: 0.94rem;
   font-weight: 700;
-  color: #ffffff;
+  color: #f8fafc;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -634,13 +804,19 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
-  border: none;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: #94a3b8;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sheetCloseBtn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
 }
 
 .sheetBody {
@@ -659,64 +835,81 @@
 }
 
 .formLabel {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 600;
   color: #94a3b8;
+  letter-spacing: 0.3px;
 }
 
-.formInput, .formSelect, .formTextarea {
+.formInput,
+.formSelect,
+.formTextarea {
   width: 100%;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 11px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
   color: #ffffff;
   font-size: 0.86rem;
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.formInput:focus, .formSelect:focus, .formTextarea:focus {
-  border-color: #ffc72c;
-  background: rgba(255, 255, 255, 0.09);
+.formInput:focus,
+.formSelect:focus,
+.formTextarea:focus {
+  border-color: #fbbf24;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 18px rgba(251, 191, 36, 0.25), inset 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .formTextarea {
   resize: vertical;
-  min-height: 72px;
+  min-height: 76px;
 }
 
 .sheetFooter {
   padding: 16px 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: #13151a;
+  background: rgba(9, 12, 18, 0.95);
+  backdrop-filter: blur(20px);
 }
 
 .sheetApplyBtn {
   width: 100%;
   padding: 13px;
-  border-radius: 14px;
-  background: #ffc72c;
-  color: #000000;
-  font-size: 0.92rem;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  box-shadow: 0 6px 22px rgba(245, 158, 11, 0.35), inset 0 1px 1.5px rgba(255, 255, 255, 0.45);
+  color: #030508;
+  font-size: 0.9rem;
   font-weight: 700;
+  letter-spacing: 0.3px;
   border: none;
   cursor: pointer;
-  transition: transform 0.1s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sheetApplyBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 28px rgba(245, 158, 11, 0.45), inset 0 1px 1.5px rgba(255, 255, 255, 0.5);
 }
 
 .sheetApplyBtn:active {
   transform: scale(0.98);
 }
 
-/* ─── Review Overlay Screen (Post-capture preview) ─────────────────────── */
+/* ─── Review Overlay Screen (Post-capture preview) ──────────────────────── */
 .reviewOverlay {
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
   height: 100dvh;
-  background: #000000;
+  background: radial-gradient(circle at 50% 15%, rgba(18, 25, 40, 0.5) 0%, #030508 75%);
   z-index: 120;
   display: flex;
   flex-direction: column;
@@ -725,19 +918,22 @@
 }
 
 .reviewHeader {
-  height: 56px;
+  height: 58px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%);
+  background: rgba(8, 12, 20, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   z-index: 10;
 }
 
 .reviewTitle {
   font-size: 0.92rem;
   font-weight: 700;
-  color: #ffffff;
+  color: #f8fafc;
 }
 
 .reviewImageWrapper {
@@ -746,26 +942,39 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 12px;
+  padding: 10px 14px;
   overflow: hidden;
 }
 
 .reviewImage {
   max-width: 100%;
-  max-height: calc(100dvh - 160px);
+  max-height: calc(100dvh - 170px);
   object-fit: contain;
-  border-radius: 12px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.7);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85);
+}
+
+.reviewVideo {
+  max-width: 100%;
+  max-height: calc(100dvh - 175px);
+  border-radius: 16px;
+  outline: none;
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85);
 }
 
 .reviewFooter {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px 16px 20px;
-  background: rgba(15, 17, 23, 0.95);
-  backdrop-filter: blur(12px);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 12px;
+  padding: 14px 18px 22px;
+  background: rgba(10, 14, 22, 0.85);
+  backdrop-filter: blur(32px) saturate(190%);
+  -webkit-backdrop-filter: blur(32px) saturate(190%);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 -10px 36px rgba(0, 0, 0, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.15);
 }
 
 .reviewMetaSummary {
@@ -776,13 +985,13 @@
   gap: 10px;
   font-size: 0.72rem;
   color: #94a3b8;
-  padding-bottom: 6px;
+  padding-bottom: 4px;
 }
 
 .reviewButtonGroup {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .btnSecondary {
@@ -792,19 +1001,27 @@
   justify-content: center;
   gap: 6px;
   padding: 11px 12px;
-  border-radius: 12px;
-  font-size: 0.8rem;
+  border-radius: 14px;
+  font-size: 0.78rem;
   font-weight: 600;
   color: #e2e8f0;
   background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.18), 0 4px 14px rgba(0, 0, 0, 0.25);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btnSecondary:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.26);
 }
 
 .btnSecondary:active {
-  background: rgba(255, 255, 255, 0.16);
-  transform: scale(0.97);
+  transform: scale(0.96);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .btnPrimary {
@@ -814,272 +1031,59 @@
   justify-content: center;
   gap: 6px;
   padding: 11px 14px;
-  border-radius: 12px;
+  border-radius: 14px;
   font-size: 0.82rem;
   font-weight: 700;
-  color: #000000;
-  background: #ffc72c;
+  letter-spacing: 0.2px;
+  color: #030508;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
   border: none;
   cursor: pointer;
-  transition: all 0.15s ease;
-  box-shadow: 0 4px 12px rgba(255, 199, 44, 0.3);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4), inset 0 1px 1.5px rgba(255, 255, 255, 0.45);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btnPrimary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 28px rgba(245, 158, 11, 0.5), inset 0 1px 1.5px rgba(255, 255, 255, 0.5);
 }
 
 .btnPrimary:active {
   transform: scale(0.97);
-  background: #e5b326;
 }
 
-/* ─── Gallery / History Modal ───────────────────────────────────────────── */
-.historyModal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(8px);
-  z-index: 130;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-}
-
-.historyCard {
-  width: 100%;
-  max-width: 600px;
-  background: #181a20;
-  border-radius: 28px 28px 0 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
-  max-height: 85vh;
-  max-height: 85dvh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.historyHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.historyTitle {
-  font-size: 0.94rem;
-  font-weight: 700;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.historyList {
-  padding: 16px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.historyItem {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.historyThumb {
-  width: 48px;
-  height: 48px;
-  border-radius: 10px;
-  object-fit: cover;
-  background: #000000;
-  flex-shrink: 0;
-}
-
-.historyInfo {
-  flex: 1;
-  min-width: 0;
-}
-
-.historyItemTitle {
-  font-size: 0.84rem;
-  font-weight: 600;
-  color: #ffffff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.historyItemMeta {
-  font-size: 0.72rem;
-  color: #94a3b8;
-  margin-top: 2px;
-}
-
-.badgeSuccess {
-  color: #4ade80;
-  font-size: 0.68rem;
-  font-weight: 600;
-}
-
-.badgeOffline {
-  color: #facc15;
-  font-size: 0.68rem;
-  font-weight: 600;
-}
-
-/* ─── Permission Error Screen ───────────────────────────────────────────── */
-.permissionScreen {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 24px;
-  text-align: center;
-  background: #000000;
-  gap: 16px;
-}
-
-.permissionIcon {
-  width: 68px;
-  height: 68px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffc72c;
-}
-
-.permissionTitle {
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #ffffff;
-}
-
-.permissionDesc {
-  font-size: 0.84rem;
-  color: #94a3b8;
-  max-width: 380px;
-  line-height: 1.5;
-}
-
-.permissionBtn {
-  padding: 12px 24px;
-  border-radius: 12px;
-  background: #ffc72c;
-  color: #000000;
-  font-size: 0.88rem;
-  font-weight: 700;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* ─── Video Recording Shutter & HUD Styles ─────────────────────────────── */
-.shutterVideoInner {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: #ef4444;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.shutterRecordingInner {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  background: #ef4444;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.shutterRecordingBtn {
-  border-color: #ef4444 !important;
-  animation: recordPulse 1.2s infinite;
-}
-
-@keyframes recordPulse {
-  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
-  70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-}
-
-.recordingHud {
-  position: absolute;
-  top: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  border-radius: 20px;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(239, 68, 68, 0.5);
-  z-index: 20;
-  color: #ffffff;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.85rem;
-  font-weight: 700;
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-}
-
-.recordingDot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #ef4444;
-  box-shadow: 0 0 8px #ef4444;
-  animation: pulse 1s infinite;
-}
-
-.reviewVideo {
-  max-width: 100%;
-  max-height: calc(100dvh - 170px);
-  border-radius: 12px;
-  outline: none;
-  background: #000000;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.8);
-}
-
-/* ─── Geotagging Media Gallery Modal (Fullscreen) ──────────────────────── */
+/* ─── Geotagging Media Gallery Modal (Fullscreen Liquid Glass) ─────────── */
 .galleryModal {
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
   height: 100dvh;
-  background: #0b0d13;
+  background: radial-gradient(circle at 50% 12%, rgba(20, 30, 48, 0.45) 0%, #06080e 80%);
   z-index: 150;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: fadeIn 0.2s ease-out;
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .galleryHeader {
-  height: 56px;
+  height: 58px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  background: rgba(18, 21, 29, 0.95);
-  backdrop-filter: blur(10px);
+  background: rgba(12, 16, 26, 0.78);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .galleryTitle {
-  font-size: 0.96rem;
+  font-size: 0.94rem;
   font-weight: 700;
-  color: #ffffff;
+  color: #f8fafc;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1090,8 +1094,10 @@
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: #11141c;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(9, 12, 20, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -1101,64 +1107,82 @@
 }
 
 .galleryFilterPill {
-  padding: 5px 12px;
-  border-radius: 16px;
+  padding: 6px 14px;
+  border-radius: 9999px;
   font-size: 0.74rem;
   font-weight: 600;
   color: #94a3b8;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.12);
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.galleryFilterPill:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
 }
 
 .galleryFilterPillActive {
-  background: #ffc72c !important;
-  color: #000000 !important;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+  color: #030508 !important;
   font-weight: 700;
-  border-color: #ffc72c !important;
+  border-color: #fbbf24 !important;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35), inset 0 1px 1.5px rgba(255, 255, 255, 0.45) !important;
 }
 
 .galleryBody {
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
+  padding: 14px;
 }
 
 .galleryGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  gap: 10px;
 }
 
 @media (min-width: 640px) {
   .galleryGrid {
     grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
+    gap: 14px;
   }
 }
 
 @media (min-width: 1024px) {
   .galleryGrid {
     grid-template-columns: repeat(6, 1fr);
-    gap: 14px;
+    gap: 16px;
   }
 }
 
 .galleryCard {
   position: relative;
   aspect-ratio: 1 / 1;
-  border-radius: 12px;
+  border-radius: 16px;
   overflow: hidden;
-  background: #181b24;
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: transform 0.15s ease, border-color 0.15s ease;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 4px 16px rgba(0, 0, 0, 0.35);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.galleryCard:hover {
+  transform: translateY(-3px) scale(1.02);
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.25), 0 12px 28px rgba(0, 0, 0, 0.55);
 }
 
 .galleryCard:active {
-  transform: scale(0.96);
+  transform: scale(0.95);
 }
 
 .galleryCardThumb {
@@ -1175,10 +1199,12 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 6px;
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.75);
-  backdrop-filter: blur(4px);
+  padding: 3px 7px;
+  border-radius: 8px;
+  background: rgba(10, 5, 8, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   font-size: 0.65rem;
   font-weight: 700;
   color: #ffffff;
@@ -1188,39 +1214,56 @@
   position: absolute;
   top: 6px;
   right: 6px;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(6, 10, 18, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #38bdf8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
-/* ─── Gallery Detail Viewer Modal ──────────────────────────────────────── */
+/* ─── Gallery Detail Viewer Modal ───────────────────────────────────────── */
 .detailModal {
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
   height: 100dvh;
-  background: #000000;
+  background: radial-gradient(circle at 50% 15%, rgba(18, 25, 40, 0.5) 0%, #030508 75%);
   z-index: 180;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: fadeIn 0.15s ease-out;
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .detailHeader {
-  height: 56px;
+  height: 58px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 100%);
+  background: rgba(10, 14, 22, 0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   z-index: 10;
+}
+
+.detailTitle {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
 }
 
 .detailMediaWrapper {
@@ -1228,34 +1271,40 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px;
+  padding: 10px 14px;
   overflow: hidden;
   position: relative;
 }
 
 .detailImage {
   max-width: 100%;
-  max-height: calc(100dvh - 220px);
+  max-height: calc(100dvh - 230px);
   object-fit: contain;
-  border-radius: 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85);
 }
 
 .detailVideo {
   max-width: 100%;
-  max-height: calc(100dvh - 220px);
-  border-radius: 10px;
+  max-height: calc(100dvh - 230px);
+  border-radius: 16px;
   outline: none;
   background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.85);
 }
 
 .detailInfoSheet {
-  background: rgba(18, 21, 29, 0.96);
-  backdrop-filter: blur(12px);
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 14px 18px 20px;
+  background: rgba(12, 16, 26, 0.88);
+  backdrop-filter: blur(36px) saturate(200%);
+  -webkit-backdrop-filter: blur(36px) saturate(200%);
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.65), inset 0 1px 1.5px rgba(255, 255, 255, 0.2);
+  padding: 16px 20px 22px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   z-index: 10;
 }
 
@@ -1266,15 +1315,6 @@
   gap: 12px;
 }
 
-.detailTitle {
-  font-size: 0.92rem;
-  font-weight: 700;
-  color: #ffffff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .detailMeta {
   font-size: 0.74rem;
   color: #94a3b8;
@@ -1282,12 +1322,33 @@
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  margin-top: 3px;
+}
+
+.badgeSuccess {
+  color: #34d399;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.badgeOffline {
+  color: #fbbf24;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  background: rgba(251, 191, 36, 0.14);
+  border: 1px solid rgba(251, 191, 36, 0.35);
 }
 
 .detailActions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin-top: 4px;
 }
 
@@ -1297,34 +1358,117 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 10px;
-  border-radius: 10px;
+  padding: 11px;
+  border-radius: 14px;
   font-size: 0.78rem;
   font-weight: 600;
   color: #e2e8f0;
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.18), 0 4px 12px rgba(0, 0, 0, 0.25);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.actionBtnOutline:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.28);
 }
 
 .actionBtnOutline:active {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.22);
   transform: scale(0.97);
 }
 
 .actionBtnDanger {
-  padding: 10px 14px;
-  border-radius: 10px;
+  padding: 11px 16px;
+  border-radius: 14px;
   font-size: 0.78rem;
   font-weight: 600;
-  color: #f87171;
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fb7185;
+  background: rgba(244, 63, 94, 0.14);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(244, 63, 94, 0.38);
+  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.2);
   cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.actionBtnDanger:hover {
+  background: rgba(244, 63, 94, 0.22);
+  border-color: rgba(244, 63, 94, 0.55);
 }
 
 .actionBtnDanger:active {
-  background: rgba(239, 68, 68, 0.22);
+  background: rgba(244, 63, 94, 0.3);
+  transform: scale(0.96);
+}
+
+/* ─── Permission Error Screen ───────────────────────────────────────────── */
+.permissionScreen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 24px;
+  text-align: center;
+  background: radial-gradient(circle at 50% 25%, rgba(20, 28, 45, 0.45) 0%, #030508 75%);
+  gap: 18px;
+}
+
+.permissionIcon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: rgba(251, 191, 36, 0.14);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  box-shadow: 0 0 24px rgba(251, 191, 36, 0.25), inset 0 1px 1.5px rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fbbf24;
+}
+
+.permissionTitle {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.permissionDesc {
+  font-size: 0.84rem;
+  color: #94a3b8;
+  max-width: 380px;
+  line-height: 1.6;
+}
+
+.permissionBtn {
+  padding: 13px 26px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: #030508;
+  font-size: 0.88rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 6px 22px rgba(245, 158, 11, 0.4), inset 0 1px 1.5px rgba(255, 255, 255, 0.45);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.permissionBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 28px rgba(245, 158, 11, 0.5);
+}
+
+.permissionBtn:active {
   transform: scale(0.97);
 }
