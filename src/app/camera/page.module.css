@@ -25,7 +25,7 @@
   letter-spacing: -0.01em;
 }
 
-/* ─── Top Control Bar (Floating Liquid Glass) ────────────────────────────── */
+/* ─── Top Control Bar (CKP Geotag Signature Design) ───────────────────────── */
 .topBar {
   width: 100%;
   height: 60px;
@@ -34,10 +34,74 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  background: linear-gradient(180deg, rgba(3, 5, 8, 0.8) 0%, rgba(3, 5, 8, 0.35) 75%, rgba(3, 5, 8, 0) 100%);
-  backdrop-filter: blur(14px) saturate(180%);
-  -webkit-backdrop-filter: blur(14px) saturate(180%);
+  padding-top: max(8px, env(safe-area-inset-top));
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 75%, transparent 100%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   z-index: 30;
+}
+
+.cameraTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: 0.3px;
+}
+
+.cameraTitleIcon {
+  width: 34px;
+  height: 34px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.cameraTopActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cameraCloseBtn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.cameraCloseBtn:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.flashBtnActive {
+  background: rgba(251, 191, 36, 0.25) !important;
+  border-color: rgba(251, 191, 36, 0.6) !important;
+  color: #fbbf24 !important;
+}
+
+.btnActiveStyle {
+  background: rgba(56, 189, 248, 0.25) !important;
+  border-color: rgba(56, 189, 248, 0.6) !important;
+  color: #38bdf8 !important;
 }
 
 .topBarLeft,
@@ -310,6 +374,59 @@
   0% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
   60% { transform: translate(-50%, -50%) scale(0.96); opacity: 1; }
   100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+
+/* Corner guides overlay (CKP Geotag Signature Framing) */
+.cameraGuide {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cameraGuideInner {
+  width: min(290px, 74vw);
+  height: min(290px, 74vw);
+  position: relative;
+}
+
+.cameraGuideInner::before,
+.cameraGuideInner::after,
+.cameraGuideCornerBR,
+.cameraGuideCornerBL {
+  content: '';
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-color: rgba(255, 255, 255, 0.85);
+  border-style: solid;
+}
+
+.cameraGuideInner::before {
+  top: 0; left: 0;
+  border-width: 3px 0 0 3px;
+  border-radius: 4px 0 0 0;
+}
+
+.cameraGuideInner::after {
+  top: 0; right: 0;
+  border-width: 3px 3px 0 0;
+  border-radius: 0 4px 0 0;
+}
+
+.cameraGuideCornerBR {
+  bottom: 0; right: 0;
+  border-width: 0 3px 3px 0;
+  border-radius: 0 0 4px 0;
+}
+
+.cameraGuideCornerBL {
+  bottom: 0; left: 0;
+  border-width: 0 0 3px 3px;
+  border-radius: 0 0 0 4px;
 }
 
 /* Floating Task Pill (Liquid Glass Island) */
@@ -749,6 +866,164 @@
 .flipBtn:active {
   transform: scale(0.9) rotate(180deg);
   background: rgba(255, 255, 255, 0.24);
+}
+
+/* ─── CKP Geotag Shutter & Zoom Bar Signature Classes ────────────────────── */
+.cameraShutterOuter {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 3.5px solid rgba(255, 255, 255, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+  background: none;
+  padding: 0;
+}
+
+.cameraShutterOuter:hover {
+  border-color: #ffffff;
+  transform: scale(1.04);
+}
+
+.cameraShutterOuter:active {
+  transform: scale(0.93);
+}
+
+.cameraShutterInner {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.45);
+  transition: all 0.15s ease;
+}
+
+.cameraShutterOuter:active .cameraShutterInner {
+  background: #e2e8f0;
+  transform: scale(0.92);
+}
+
+.shutterVideoReady {
+  background: #ef4444 !important;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.6) !important;
+}
+
+.shutterVideoRecording {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 8px !important;
+  background: #ef4444 !important;
+  box-shadow: 0 0 24px rgba(239, 68, 68, 0.8) !important;
+}
+
+/* Zoom Bar (CKP Style) */
+.cameraZoomBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  padding: 6px 16px;
+  width: min(240px, 68vw);
+  margin: 0 auto 6px;
+}
+
+.cameraZoomLabel {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  min-width: 44px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cameraZoomSlider {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+  outline: none;
+  cursor: pointer;
+}
+
+.cameraZoomSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
+/* Hint Text (CKP Style) */
+.cameraHint {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  text-align: center;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: 0.2px;
+  padding: 4px 16px;
+}
+
+/* Preview Actions (CKP Style) */
+.cameraPreviewActions {
+  display: flex;
+  width: 100%;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.cameraActionBtn {
+  flex: 1;
+  min-width: 130px;
+  max-width: 170px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.cameraActionCancel {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.cameraActionCancel:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.cameraActionConfirm {
+  background: #6366f1;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.cameraActionConfirm:hover {
+  background: #818cf8;
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
 }
 
 /* Live Video Recording HUD Badge */

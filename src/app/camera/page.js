@@ -497,7 +497,7 @@ export default function CameraPage() {
     ctx.closePath();
   };
 
-  // Render Official BPS Geotag Watermark in Liquid Glass Card Style
+  // Render Official BPS Geotag Watermark Matching CKP Bukti Dukung Design
   const drawLiquidGlassWatermark = (ctx, width, height, options = {}) => {
     const {
       profile: userProfile = profile,
@@ -509,18 +509,6 @@ export default function CameraPage() {
       customTime = null
     } = options;
 
-    const scale = Math.max(0.65, Math.min(1.8, width / 1100));
-    const margin = Math.round(Math.max(16, 26 * scale));
-    const cardW = width - (margin * 2);
-
-    const baseFontSize = Math.round(Math.max(12, 17 * scale));
-    const pillFontSize = Math.round(baseFontSize * 0.82);
-    const metaFontSize = Math.round(baseFontSize * 0.86);
-    const lineGap = Math.round(baseFontSize * 1.38);
-    const padX = Math.round(Math.max(14, 22 * scale));
-    const padY = Math.round(Math.max(14, 18 * scale));
-    const cornerRadius = Math.round(Math.max(14, 20 * scale));
-
     const namaPetugas = userProfile?.displayName || currentUser?.displayName || 'Petugas BPS';
     const nipPetugas = userProfile?.nip ? ` (NIP: ${userProfile.nip})` : '';
     const satkerPetugas = userProfile?.satker || 'BPS Republik Indonesia';
@@ -530,20 +518,20 @@ export default function CameraPage() {
     let modeBadgeText = 'DOKUMENTASI RESMI';
     if (mode === 'ckp') {
       modeBadgeText = 'BUKTI FISIK CKP';
-      detailLine = `Kegiatan CKP: ${currentForm.rincian || 'Dokumentasi CKP'}${currentForm.jumlah ? ` (${currentForm.jumlah} ${currentForm.satuan || 'Kegiatan'})` : ''}`;
+      detailLine = `Kegiatan: ${currentForm.rincian || 'Dokumentasi Bukti Dukung CKP'}${currentForm.jumlah ? ` (${currentForm.jumlah} ${currentForm.satuan || 'Kegiatan'})` : ''}`;
     } else if (mode === 'field') {
       modeBadgeText = 'DINAS LAPANGAN';
-      detailLine = `Survei: ${currentForm.namaSurvei || 'Pemeriksaan Lapangan'}${currentForm.lokasiWilayah ? ` | Lokasi: ${currentForm.lokasiWilayah}` : ''}`;
+      detailLine = `Kegiatan: ${currentForm.namaSurvei || 'Pemeriksaan Lapangan'}${currentForm.lokasiWilayah ? ` | Lokasi: ${currentForm.lokasiWilayah}` : ''}`;
     } else if (mode === 'schedule') {
       modeBadgeText = 'DOKUMENTASI AGENDA';
       const sc = (schedules || []).find((s) => s.id === currentForm.selectedScheduleId);
-      detailLine = `Agenda: ${sc ? sc.judul : currentForm.judulJadwal || 'Kegiatan Rapat / Dinas'}`;
+      detailLine = `Kegiatan: ${sc ? sc.judul : currentForm.judulJadwal || 'Kegiatan Rapat / Dinas'}`;
     } else if (mode === 'video') {
       modeBadgeText = 'VIDEO LAPANGAN';
-      detailLine = `Topik: ${currentForm.catatanRingkas || 'Perekaman Lapangan'}`;
+      detailLine = `Kegiatan: ${currentForm.catatanRingkas || 'Perekaman Lapangan'}`;
     } else {
       modeBadgeText = 'QUICK SNAP';
-      detailLine = `Catatan: ${currentForm.catatanRingkas || 'Dokumentasi Lapangan'}`;
+      detailLine = `Kegiatan: ${currentForm.catatanRingkas || 'Dokumentasi Lapangan'}`;
     }
 
     const now = customTime || new Date();
@@ -559,179 +547,128 @@ export default function CameraPage() {
       second: '2-digit',
       hour12: false
     });
-    const dateTimeLine = `${dateStr}, ${timeStr} WIB`;
+    const dateTimeLine = `Waktu: ${dateStr}, ${timeStr} WIB`;
 
-    let coordsLine = 'GPS: Menunggu Kunci Sinyal...';
+    let coordsLine = 'Lokasi: Menunggu Sinyal GPS...';
     if (currentCoords) {
       const acc = currentCoords.accuracy ? ` (±${Math.round(currentCoords.accuracy)}m)` : '';
-      coordsLine = `Lat ${currentCoords.lat.toFixed(6)}, Lon ${currentCoords.lon.toFixed(6)}${acc}`;
+      coordsLine = `Lokasi: Lat ${currentCoords.lat.toFixed(6)}, Lon ${currentCoords.lon.toFixed(6)}${acc}`;
     }
 
-    // Text metrics calculation to decide inlining vs stacking
-    ctx.font = `600 ${metaFontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
-    const dateWidth = ctx.measureText(dateTimeLine).width;
+    // Proportional dimensions for CKP full-width geotag bottom banner
+    const fontSize = Math.max(14, Math.round(width * 0.024));
+    const smallFontSize = Math.max(12, Math.round(fontSize * 0.82));
+    const lineGap = Math.round(fontSize * 1.44);
+    const paddingX = Math.max(18, Math.round(width * 0.026));
+    const padTop = Math.max(12, Math.round(fontSize * 0.85));
+    const padBottom = Math.max(16, Math.round(fontSize * 1.05));
 
-    ctx.font = `600 ${metaFontSize}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-    const coordsWidth = ctx.measureText(coordsLine).width;
+    // Calculate bar height covering header badge + 4 data rows
+    const pillH = Math.round(smallFontSize * 1.85);
+    const pillR = Math.round(pillH / 2);
+    const barHeight = padTop + pillH + Math.round(lineGap * 4.2) + padBottom;
+    const barY = height - barHeight;
 
-    const minRow3Gap = Math.round(20 * scale);
-    const canInlineCoords = (cardW - (padX * 2) - dateWidth - coordsWidth) >= minRow3Gap;
-
-    // Header pill dimensions
-    const pillH = Math.round(pillFontSize * 2.1);
-    const pillRadius = pillH / 2;
-    const gapAfterPill = Math.round(Math.max(10, 14 * scale));
-
-    // Dynamic vertical baselines relative to card top
-    const relRow1Y = padY + pillH + gapAfterPill + baseFontSize;
-    const relRow2Y = relRow1Y + lineGap;
-    const relRow3Y = relRow2Y + lineGap;
-    const relRow4Y = canInlineCoords ? null : relRow3Y + Math.round(lineGap * 0.95);
-    const relLastRowY = canInlineCoords ? relRow3Y : relRow4Y;
-
-    // Card height includes safe bottom margin for font descenders plus bottom padding
-    const bottomDescenderSpace = Math.round(baseFontSize * 0.45);
-    const cardH = relLastRowY + bottomDescenderSpace + padY;
-    const cardX = margin;
-    const cardY = Math.max(margin, height - cardH - margin);
-
-    // 1. Ambient Drop Shadow under Card
     ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
-    ctx.shadowBlur = Math.round(Math.max(10, 24 * scale));
-    ctx.shadowOffsetY = Math.round(Math.max(4, 8 * scale));
-    ctx.fillStyle = 'rgba(5, 8, 16, 0.75)';
-    drawRoundedRect(ctx, cardX, cardY, cardW, cardH, cornerRadius);
-    ctx.fill();
-    ctx.restore();
 
-    // 2. Liquid Glass Translucent Card Body (Dark Obsidian Gradient)
-    ctx.save();
-    const glassGrad = ctx.createLinearGradient(cardX, cardY, cardX, cardY + cardH);
-    glassGrad.addColorStop(0, 'rgba(16, 24, 42, 0.82)');
-    glassGrad.addColorStop(0.5, 'rgba(8, 14, 28, 0.86)');
-    glassGrad.addColorStop(1, 'rgba(4, 7, 16, 0.92)');
-    ctx.fillStyle = glassGrad;
-    drawRoundedRect(ctx, cardX, cardY, cardW, cardH, cornerRadius);
-    ctx.fill();
+    // 1. Full-Width Dark Translucent Geotag Bar (CKP Geotag Signature Style)
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.72)';
+    ctx.fillRect(0, barY, width, barHeight);
 
-    // 3. Liquid Glass Specular Top Sheen (Upper half reflection)
-    ctx.save();
-    drawRoundedRect(ctx, cardX, cardY, cardW, cardH, cornerRadius);
-    ctx.clip();
-    const sheenGrad = ctx.createLinearGradient(cardX, cardY, cardX, cardY + (cardH * 0.45));
-    sheenGrad.addColorStop(0, 'rgba(255, 255, 255, 0.22)');
-    sheenGrad.addColorStop(0.25, 'rgba(255, 255, 255, 0.08)');
-    sheenGrad.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
-    ctx.fillStyle = sheenGrad;
-    ctx.fillRect(cardX, cardY, cardW, cardH * 0.45);
-    ctx.restore();
-
-    // 4. Liquid Glass Specular Border Bevel
-    const borderGrad = ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY + cardH);
-    borderGrad.addColorStop(0, 'rgba(255, 255, 255, 0.55)');
-    borderGrad.addColorStop(0.3, 'rgba(255, 255, 255, 0.22)');
-    borderGrad.addColorStop(0.7, 'rgba(255, 255, 255, 0.10)');
-    borderGrad.addColorStop(1, 'rgba(255, 255, 255, 0.32)');
-    ctx.strokeStyle = borderGrad;
-    ctx.lineWidth = Math.max(1.5, Math.round(1.8 * scale));
-    drawRoundedRect(ctx, cardX, cardY, cardW, cardH, cornerRadius);
+    // 2. Top Accent Line (Subtle white separator line)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+    ctx.lineWidth = Math.max(1, Math.round(width * 0.0015));
+    ctx.beginPath();
+    ctx.moveTo(0, barY);
+    ctx.lineTo(width, barY);
     ctx.stroke();
 
-    // 5. Draw Header Bar Inside Card
-    const headerPillY = cardY + padY;
+    // 3. Top Accent BPS Amber Stripe
+    ctx.fillStyle = '#fbbf24';
+    ctx.fillRect(0, barY, Math.round(width * 0.16), Math.max(2, Math.round(width * 0.003)));
 
-    // Header Pill 1: BADAN PUSAT STATISTIK (Amber Liquid Glass Pill)
-    ctx.font = `bold ${pillFontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
+    let curY = barY + padTop;
+
+    // Header Row: BADAN PUSAT STATISTIK & Mode Pill
+    ctx.font = `bold ${smallFontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
     const bpsText = 'BADAN PUSAT STATISTIK';
-    const bpsPillW = ctx.measureText(bpsText).width + Math.round(18 * scale);
+    const bpsW = ctx.measureText(bpsText).width + Math.round(14 * (width / 1100));
 
-    ctx.fillStyle = 'rgba(251, 191, 36, 0.16)';
-    drawRoundedRect(ctx, cardX + padX, headerPillY, bpsPillW, pillH, pillRadius);
+    // BPS Pill
+    ctx.fillStyle = 'rgba(251, 191, 36, 0.22)';
+    drawRoundedRect(ctx, paddingX, curY, bpsW, pillH, pillR);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(251, 191, 36, 0.55)';
+    ctx.strokeStyle = 'rgba(251, 191, 36, 0.65)';
     ctx.lineWidth = 1;
-    drawRoundedRect(ctx, cardX + padX, headerPillY, bpsPillW, pillH, pillRadius);
+    drawRoundedRect(ctx, paddingX, curY, bpsW, pillH, pillR);
     ctx.stroke();
 
     ctx.fillStyle = '#fbbf24';
     ctx.textBaseline = 'middle';
-    ctx.fillText(bpsText, cardX + padX + Math.round(9 * scale), headerPillY + (pillH / 2));
+    ctx.fillText(bpsText, paddingX + Math.round(7 * (width / 1100)), curY + (pillH / 2));
 
-    // Header Pill 2: Mode Tag (Frosted Pill next to BPS)
-    const modePillX = cardX + padX + bpsPillW + Math.round(8 * scale);
-    const modePillW = ctx.measureText(modeBadgeText).width + Math.round(18 * scale);
-    if (modePillX + modePillW <= cardX + cardW - padX) {
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-      drawRoundedRect(ctx, modePillX, headerPillY, modePillW, pillH, pillRadius);
+    // Mode Pill
+    const modeX = paddingX + bpsW + Math.round(8 * (width / 1100));
+    const modeW = ctx.measureText(modeBadgeText).width + Math.round(14 * (width / 1100));
+    if (modeX + modeW < width - paddingX - 110) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+      drawRoundedRect(ctx, modeX, curY, modeW, pillH, pillR);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
       ctx.stroke();
 
-      ctx.fillStyle = '#f8fafc';
-      ctx.fillText(modeBadgeText, modePillX + Math.round(9 * scale), headerPillY + (pillH / 2));
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(modeBadgeText, modeX + Math.round(7 * (width / 1100)), curY + (pillH / 2));
     }
 
-    // Header Right: GPS Geotag Status Pill
-    const gpsStatusText = currentCoords ? 'GPS TERKUNCI' : 'GPS MENCARI';
-    const gpsPillW = ctx.measureText(gpsStatusText).width + Math.round(24 * scale);
-    const gpsPillX = cardX + cardW - padX - gpsPillW;
-
-    if (gpsPillX > modePillX + modePillW + 10) {
-      ctx.fillStyle = currentCoords ? 'rgba(56, 189, 248, 0.14)' : 'rgba(251, 191, 36, 0.14)';
-      drawRoundedRect(ctx, gpsPillX, headerPillY, gpsPillW, pillH, pillRadius);
+    // GPS Status (Right)
+    const gpsText = currentCoords ? 'GPS TERKUNCI' : 'GPS MENCARI';
+    const gpsW = ctx.measureText(gpsText).width + Math.round(20 * (width / 1100));
+    const gpsX = width - paddingX - gpsW;
+    if (gpsX > modeX + modeW + 10) {
+      ctx.fillStyle = currentCoords ? 'rgba(56, 189, 248, 0.16)' : 'rgba(251, 191, 36, 0.16)';
+      drawRoundedRect(ctx, gpsX, curY, gpsW, pillH, pillR);
       ctx.fill();
-      ctx.strokeStyle = currentCoords ? 'rgba(56, 189, 248, 0.45)' : 'rgba(251, 191, 36, 0.45)';
+      ctx.strokeStyle = currentCoords ? 'rgba(56, 189, 248, 0.55)' : 'rgba(251, 191, 36, 0.55)';
       ctx.stroke();
 
-      const dotX = gpsPillX + Math.round(9 * scale);
-      const dotY = headerPillY + (pillH / 2);
       ctx.fillStyle = currentCoords ? '#38bdf8' : '#fbbf24';
-      ctx.beginPath();
-      ctx.arc(dotX, dotY, Math.round(3.5 * scale), 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillText(gpsStatusText, dotX + Math.round(7 * scale), dotY);
+      ctx.fillText(gpsText, gpsX + Math.round(10 * (width / 1100)), curY + (pillH / 2));
     }
 
-    // 6. Draw Content Rows
+    // Content Rows
+    curY += pillH + Math.round(lineGap * 0.82);
     ctx.textBaseline = 'alphabetic';
     ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
-    ctx.shadowBlur = 4;
+    ctx.shadowBlur = 3;
     ctx.shadowOffsetY = 1;
 
-    // Row 1: Petugas
+    // Row 1: Waktu
     ctx.fillStyle = '#ffffff';
-    ctx.font = `600 ${baseFontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
-    const maxPetugasChar = Math.max(10, Math.floor((cardW - padX * 2) / (baseFontSize * 0.58)));
-    const truncatedPetugas = petugasLine.length > maxPetugasChar ? `${petugasLine.substring(0, maxPetugasChar - 3)}...` : petugasLine;
-    ctx.fillText(truncatedPetugas, cardX + padX, cardY + relRow1Y);
+    ctx.font = `600 ${fontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
+    ctx.fillText(dateTimeLine, paddingX, curY);
 
-    // Row 2: Rincian Kegiatan Lapangan
-    ctx.fillStyle = '#cbd5e1';
-    ctx.font = `500 ${baseFontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
-    const maxDetailChar = Math.max(10, Math.floor((cardW - padX * 2) / (baseFontSize * 0.58)));
+    // Row 2: Lokasi
+    curY += lineGap;
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = `600 ${fontSize}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+    ctx.fillText(coordsLine, paddingX, curY);
+
+    // Row 3: Kegiatan
+    curY += lineGap;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `500 ${fontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
+    const maxDetailChar = Math.max(10, Math.floor((width - (paddingX * 2)) / (fontSize * 0.58)));
     const truncatedDetail = detailLine.length > maxDetailChar ? `${detailLine.substring(0, maxDetailChar - 3)}...` : detailLine;
-    ctx.fillText(truncatedDetail, cardX + padX, cardY + relRow2Y);
+    ctx.fillText(truncatedDetail, paddingX, curY);
 
-    // Row 3: Waktu (Left)
-    ctx.fillStyle = '#fbbf24';
-    ctx.font = `600 ${metaFontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
-    ctx.fillText(dateTimeLine, cardX + padX, cardY + relRow3Y);
-
-    if (canInlineCoords) {
-      // Inline coords on the right of Row 3
-      ctx.fillStyle = '#38bdf8';
-      ctx.font = `600 ${metaFontSize}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-      ctx.fillText(coordsLine, cardX + cardW - padX - coordsWidth, cardY + relRow3Y);
-    } else {
-      // Row 4: Coords on separate line
-      ctx.fillStyle = '#38bdf8';
-      ctx.font = `600 ${metaFontSize}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-      const maxCoordsChar = Math.max(10, Math.floor((cardW - padX * 2) / (metaFontSize * 0.62)));
-      const truncatedCoords = coordsLine.length > maxCoordsChar ? `${coordsLine.substring(0, maxCoordsChar - 3)}...` : coordsLine;
-      ctx.fillText(truncatedCoords, cardX + padX, cardY + relRow4Y);
-    }
+    // Row 4: Petugas
+    curY += lineGap;
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = `500 ${smallFontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
+    const maxPetugasChar = Math.max(10, Math.floor((width - (paddingX * 2)) / (smallFontSize * 0.58)));
+    const truncatedPetugas = petugasLine.length > maxPetugasChar ? `${petugasLine.substring(0, maxPetugasChar - 3)}...` : petugasLine;
+    ctx.fillText(truncatedPetugas, paddingX, curY);
 
     ctx.restore();
   };
@@ -1570,51 +1507,23 @@ export default function CameraPage() {
       {/* Main Samsung Native Camera Viewport */}
       {(!permissionError || cameraActive) && (
         <>
-          {/* Top Control Bar (Samsung Quick Controls) */}
+          {/* Top Control Bar (CKP Geotag Header Design) */}
           <header className={styles.topBar}>
-            <div className={styles.topBarLeft}>
-              <button
-                type="button"
-                onClick={() => router.push('/')}
-                className={styles.iconBtn}
-                title="Kembali ke Dashboard SuperBrain"
-              >
-                <ArrowLeft size={22} />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowSettings(!showSettings)}
-                className={`${styles.iconBtn} ${showSettings ? styles.iconBtnActive : ''}`}
-                title="Pengaturan Kamera & Watermark"
-              >
-                <Settings size={20} />
-              </button>
-
-              {activeMode !== 'video' && (
-                <button
-                  type="button"
-                  onClick={handleToggleTimer}
-                  className={`${styles.iconBtn} ${timerSeconds > 0 ? styles.iconBtnActive : ''}`}
-                  title="Timer Otomatis"
-                >
-                  <TimerIcon size={20} />
-                  {timerSeconds > 0 && (
-                    <span style={{ fontSize: '10px', fontWeight: 800, marginLeft: '-4px' }}>
-                      {timerSeconds}s
-                    </span>
-                  )}
-                </button>
-              )}
+            <div className={styles.cameraTitle}>
+              <div className={styles.cameraTitleIcon}>
+                <Camera size={18} color="#fff" />
+              </div>
+              <span>Kamera Geotag</span>
             </div>
 
-            <div className={styles.topBarRight}>
-              {/* Aspect Ratio Pill */}
+            <div className={styles.cameraTopActions}>
+              {/* Aspect Ratio */}
               <button
                 type="button"
                 onClick={handleToggleAspect}
-                className={styles.aspectPill}
+                className={styles.cameraCloseBtn}
                 title="Ganti Rasio Bidang Kamera"
+                style={{ fontSize: '11px', fontWeight: 700 }}
               >
                 {aspectRatio}
               </button>
@@ -1624,10 +1533,10 @@ export default function CameraPage() {
                 <button
                   type="button"
                   onClick={handleToggleFlash}
-                  className={`${styles.iconBtn} ${flashOn ? styles.iconBtnActive : ''}`}
+                  className={`${styles.cameraCloseBtn} ${flashOn ? styles.flashBtnActive : ''}`}
                   title={flashOn ? 'Matikan Lampu Kilat' : 'Nyalakan Lampu Kilat'}
                 >
-                  {flashOn ? <Zap size={20} /> : <ZapOff size={20} />}
+                  {flashOn ? <Zap size={18} color="#fbbf24" fill="#fbbf24" /> : <ZapOff size={18} />}
                 </button>
               )}
 
@@ -1635,29 +1544,48 @@ export default function CameraPage() {
               <button
                 type="button"
                 onClick={() => setGridActive(!gridActive)}
-                className={`${styles.iconBtn} ${gridActive ? styles.iconBtnActive : ''}`}
+                className={`${styles.cameraCloseBtn} ${gridActive ? styles.btnActiveStyle : ''}`}
                 title="Garis Bantu Komposisi 3x3"
               >
-                <Grid size={20} />
+                <Grid size={18} />
               </button>
 
-              {/* GPS Geotag Indicator */}
-              <div
-                className={styles.gpsIndicator}
-                onClick={handleCopyCoords}
-                title={coords ? `GPS Terkunci: ${coords.lat.toFixed(5)}, ${coords.lon.toFixed(5)} (Klik untuk salin)` : 'Mencari sinyal GPS...'}
+              {/* Timer Toggle */}
+              {activeMode !== 'video' && (
+                <button
+                  type="button"
+                  onClick={handleToggleTimer}
+                  className={`${styles.cameraCloseBtn} ${timerSeconds > 0 ? styles.btnActiveStyle : ''}`}
+                  title="Timer Otomatis"
+                >
+                  <TimerIcon size={18} />
+                  {timerSeconds > 0 && (
+                    <span style={{ fontSize: '10px', fontWeight: 800, marginLeft: '-4px' }}>
+                      {timerSeconds}s
+                    </span>
+                  )}
+                </button>
+              )}
+
+              {/* Settings / Task Form Sheet */}
+              <button
+                type="button"
+                onClick={() => setFormSheetOpen(true)}
+                className={styles.cameraCloseBtn}
+                title="Rincian Kegiatan CKP & Parameter"
               >
-                <span
-                  className={
-                    gpsStatus === 'locked'
-                      ? styles.gpsDotGreen
-                      : gpsStatus === 'searching'
-                      ? styles.gpsDotYellow
-                      : styles.gpsDotRed
-                  }
-                />
-                <span>GPS</span>
-              </div>
+                <SlidersHorizontal size={18} />
+              </button>
+
+              {/* Close Button -> Back to /ckp */}
+              <button
+                type="button"
+                onClick={() => router.push('/ckp')}
+                className={styles.cameraCloseBtn}
+                title="Tutup & Kembali ke Menu CKP"
+              >
+                <X size={20} />
+              </button>
             </div>
           </header>
 
@@ -1672,10 +1600,18 @@ export default function CameraPage() {
                 className={`${styles.videoElement} ${isFrontCamera ? styles.videoElementFlipped : ''}`}
               />
 
+              {/* Framing Corner Guides (Signature CKP Geotag Viewfinder) */}
+              <div className={styles.cameraGuide}>
+                <div className={styles.cameraGuideInner}>
+                  <div className={styles.cameraGuideCornerBR} />
+                  <div className={styles.cameraGuideCornerBL} />
+                </div>
+              </div>
+
               {/* Shutter White Flash Effect */}
               {showShutterFlash && <div className={styles.shutterFlash} />}
 
-              {/* Tap to Focus Ring (Samsung Yellow) */}
+              {/* Tap to Focus Ring (Yellow) */}
               {focusRing && (
                 <div
                   className={styles.focusRing}
@@ -1709,7 +1645,7 @@ export default function CameraPage() {
                 </div>
               )}
 
-              {/* Real-Time Geotag Watermark HUD Badge (Liquid Glass Card) */}
+              {/* Real-Time Geotag Watermark HUD Badge */}
               <div className={styles.hudBadge}>
                 <div className={styles.hudBadgeTop}>
                   <span className={styles.hudBadgeBpsPill}>BPS RI</span>
@@ -1732,7 +1668,7 @@ export default function CameraPage() {
                 </div>
               )}
 
-              {/* Floating Task Pill: Clean Parameter Preview */}
+              {/* Floating Task Pill: Parameter Preview */}
               <button
                 type="button"
                 className={styles.taskPill}
@@ -1749,38 +1685,56 @@ export default function CameraPage() {
             </div>
           </div>
 
-          {/* Bottom Section: Zoom, Modes, Shutter */}
+          {/* Bottom Section: Zoom, Modes, Hint, Shutter */}
           <div className={styles.bottomSection}>
-            {/* Zoom & Lens Quick Pills */}
-            <div className={styles.zoomContainer}>
-              <div className={styles.zoomPill}>
-                {!isFrontCamera && (
+            {/* Lens Quick Pills */}
+            {!isFrontCamera && (
+              <div className={styles.zoomContainer}>
+                <div className={styles.lensPill}>
                   <button
                     type="button"
                     onClick={() => handleLensSelect('0.5x')}
                     className={`${styles.lensBtn} ${cameraLens === '0.5x' ? styles.lensBtnActive : ''}`}
                   >
-                    .5
+                    0.5
                   </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => handleLensSelect('1x')}
-                  className={`${styles.lensBtn} ${cameraLens === '1x' && zoomLevel <= 1 ? styles.lensBtnActive : ''}`}
-                >
-                  1x
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleZoomChange(2)}
-                  className={`${styles.lensBtn} ${zoomLevel >= 2 ? styles.lensBtnActive : ''}`}
-                >
-                  2x
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => handleLensSelect('1x')}
+                    className={`${styles.lensBtn} ${cameraLens === '1x' && zoomLevel <= 1 ? styles.lensBtnActive : ''}`}
+                  >
+                    1.0
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleZoomChange(2)}
+                    className={`${styles.lensBtn} ${zoomLevel >= 2 ? styles.lensBtnActive : ''}`}
+                  >
+                    2.0
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Mode Carousel (Samsung One UI signature) */}
+            {/* Camera Zoom Slider */}
+            {zoomCaps && (
+              <div className={styles.cameraZoomBar}>
+                <span className={styles.cameraZoomLabel}>
+                  {zoomLevel.toFixed(1)}×
+                </span>
+                <input
+                  type="range"
+                  min={zoomCaps.min || 1}
+                  max={Math.min(zoomCaps.max || 5, 5)}
+                  step={zoomCaps.step || 0.1}
+                  value={zoomLevel}
+                  onChange={(e) => handleZoomChange(parseFloat(e.target.value))}
+                  className={styles.cameraZoomSlider}
+                />
+              </div>
+            )}
+
+            {/* Mode Carousel */}
             <nav className={styles.modeCarousel}>
               {CAPTURE_MODES.map((mode) => (
                 <button
@@ -1797,14 +1751,23 @@ export default function CameraPage() {
               ))}
             </nav>
 
-            {/* Shutter Row (Samsung Native Controls) */}
+            {/* Camera Hint (CKP Signature) */}
+            <div className={styles.cameraHint}>
+              {activeMode === 'video'
+                ? isRecording
+                  ? 'Sedang merekam video ber-geotag...'
+                  : 'Tekan tombol bulat merah untuk merekam video'
+                : 'Tekan tombol bulat untuk mengambil foto'}
+            </div>
+
+            {/* Shutter Row (CKP Controls) */}
             <footer className={styles.shutterRow}>
-              {/* Gallery / Recent Snap Thumbnail Button (Liquid Glass Portal) */}
+              {/* Gallery Button */}
               <button
                 type="button"
                 onClick={() => setGalleryOpen(true)}
                 className={styles.galleryBtn}
-                title="Buka Galeri Geotagging Lapangan"
+                title="Buka Galeri Geotagging"
               >
                 {latestThumbnail ? (
                   <div className={styles.galleryThumbWrapper}>
@@ -1822,29 +1785,29 @@ export default function CameraPage() {
                 )}
               </button>
 
-              {/* Samsung Shutter Button (Adapts to Photo / Video / Recording) */}
+              {/* Shutter Button (CKP Outer Ring + Inner White Circle) */}
               <button
                 type="button"
                 onClick={handleShutterClick}
                 disabled={isProcessing}
-                className={`${styles.shutterBtn} ${isRecording ? styles.shutterRecordingBtn : ''}`}
+                className={styles.cameraShutterOuter}
                 title={
                   activeMode === 'video'
                     ? isRecording
                       ? 'Hentikan Perekaman Video'
                       : 'Mulai Rekam Video'
-                    : 'Ambil Foto Dokumentasi Resmi'
+                    : 'Ambil Foto Geotag'
                 }
               >
-                {activeMode === 'video' ? (
-                  isRecording ? (
-                    <div className={styles.shutterRecordingInner} />
-                  ) : (
-                    <div className={styles.shutterVideoInner} />
-                  )
-                ) : (
-                  <div className={styles.shutterInner} />
-                )}
+                <div
+                  className={`${styles.cameraShutterInner} ${
+                    activeMode === 'video'
+                      ? isRecording
+                        ? styles.shutterVideoRecording
+                        : styles.shutterVideoReady
+                      : ''
+                  }`}
+                />
               </button>
 
               {/* Flip Camera Button */}
@@ -1853,9 +1816,9 @@ export default function CameraPage() {
                 onClick={handleFlipCamera}
                 disabled={isRecording}
                 className={styles.flipBtn}
-                title="Putar ke Kamera Depan / Belakang"
+                title="Ganti Kamera Depan/Belakang"
               >
-                <RotateCcw size={22} />
+                <RefreshCw size={20} />
               </button>
             </footer>
           </div>
@@ -2165,26 +2128,49 @@ export default function CameraPage() {
               )}
             </div>
 
-            <div className={styles.reviewButtonGroup}>
+            <div className={styles.cameraPreviewActions}>
               <button
                 type="button"
                 onClick={handleRetake}
-                className={styles.btnSecondary}
+                className={`${styles.cameraActionBtn} ${styles.cameraActionCancel}`}
                 disabled={isUploading}
                 title="Ambil Ulang Foto"
               >
-                <RotateCcw size={15} />
-                Ulangi
+                <RotateCcw size={17} />
+                Ambil Ulang
               </button>
 
+              <button
+                type="button"
+                onClick={handleSubmitAndUpload}
+                className={`${styles.cameraActionBtn} ${styles.cameraActionConfirm}`}
+                disabled={isUploading}
+                title="Gunakan dan Simpan Foto"
+              >
+                {isUploading ? (
+                  <>
+                    <RefreshCw size={17} className="spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    <Check size={17} />
+                    Gunakan Foto
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: 'center' }}>
               <button
                 type="button"
                 onClick={handleDownloadLocal}
                 className={styles.btnSecondary}
                 disabled={isUploading}
                 title="Unduh Langsung ke Galeri HP"
+                style={{ flex: 1, padding: '9px 12px', fontSize: '13px' }}
               >
-                <Download size={15} />
+                <Download size={14} />
                 Unduh
               </button>
 
@@ -2194,29 +2180,10 @@ export default function CameraPage() {
                 className={styles.btnSecondary}
                 disabled={isUploading}
                 title="Simpan sementara sebagai Draft CKP"
-                style={{ color: '#fbbf24', borderColor: 'rgba(251, 191, 36, 0.4)' }}
+                style={{ flex: 1, padding: '9px 12px', fontSize: '13px', color: '#fbbf24', borderColor: 'rgba(251, 191, 36, 0.4)' }}
               >
-                <FileText size={15} />
+                <FileText size={14} />
                 Draft CKP
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSubmitAndUpload}
-                className={styles.btnPrimary}
-                disabled={isUploading}
-              >
-                {isUploading ? (
-                  <>
-                    <RefreshCw size={15} className="spin" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  <>
-                    <UploadCloud size={15} />
-                    Simpan
-                  </>
-                )}
               </button>
             </div>
           </footer>
@@ -2275,46 +2242,50 @@ export default function CameraPage() {
               )}
             </div>
 
-            <div className={styles.reviewButtonGroup}>
+            <div className={styles.cameraPreviewActions}>
               <button
                 type="button"
                 onClick={handleDiscardVideo}
-                className={styles.btnSecondary}
+                className={`${styles.cameraActionBtn} ${styles.cameraActionCancel}`}
                 disabled={isUploading}
                 title="Hapus rekaman dan rekam ulang"
               >
-                <RotateCcw size={15} />
-                Ulangi
+                <RotateCcw size={17} />
+                Ambil Ulang
               </button>
 
+              <button
+                type="button"
+                onClick={handleSubmitVideo}
+                className={`${styles.cameraActionBtn} ${styles.cameraActionConfirm}`}
+                disabled={isUploading}
+                title="Simpan Video ke Sistem"
+              >
+                {isUploading ? (
+                  <>
+                    <RefreshCw size={17} className="spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    <Check size={17} />
+                    Gunakan Video
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', width: '100%', justifyContent: 'center' }}>
               <button
                 type="button"
                 onClick={handleDownloadVideo}
                 className={styles.btnSecondary}
                 disabled={isUploading}
                 title="Unduh Video ke HP"
+                style={{ flex: 1, padding: '9px 12px', fontSize: '13px' }}
               >
-                <Download size={15} />
+                <Download size={14} />
                 Unduh Video
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSubmitVideo}
-                className={styles.btnPrimary}
-                disabled={isUploading}
-              >
-                {isUploading ? (
-                  <>
-                    <RefreshCw size={15} className="spin" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  <>
-                    <UploadCloud size={15} />
-                    Simpan Video
-                  </>
-                )}
               </button>
             </div>
           </footer>
