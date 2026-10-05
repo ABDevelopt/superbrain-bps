@@ -99,6 +99,8 @@ export default function CameraPage() {
   const mediaRecorderRef = useRef(null);
   const recordedChunksRef = useRef([]);
   const recordingTimerRef = useRef(null);
+  const videoAnimRef = useRef(null);
+  const recordingCanvasRef = useRef(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0); // in seconds
   const [videoReviewBlob, setVideoReviewBlob] = useState(null);
@@ -367,6 +369,10 @@ export default function CameraPage() {
     initCamera(isFrontCamera, cameraLens);
 
     return () => {
+      if (videoAnimRef.current) {
+        cancelAnimationFrame(videoAnimRef.current);
+        videoAnimRef.current = null;
+      }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
@@ -459,7 +465,241 @@ export default function CameraPage() {
     showAlert(`Koordinat berhasil disalin: ${text}`);
   };
 
-  // Render Official Geotag Watermark to Canvas
+  // Helper to draw a rounded rectangle with corner radius on Canvas
+  const drawRoundedRect = (ctx, x, y, w, h, r) => {
+    const radius = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + w - radius, y);
+    ctx.arcTo(x + w, y, x + w, y + h, radius);
+    ctx.lineTo(x + w, y + h - radius);
+    ctx.arcTo(x + w, y + h, x, y + h, radius);
+    ctx.lineTo(x + radius, y + h);
+    ctx.arcTo(x, y + h, x, y, radius);
+    ctx.lineTo(x, y + radius);
+    ctx.arcTo(x, y, x + w, y, radius);
+    ctx.closePath();
+  };
+
+  // Render Official BPS Geotag Watermark in Liquid Glass Card Style
+  const drawLiquidGlassWatermark = (ctx, width, height, options = {}) => {
+    const {
+      profile: userProfile = profile,
+      user: currentUser = user,
+      coords: currentCoords = coords,
+      activeMode: mode = activeMode,
+      form: currentForm = form,
+      scheduleDocs: schedules = scheduleDocs,
+      customTime = null
+    } = options;
+
+    const scale = Math.max(0.65, Math.min(1.8, width / 1100));
+    const margin = Math.round(Math.max(12, 22 * scale));
+    const cardW = width - (margin * 2);
+
+    const baseFontSize = Math.round(Math.max(12, 17 * scale));
+    const pillFontSize = Math.round(baseFontSize * 0.82);
+    const metaFontSize = Math.round(baseFontSize * 0.86);
+    const lineGap = Math.round(baseFontSize * 1.35);
+    const padX = Math.round(Math.max(14, 22 * scale));
+    const padY = Math.round(Math.max(12, 16 * scale));
+    const cornerRadius = Math.round(Math.max(14, 20 * scale));
+
+    const namaPetugas = userProfile?.displayName || currentUser?.displayName || 'Petugas BPS';
+    const nipPetugas = userProfile?.nip ? ` (NIP: ${userProfile.nip})` : '';
+    const satkerPetugas = userProfile?.satker || 'BPS Republik Indonesia';
+    const petugasLine = `Petugas: ${namaPetugas}${nipPetugas} | ${satkerPetugas}`;
+
+    let detailLine = '';
+    let modeBadgeText = 'DOKUMENTASI RESMI';
+    if (mode === 'ckp') {
+      modeBadgeText = 'BUKTI FISIK CKP';
+      detailLine = `Kegiatan CKP: ${currentForm.rincian || 'Dokumentasi CKP'}${currentForm.jumlah ? ` (${currentForm.jumlah} ${currentForm.satuan || 'Kegiatan'})` : ''}`;
+    } else if (mode === 'field') {
+      modeBadgeText = 'DINAS LAPANGAN';
+      detailLine = `Survei: ${currentForm.namaSurvei || 'Pemeriksaan Lapangan'}${currentForm.lokasiWilayah ? ` | Lokasi: ${currentForm.lokasiWilayah}` : ''}`;
+    } else if (mode === 'schedule') {
+      modeBadgeText = 'DOKUMENTASI AGENDA';
+      const sc = (schedules || []).find((s) => s.id === currentForm.selectedScheduleId);
+      detailLine = `Agenda: ${sc ? sc.judul : currentForm.judulJadwal || 'Kegiatan Rapat / Dinas'}`;
+    } else if (mode === 'video') {
+      modeBadgeText = 'VIDEO LAPANGAN';
+      detailLine = `Topik: ${currentForm.catatanRingkas || 'Perekaman Lapangan'}`;
+    } else {
+      modeBadgeText = 'QUICK SNAP';
+      detailLine = `Catatan: ${currentForm.catatanRingkas || 'Dokumentasi Lapangan'}`;
+    }
+
+    const now = customTime || new Date();
+    const dateStr = now.toLocaleDateString('id-ID', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+    const timeStr = now.toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+    const dateTimeLine = `${dateStr}, ${timeStr} WIB`;
+
+    let coordsLine = 'GPS: Menunggu Kunci Sinyal...';
+    if (currentCoords) {
+      const acc = currentCoords.accuracy ? ` (±${Math.round(currentCoords.accuracy)}m)` : '';
+      coordsLine = `Lat ${currentCoords.lat.toFixed(6)}, Lon ${currentCoords.lon.toFixed(6)}${acc}`;
+    }
+
+    // Header pill height
+    const pillH = Math.round(pillFontSize * 2);
+    const pillRadius = pillH / 2;
+
+    // Calculate card height dynamically
+    const cardH = padY * 2 + pillH + (lineGap * 3.4);
+    const cardX = margin;
+    const cardY = height - cardH - margin;
+
+    // 1. Ambient Drop Shadow under Card
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+    ctx.shadowBlur = Math.round(Math.max(10, 24 * scale));
+    ctx.shadowOffsetY = Math.round(Math.max(4, 8 * scale));
+    ctx.fillStyle = 'rgba(5, 8, 16, 0.75)';
+    drawRoundedRect(ctx, cardX, cardY, cardW, cardH, cornerRadius);
+    ctx.fill();
+    ctx.restore();
+
+    // 2. Liquid Glass Translucent Card Body (Dark Obsidian Gradient)
+    ctx.save();
+    const glassGrad = ctx.createLinearGradient(cardX, cardY, cardX, cardY + cardH);
+    glassGrad.addColorStop(0, 'rgba(16, 24, 42, 0.82)');
+    glassGrad.addColorStop(0.5, 'rgba(8, 14, 28, 0.86)');
+    glassGrad.addColorStop(1, 'rgba(4, 7, 16, 0.92)');
+    ctx.fillStyle = glassGrad;
+    drawRoundedRect(ctx, cardX, cardY, cardW, cardH, cornerRadius);
+    ctx.fill();
+
+    // 3. Liquid Glass Specular Top Sheen (Upper half reflection)
+    ctx.save();
+    drawRoundedRect(ctx, cardX, cardY, cardW, cardH, cornerRadius);
+    ctx.clip();
+    const sheenGrad = ctx.createLinearGradient(cardX, cardY, cardX, cardY + (cardH * 0.45));
+    sheenGrad.addColorStop(0, 'rgba(255, 255, 255, 0.22)');
+    sheenGrad.addColorStop(0.25, 'rgba(255, 255, 255, 0.08)');
+    sheenGrad.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
+    ctx.fillStyle = sheenGrad;
+    ctx.fillRect(cardX, cardY, cardW, cardH * 0.45);
+    ctx.restore();
+
+    // 4. Liquid Glass Specular Border Bevel
+    const borderGrad = ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY + cardH);
+    borderGrad.addColorStop(0, 'rgba(255, 255, 255, 0.55)');
+    borderGrad.addColorStop(0.3, 'rgba(255, 255, 255, 0.22)');
+    borderGrad.addColorStop(0.7, 'rgba(255, 255, 255, 0.10)');
+    borderGrad.addColorStop(1, 'rgba(255, 255, 255, 0.32)');
+    ctx.strokeStyle = borderGrad;
+    ctx.lineWidth = Math.max(1.5, Math.round(1.8 * scale));
+    drawRoundedRect(ctx, cardX, cardY, cardW, cardH, cornerRadius);
+    ctx.stroke();
+
+    // 5. Draw Header Bar Inside Card
+    let curY = cardY + padY;
+
+    // Header Pill 1: BADAN PUSAT STATISTIK (Amber Liquid Glass Pill)
+    ctx.font = `bold ${pillFontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
+    const bpsText = 'BADAN PUSAT STATISTIK';
+    const bpsPillW = ctx.measureText(bpsText).width + Math.round(18 * scale);
+
+    ctx.fillStyle = 'rgba(251, 191, 36, 0.16)';
+    drawRoundedRect(ctx, cardX + padX, curY, bpsPillW, pillH, pillRadius);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(251, 191, 36, 0.55)';
+    ctx.lineWidth = 1;
+    drawRoundedRect(ctx, cardX + padX, curY, bpsPillW, pillH, pillRadius);
+    ctx.stroke();
+
+    ctx.fillStyle = '#fbbf24';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(bpsText, cardX + padX + Math.round(9 * scale), curY + (pillH / 2));
+
+    // Header Pill 2: Mode Tag (Frosted Pill next to BPS)
+    const modePillX = cardX + padX + bpsPillW + Math.round(8 * scale);
+    const modePillW = ctx.measureText(modeBadgeText).width + Math.round(18 * scale);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+    drawRoundedRect(ctx, modePillX, curY, modePillW, pillH, pillRadius);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.stroke();
+
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillText(modeBadgeText, modePillX + Math.round(9 * scale), curY + (pillH / 2));
+
+    // Header Right: GPS Geotag Status Pill
+    const gpsStatusText = currentCoords ? 'GPS TERKUNCI' : 'GPS MENCARI';
+    const gpsPillW = ctx.measureText(gpsStatusText).width + Math.round(24 * scale);
+    const gpsPillX = cardX + cardW - padX - gpsPillW;
+
+    if (gpsPillX > modePillX + modePillW + 10) {
+      ctx.fillStyle = currentCoords ? 'rgba(56, 189, 248, 0.14)' : 'rgba(251, 191, 36, 0.14)';
+      drawRoundedRect(ctx, gpsPillX, curY, gpsPillW, pillH, pillRadius);
+      ctx.fill();
+      ctx.strokeStyle = currentCoords ? 'rgba(56, 189, 248, 0.45)' : 'rgba(251, 191, 36, 0.45)';
+      ctx.stroke();
+
+      const dotX = gpsPillX + Math.round(9 * scale);
+      const dotY = curY + (pillH / 2);
+      ctx.fillStyle = currentCoords ? '#38bdf8' : '#fbbf24';
+      ctx.beginPath();
+      ctx.arc(dotX, dotY, Math.round(3.5 * scale), 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillText(gpsStatusText, dotX + Math.round(7 * scale), dotY);
+    }
+
+    // 6. Draw Content Rows
+    ctx.textBaseline = 'alphabetic';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetY = 1;
+
+    curY += pillH + Math.round(lineGap * 0.95);
+
+    // Row 1: Petugas
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `600 ${baseFontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
+    ctx.fillText(petugasLine, cardX + padX, curY);
+
+    // Row 2: Rincian Kegiatan Lapangan
+    curY += lineGap;
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = `500 ${baseFontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
+    const maxChar = Math.round(cardW / (baseFontSize * 0.58));
+    const truncatedDetail = detailLine.length > maxChar ? `${detailLine.substring(0, maxChar)}...` : detailLine;
+    ctx.fillText(truncatedDetail, cardX + padX, curY);
+
+    // Row 3: Waktu (Left) and Geotag Coordinates (Right or stacked)
+    curY += lineGap;
+    ctx.fillStyle = '#fbbf24';
+    ctx.font = `600 ${metaFontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
+    ctx.fillText(dateTimeLine, cardX + padX, curY);
+
+    if (cardW > 640 * scale) {
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = `600 ${metaFontSize}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+      const coordsW = ctx.measureText(coordsLine).width;
+      ctx.fillText(coordsLine, cardX + cardW - padX - coordsW, curY);
+    } else {
+      curY += Math.round(lineGap * 0.85);
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = `600 ${metaFontSize}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+      ctx.fillText(coordsLine, cardX + padX, curY);
+    }
+
+    ctx.restore();
+  };
+
+  // Render Official Geotag Watermark with Liquid Glass Design to Canvas
   const generateWatermarkedImage = async (rawBlob) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -483,90 +723,15 @@ export default function CameraPage() {
           // Draw the base photo
           ctx.drawImage(img, 0, 0, width, height);
 
-          // Calculate watermark banner height based on image proportion
-          const bannerHeight = Math.max(160, Math.round(height * 0.22));
-          const startY = height - bannerHeight;
-
-          // Gradient background for high legibility
-          const gradient = ctx.createLinearGradient(0, startY, 0, height);
-          gradient.addColorStop(0, 'rgba(10, 15, 30, 0.84)');
-          gradient.addColorStop(1, 'rgba(5, 10, 20, 0.96)');
-          ctx.fillStyle = gradient;
-          ctx.fillRect(0, startY, width, bannerHeight);
-
-          // Accent border line at top of banner
-          ctx.fillStyle = '#ffc72c';
-          ctx.fillRect(0, startY, width, Math.max(3, Math.round(width * 0.003)));
-
-          // Watermark Typography
-          const baseFontSize = Math.max(14, Math.round(width * 0.019));
-          const headerFontSize = Math.round(baseFontSize * 1.25);
-          const metaFontSize = Math.round(baseFontSize * 0.88);
-          const paddingX = Math.round(width * 0.03);
-          let currentY = startY + headerFontSize + Math.round(width * 0.015);
-
-          // 1. Official Header Badge
-          ctx.fillStyle = '#ffc72c';
-          ctx.font = `bold ${headerFontSize}px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif`;
-          ctx.fillText('BADAN PUSAT STATISTIK | DOKUMENTASI RESMI', paddingX, currentY);
-
-          // 2. Petugas & Satuan Kerja
-          currentY += baseFontSize * 1.5;
-          ctx.fillStyle = '#ffffff';
-          ctx.font = `600 ${baseFontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
-          const namaPetugas = profile?.displayName || user?.displayName || 'Petugas Lapangan BPS';
-          const nipPetugas = profile?.nip ? ` (NIP: ${profile.nip})` : '';
-          const satkerPetugas = profile?.satker || 'BPS Republik Indonesia';
-          ctx.fillText(`Petugas : ${namaPetugas}${nipPetugas} | ${satkerPetugas}`, paddingX, currentY);
-
-          // 3. Waktu & Tanggal
-          currentY += baseFontSize * 1.4;
-          const now = new Date();
-          const dateStr = now.toLocaleDateString('id-ID', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
+          // Render Liquid Glass Watermark Card
+          drawLiquidGlassWatermark(ctx, width, height, {
+            profile,
+            user,
+            coords,
+            activeMode,
+            form,
+            scheduleDocs
           });
-          const timeStr = now.toLocaleTimeString('id-ID', {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
-          });
-          ctx.fillStyle = '#e2e8f0';
-          ctx.font = `normal ${baseFontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
-          ctx.fillText(`Waktu   : ${dateStr}, ${timeStr}`, paddingX, currentY);
-
-          // 4. Koordinat Geotag & Akurasi
-          currentY += baseFontSize * 1.4;
-          let coordsStr = 'Koordinat: GPS Menunggu Kunci / Lokasi Manual';
-          if (coords) {
-            coordsStr = `Koordinat: Lat ${coords.lat.toFixed(6)}, Lon ${coords.lon.toFixed(6)} (Akurasi: ±${coords.accuracy ? Math.round(coords.accuracy) : 5}m)`;
-          }
-          ctx.fillStyle = '#38bdf8';
-          ctx.font = `500 ${baseFontSize}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace`;
-          ctx.fillText(coordsStr, paddingX, currentY);
-
-          // 5. Kegiatan / Rincian Lapangan
-          currentY += baseFontSize * 1.4;
-          let detailLabel = '';
-          if (activeMode === 'ckp') {
-            detailLabel = `Kegiatan CKP: ${form.rincian || 'Dokumentasi Bukti Fisik CKP'}`;
-          } else if (activeMode === 'field') {
-            detailLabel = `Survei/Sensus: ${form.namaSurvei || 'Pemeriksaan Lapangan'} | Lokasi: ${form.lokasiWilayah || 'Wilayah Tugas'}`;
-          } else if (activeMode === 'schedule') {
-            const sc = scheduleDocs.find((s) => s.id === form.selectedScheduleId);
-            detailLabel = `Agenda: ${sc ? sc.judul : form.judulJadwal || 'Dokumentasi Agenda Rapat/Dinas'}`;
-          } else {
-            detailLabel = `Catatan: ${form.catatanRingkas || 'Dokumentasi Cepat Lapangan'}`;
-          }
-
-          ctx.fillStyle = '#cbd5e1';
-          ctx.font = `italic ${metaFontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
-          const maxChar = Math.round(width * 0.07);
-          const truncatedDetail = detailLabel.length > maxChar ? `${detailLabel.substring(0, maxChar)}...` : detailLabel;
-          ctx.fillText(truncatedDetail, paddingX, currentY);
 
           // Output canvas as compressed JPEG
           canvas.toBlob(
@@ -645,25 +810,67 @@ export default function CameraPage() {
     }
   };
 
-  // ===== VIDEO RECORDING CONTROLS =====
+  // ===== VIDEO RECORDING CONTROLS (With Embedded Liquid Glass Watermark) =====
   const startVideoRecording = async () => {
     if (!streamRef.current) return;
     try {
       recordedChunksRef.current = [];
 
       // Acquire audio track if possible to combine with video
-      let recordingStream = streamRef.current;
+      const audioTracks = [];
       try {
         const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const audioTrack = audioStream.getAudioTracks()[0];
         if (audioTrack) {
-          recordingStream = new MediaStream([
-            ...streamRef.current.getVideoTracks(),
-            audioTrack
-          ]);
+          audioTracks.push(audioTrack);
         }
       } catch (audioErr) {
         console.warn('Audio stream not available or denied, recording video muted:', audioErr);
+      }
+
+      // Burn liquid glass watermark into canvas stream if supported
+      let recordingStream = null;
+      if (videoRef.current && typeof HTMLCanvasElement.prototype.captureStream === 'function') {
+        try {
+          const vw = videoRef.current.videoWidth || 1280;
+          const vh = videoRef.current.videoHeight || 720;
+          const recCanvas = document.createElement('canvas');
+          recCanvas.width = vw;
+          recCanvas.height = vh;
+          const vCtx = recCanvas.getContext('2d');
+          recordingCanvasRef.current = recCanvas;
+
+          const renderVideoFrame = () => {
+            if (videoRef.current && videoRef.current.readyState >= 2) {
+              vCtx.drawImage(videoRef.current, 0, 0, vw, vh);
+              drawLiquidGlassWatermark(vCtx, vw, vh, {
+                profile,
+                user,
+                coords,
+                activeMode: 'video',
+                form,
+                scheduleDocs
+              });
+            }
+            videoAnimRef.current = requestAnimationFrame(renderVideoFrame);
+          };
+          renderVideoFrame();
+
+          const canvasStream = recCanvas.captureStream(30);
+          recordingStream = new MediaStream([
+            ...canvasStream.getVideoTracks(),
+            ...audioTracks
+          ]);
+        } catch (canvasErr) {
+          console.warn('Canvas stream capture error, fallback to raw stream:', canvasErr);
+        }
+      }
+
+      if (!recordingStream) {
+        recordingStream = new MediaStream([
+          ...streamRef.current.getVideoTracks(),
+          ...audioTracks
+        ]);
       }
 
       // Check supported MIME type
@@ -685,27 +892,42 @@ export default function CameraPage() {
       };
 
       recorder.onstop = async () => {
+        if (videoAnimRef.current) {
+          cancelAnimationFrame(videoAnimRef.current);
+          videoAnimRef.current = null;
+        }
+
         const finalMime = recorder.mimeType || 'video/webm';
         const blob = new Blob(recordedChunksRef.current, { type: finalMime });
         setVideoReviewBlob(blob);
         const url = URL.createObjectURL(blob);
         setVideoReviewUrl(url);
 
-        // Generate quick thumbnail from current video frame
+        // Generate quick thumbnail with liquid glass watermark from current video frame
         if (videoRef.current) {
           try {
             const thumbCanvas = document.createElement('canvas');
-            thumbCanvas.width = 320;
-            thumbCanvas.height = 240;
+            const tw = 480;
+            const th = 360;
+            thumbCanvas.width = tw;
+            thumbCanvas.height = th;
             const tCtx = thumbCanvas.getContext('2d');
-            tCtx.drawImage(videoRef.current, 0, 0, 320, 240);
-            const thumbData = thumbCanvas.toDataURL('image/jpeg', 0.7);
+            tCtx.drawImage(videoRef.current, 0, 0, tw, th);
+            drawLiquidGlassWatermark(tCtx, tw, th, {
+              profile,
+              user,
+              coords,
+              activeMode: 'video',
+              form,
+              scheduleDocs
+            });
+            const thumbData = thumbCanvas.toDataURL('image/jpeg', 0.8);
             setVideoThumbnailUrl(thumbData);
           } catch (_) {}
         }
 
         // Clean up audio track if any
-        recordingStream.getAudioTracks().forEach((track) => track.stop());
+        audioTracks.forEach((track) => track.stop());
       };
 
       recorder.start(1000); // 1-second chunks
@@ -726,6 +948,10 @@ export default function CameraPage() {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      if (videoAnimRef.current) {
+        cancelAnimationFrame(videoAnimRef.current);
+        videoAnimRef.current = null;
+      }
       if (recordingTimerRef.current) {
         clearInterval(recordingTimerRef.current);
         recordingTimerRef.current = null;
@@ -1415,15 +1641,20 @@ export default function CameraPage() {
                 </div>
               )}
 
-              {/* Real-Time Geotag Watermark HUD Badge */}
+              {/* Real-Time Geotag Watermark HUD Badge (Liquid Glass Card) */}
               <div className={styles.hudBadge}>
-                <span className={styles.hudBadgeTitle}>BADAN PUSAT STATISTIK</span>
-                <span className={styles.hudBadgeMeta}>
-                  {coords ? `${coords.lat.toFixed(5)}, ${coords.lon.toFixed(5)}` : 'Mencari GPS...'}
-                </span>
-                <span className={styles.hudBadgeMeta} style={{ color: '#94a3b8' }}>
-                  {currentTimeStr}
-                </span>
+                <div className={styles.hudBadgeTop}>
+                  <span className={styles.hudBadgeBpsPill}>BPS RI</span>
+                  <span className={styles.hudBadgeTitle}>DOKUMENTASI RESMI</span>
+                </div>
+                <div className={styles.hudBadgeMetaRow}>
+                  <span className={styles.hudBadgeCoord}>
+                    {coords ? `Lat ${coords.lat.toFixed(5)}, Lon ${coords.lon.toFixed(5)}` : 'GPS: Mencari Sinyal...'}
+                  </span>
+                  <span className={styles.hudBadgeTime}>
+                    {currentTimeStr}
+                  </span>
+                </div>
               </div>
 
               {/* Timer Countdown Big Number Overlay */}
