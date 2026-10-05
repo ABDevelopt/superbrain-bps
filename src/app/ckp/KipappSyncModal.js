@@ -15,6 +15,7 @@ import {
   Lightbulb
 } from 'lucide-react';
 import styles from './KipappSyncModal.module.css';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function KipappSyncModal({ 
   isOpen, 
@@ -24,6 +25,7 @@ export default function KipappSyncModal({
   year = 2026,
   skpList = [] 
 }) {
+  const { user } = useAuth();
   const [extensionStatus, setExtensionStatus] = useState({ checked: false, connected: false, data: null });
   const [manualToken, setManualToken] = useState('');
   const [autoKirim, setAutoKirim] = useState(true);
@@ -204,7 +206,7 @@ export default function KipappSyncModal({
         {/* Header */}
         <div className={styles.modalHeader}>
           <div className={styles.headerTitle}>
-            <Send size={20} color="#4f46e5" />
+            <Send size={20} className={styles.headerIcon} />
             <div>
               <h3>Sinkronisasi KIPAPP BPS</h3>
             </div>
@@ -222,11 +224,11 @@ export default function KipappSyncModal({
             <div className={`${styles.statusCard} ${styles.statusConnected}`}>
               <div className={styles.statusInfo}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <CheckCircle2 size={16} color="#166534" />
+                  <CheckCircle2 size={16} />
                   <h4>Ekstensi SuperBrain Terhubung</h4>
                 </div>
                 <p>
-                  Sesi login aktif: <strong>{extensionStatus.data?.pegawaiName || 'Yahya Abdurrohman'}</strong>
+                  Sesi login aktif: <strong>{extensionStatus.data?.pegawaiName || user?.displayName || user?.email?.split('@')[0] || 'Pegawai BPS'}</strong>
                   {extensionStatus.data?.nip && ` (NIP: ${extensionStatus.data.nip})`}
                 </p>
               </div>
@@ -238,7 +240,7 @@ export default function KipappSyncModal({
             <div className={`${styles.statusCard} ${styles.statusDisconnected}`}>
               <div className={styles.statusInfo}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <AlertCircle size={16} color="#92400e" />
+                  <AlertCircle size={16} />
                   <h4>Ekstensi Belum Terhubung</h4>
                 </div>
                 <p>
@@ -281,8 +283,8 @@ export default function KipappSyncModal({
                 value={manualToken}
                 onChange={(e) => setManualToken(e.target.value)}
               />
-              <div style={{ fontSize: '11px', color: '#64748b', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Lightbulb size={13} color="#eab308" />
+              <div className={styles.tokenTip}>
+                <Lightbulb size={13} style={{ flexShrink: 0, color: 'var(--warning)' }} />
                 <span><em>Tip: Pasang folder <code>extension/</code> pada <code>chrome://extensions</code> untuk login otomatis tanpa perlu menyalin token.</em></span>
               </div>
             </div>
@@ -301,7 +303,7 @@ export default function KipappSyncModal({
           {/* Sync Progress & Results */}
           {isSyncing && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
+              <div className={styles.progressLabel}>
                 <span>Mengirim kegiatan ke portal KIPAPP BPS...</span>
                 <span>{syncProgress.current} / {syncProgress.total}</span>
               </div>
@@ -315,11 +317,11 @@ export default function KipappSyncModal({
           )}
 
           {syncResult && (
-            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '12px 16px' }}>
-              <div style={{ color: '#166534', fontWeight: 700, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className={styles.resultSuccessCard}>
+              <div className={styles.resultSuccessTitle}>
                 <CheckCircle2 size={16} /> Sinkronisasi Selesai!
               </div>
-              <div style={{ fontSize: '12px', color: '#15803d', marginTop: '4px' }}>
+              <div className={styles.resultSuccessDesc}>
                 Berhasil mengirim <strong>{syncResult.successCount}</strong> dari {syncResult.total} kegiatan ke KIPAPP BPS.
                 {syncResult.failedCount > 0 && ` (${syncResult.failedCount} gagal).`}
               </div>
@@ -327,11 +329,11 @@ export default function KipappSyncModal({
           )}
 
           {errorMsg && (
-            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px', padding: '12px 16px', color: '#991b1b', fontSize: '13px' }}>
-              <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className={styles.resultErrorCard}>
+              <div className={styles.resultErrorTitle}>
                 <AlertCircle size={16} /> Kendala Pengiriman
               </div>
-              <p style={{ margin: '4px 0 0 0', fontSize: '12px' }}>{errorMsg}</p>
+              <p className={styles.resultErrorDesc}>{errorMsg}</p>
             </div>
           )}
         </div>
