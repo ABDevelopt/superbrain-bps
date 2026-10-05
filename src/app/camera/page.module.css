@@ -970,6 +970,7 @@
 
 .reviewHeader {
   height: 58px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -989,6 +990,8 @@
 
 .reviewImageWrapper {
   flex: 1;
+  min-height: 0;
+  min-width: 0;
   position: relative;
   display: flex;
   align-items: center;
@@ -999,7 +1002,9 @@
 
 .reviewImage {
   max-width: 100%;
-  max-height: calc(100dvh - 170px);
+  max-height: 100%;
+  width: auto;
+  height: auto;
   object-fit: contain;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1008,7 +1013,10 @@
 
 .reviewVideo {
   max-width: 100%;
-  max-height: calc(100dvh - 175px);
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
   border-radius: 16px;
   outline: none;
   background: #000000;
@@ -1017,6 +1025,7 @@
 }
 
 .reviewFooter {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1379,6 +1388,7 @@
 
 .detailHeader {
   height: 58px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1402,6 +1412,8 @@
 
 .detailMediaWrapper {
   flex: 1;
+  min-height: 0;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1412,7 +1424,9 @@
 
 .detailImage {
   max-width: 100%;
-  max-height: calc(100dvh - 230px);
+  max-height: 100%;
+  width: auto;
+  height: auto;
   object-fit: contain;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1421,7 +1435,10 @@
 
 .detailVideo {
   max-width: 100%;
-  max-height: calc(100dvh - 230px);
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
   border-radius: 16px;
   outline: none;
   background: #000000;
@@ -1430,6 +1447,7 @@
 }
 
 .detailInfoSheet {
+  flex-shrink: 0;
   background: rgba(12, 16, 26, 0.88);
   backdrop-filter: blur(36px) saturate(200%);
   -webkit-backdrop-filter: blur(36px) saturate(200%);

@@ -510,15 +510,15 @@ export default function CameraPage() {
     } = options;
 
     const scale = Math.max(0.65, Math.min(1.8, width / 1100));
-    const margin = Math.round(Math.max(12, 22 * scale));
+    const margin = Math.round(Math.max(16, 26 * scale));
     const cardW = width - (margin * 2);
 
     const baseFontSize = Math.round(Math.max(12, 17 * scale));
     const pillFontSize = Math.round(baseFontSize * 0.82);
     const metaFontSize = Math.round(baseFontSize * 0.86);
-    const lineGap = Math.round(baseFontSize * 1.35);
+    const lineGap = Math.round(baseFontSize * 1.38);
     const padX = Math.round(Math.max(14, 22 * scale));
-    const padY = Math.round(Math.max(12, 16 * scale));
+    const padY = Math.round(Math.max(14, 18 * scale));
     const cornerRadius = Math.round(Math.max(14, 20 * scale));
 
     const namaPetugas = userProfile?.displayName || currentUser?.displayName || 'Petugas BPS';
@@ -567,14 +567,33 @@ export default function CameraPage() {
       coordsLine = `Lat ${currentCoords.lat.toFixed(6)}, Lon ${currentCoords.lon.toFixed(6)}${acc}`;
     }
 
-    // Header pill height
-    const pillH = Math.round(pillFontSize * 2);
-    const pillRadius = pillH / 2;
+    // Text metrics calculation to decide inlining vs stacking
+    ctx.font = `600 ${metaFontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
+    const dateWidth = ctx.measureText(dateTimeLine).width;
 
-    // Calculate card height dynamically
-    const cardH = padY * 2 + pillH + (lineGap * 3.4);
+    ctx.font = `600 ${metaFontSize}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+    const coordsWidth = ctx.measureText(coordsLine).width;
+
+    const minRow3Gap = Math.round(20 * scale);
+    const canInlineCoords = (cardW - (padX * 2) - dateWidth - coordsWidth) >= minRow3Gap;
+
+    // Header pill dimensions
+    const pillH = Math.round(pillFontSize * 2.1);
+    const pillRadius = pillH / 2;
+    const gapAfterPill = Math.round(Math.max(10, 14 * scale));
+
+    // Dynamic vertical baselines relative to card top
+    const relRow1Y = padY + pillH + gapAfterPill + baseFontSize;
+    const relRow2Y = relRow1Y + lineGap;
+    const relRow3Y = relRow2Y + lineGap;
+    const relRow4Y = canInlineCoords ? null : relRow3Y + Math.round(lineGap * 0.95);
+    const relLastRowY = canInlineCoords ? relRow3Y : relRow4Y;
+
+    // Card height includes safe bottom margin for font descenders plus bottom padding
+    const bottomDescenderSpace = Math.round(baseFontSize * 0.45);
+    const cardH = relLastRowY + bottomDescenderSpace + padY;
     const cardX = margin;
-    const cardY = height - cardH - margin;
+    const cardY = Math.max(margin, height - cardH - margin);
 
     // 1. Ambient Drop Shadow under Card
     ctx.save();
@@ -620,7 +639,7 @@ export default function CameraPage() {
     ctx.stroke();
 
     // 5. Draw Header Bar Inside Card
-    let curY = cardY + padY;
+    const headerPillY = cardY + padY;
 
     // Header Pill 1: BADAN PUSAT STATISTIK (Amber Liquid Glass Pill)
     ctx.font = `bold ${pillFontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
@@ -628,28 +647,30 @@ export default function CameraPage() {
     const bpsPillW = ctx.measureText(bpsText).width + Math.round(18 * scale);
 
     ctx.fillStyle = 'rgba(251, 191, 36, 0.16)';
-    drawRoundedRect(ctx, cardX + padX, curY, bpsPillW, pillH, pillRadius);
+    drawRoundedRect(ctx, cardX + padX, headerPillY, bpsPillW, pillH, pillRadius);
     ctx.fill();
     ctx.strokeStyle = 'rgba(251, 191, 36, 0.55)';
     ctx.lineWidth = 1;
-    drawRoundedRect(ctx, cardX + padX, curY, bpsPillW, pillH, pillRadius);
+    drawRoundedRect(ctx, cardX + padX, headerPillY, bpsPillW, pillH, pillRadius);
     ctx.stroke();
 
     ctx.fillStyle = '#fbbf24';
     ctx.textBaseline = 'middle';
-    ctx.fillText(bpsText, cardX + padX + Math.round(9 * scale), curY + (pillH / 2));
+    ctx.fillText(bpsText, cardX + padX + Math.round(9 * scale), headerPillY + (pillH / 2));
 
     // Header Pill 2: Mode Tag (Frosted Pill next to BPS)
     const modePillX = cardX + padX + bpsPillW + Math.round(8 * scale);
     const modePillW = ctx.measureText(modeBadgeText).width + Math.round(18 * scale);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-    drawRoundedRect(ctx, modePillX, curY, modePillW, pillH, pillRadius);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-    ctx.stroke();
+    if (modePillX + modePillW <= cardX + cardW - padX) {
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+      drawRoundedRect(ctx, modePillX, headerPillY, modePillW, pillH, pillRadius);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.stroke();
 
-    ctx.fillStyle = '#f8fafc';
-    ctx.fillText(modeBadgeText, modePillX + Math.round(9 * scale), curY + (pillH / 2));
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillText(modeBadgeText, modePillX + Math.round(9 * scale), headerPillY + (pillH / 2));
+    }
 
     // Header Right: GPS Geotag Status Pill
     const gpsStatusText = currentCoords ? 'GPS TERKUNCI' : 'GPS MENCARI';
@@ -658,13 +679,13 @@ export default function CameraPage() {
 
     if (gpsPillX > modePillX + modePillW + 10) {
       ctx.fillStyle = currentCoords ? 'rgba(56, 189, 248, 0.14)' : 'rgba(251, 191, 36, 0.14)';
-      drawRoundedRect(ctx, gpsPillX, curY, gpsPillW, pillH, pillRadius);
+      drawRoundedRect(ctx, gpsPillX, headerPillY, gpsPillW, pillH, pillRadius);
       ctx.fill();
       ctx.strokeStyle = currentCoords ? 'rgba(56, 189, 248, 0.45)' : 'rgba(251, 191, 36, 0.45)';
       ctx.stroke();
 
       const dotX = gpsPillX + Math.round(9 * scale);
-      const dotY = curY + (pillH / 2);
+      const dotY = headerPillY + (pillH / 2);
       ctx.fillStyle = currentCoords ? '#38bdf8' : '#fbbf24';
       ctx.beginPath();
       ctx.arc(dotX, dotY, Math.round(3.5 * scale), 0, Math.PI * 2);
@@ -679,37 +700,37 @@ export default function CameraPage() {
     ctx.shadowBlur = 4;
     ctx.shadowOffsetY = 1;
 
-    curY += pillH + Math.round(lineGap * 0.95);
-
     // Row 1: Petugas
     ctx.fillStyle = '#ffffff';
     ctx.font = `600 ${baseFontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
-    ctx.fillText(petugasLine, cardX + padX, curY);
+    const maxPetugasChar = Math.max(10, Math.floor((cardW - padX * 2) / (baseFontSize * 0.58)));
+    const truncatedPetugas = petugasLine.length > maxPetugasChar ? `${petugasLine.substring(0, maxPetugasChar - 3)}...` : petugasLine;
+    ctx.fillText(truncatedPetugas, cardX + padX, cardY + relRow1Y);
 
     // Row 2: Rincian Kegiatan Lapangan
-    curY += lineGap;
     ctx.fillStyle = '#cbd5e1';
     ctx.font = `500 ${baseFontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
-    const maxChar = Math.round(cardW / (baseFontSize * 0.58));
-    const truncatedDetail = detailLine.length > maxChar ? `${detailLine.substring(0, maxChar)}...` : detailLine;
-    ctx.fillText(truncatedDetail, cardX + padX, curY);
+    const maxDetailChar = Math.max(10, Math.floor((cardW - padX * 2) / (baseFontSize * 0.58)));
+    const truncatedDetail = detailLine.length > maxDetailChar ? `${detailLine.substring(0, maxDetailChar - 3)}...` : detailLine;
+    ctx.fillText(truncatedDetail, cardX + padX, cardY + relRow2Y);
 
-    // Row 3: Waktu (Left) and Geotag Coordinates (Right or stacked)
-    curY += lineGap;
+    // Row 3: Waktu (Left)
     ctx.fillStyle = '#fbbf24';
     ctx.font = `600 ${metaFontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
-    ctx.fillText(dateTimeLine, cardX + padX, curY);
+    ctx.fillText(dateTimeLine, cardX + padX, cardY + relRow3Y);
 
-    if (cardW > 640 * scale) {
+    if (canInlineCoords) {
+      // Inline coords on the right of Row 3
       ctx.fillStyle = '#38bdf8';
       ctx.font = `600 ${metaFontSize}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-      const coordsW = ctx.measureText(coordsLine).width;
-      ctx.fillText(coordsLine, cardX + cardW - padX - coordsW, curY);
+      ctx.fillText(coordsLine, cardX + cardW - padX - coordsWidth, cardY + relRow3Y);
     } else {
-      curY += Math.round(lineGap * 0.85);
+      // Row 4: Coords on separate line
       ctx.fillStyle = '#38bdf8';
       ctx.font = `600 ${metaFontSize}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-      ctx.fillText(coordsLine, cardX + padX, curY);
+      const maxCoordsChar = Math.max(10, Math.floor((cardW - padX * 2) / (metaFontSize * 0.62)));
+      const truncatedCoords = coordsLine.length > maxCoordsChar ? `${coordsLine.substring(0, maxCoordsChar - 3)}...` : coordsLine;
+      ctx.fillText(truncatedCoords, cardX + padX, cardY + relRow4Y);
     }
 
     ctx.restore();
