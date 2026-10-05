@@ -60,6 +60,11 @@ export default function AppShell({ children }) {
     return null;
   }
 
+  // Camera page is a standalone native-like fullscreen app without sidebar/navbars
+  if (pathname === '/camera') {
+    return <main className={styles.cameraFullscreenMain}>{children}</main>;
+  }
+
   return (
     <div className={styles.shell}>
       <Sidebar isOpen={isSidebarOpen} onToggle={() => setIsSidebarOpen(!isSidebarOpen)} />

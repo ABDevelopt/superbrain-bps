@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   Camera,
   RotateCcw,
@@ -29,7 +30,10 @@ import {
   Layers,
   Sparkles,
   Image as ImageIcon,
-  Copy
+  Copy,
+  Settings,
+  SlidersHorizontal,
+  Timer as TimerIcon
 } from 'lucide-react';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,13 +46,16 @@ import { savePendingUpload, saveDraftActivity } from '@/lib/localdb';
 import { compressImage, formatBytes } from '@/lib/compressor';
 
 const CAPTURE_MODES = [
-  { id: 'ckp', label: 'Bukti CKP', desc: 'Hubungkan langsung ke butir SKP dan kegiatan harian' },
-  { id: 'field', label: 'Dinas Lapangan', desc: 'Survei, sensus, supervisi, atau ground check' },
-  { id: 'schedule', label: 'Lampiran Jadwal', desc: 'Dokumentasi agenda dan presensi kegiatan hari ini' },
-  { id: 'quick', label: 'Quick Snap', desc: 'Foto cepat dengan watermark resmi dan backup Drive' },
+  { id: 'ckp', label: 'BUKTI CKP', desc: 'Tautkan ke butir SKP & kegiatan harian' },
+  { id: 'field', label: 'DINAS LAPANGAN', desc: 'Survei, sensus, supervisi lapangan' },
+  { id: 'schedule', label: 'JADWAL', desc: 'Presensi & dokumentasi agenda' },
+  { id: 'quick', label: 'QUICK SNAP', desc: 'Jepret cepat ber-watermark' },
 ];
 
+const ASPECT_RATIOS = ['3:4', '9:16', '1:1', 'FULL'];
+
 export default function CameraPage() {
+  const router = useRouter();
   const { user, accessToken, loginWithGoogle } = useAuth();
   const { profile } = useUserProfile();
   const { skpData } = useSkps();
@@ -69,7 +76,12 @@ export default function CameraPage() {
   const [flashSupported, setFlashSupported] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
   const [gridActive, setGridActive] = useState(true);
+  const [aspectRatio, setAspectRatio] = useState('3:4');
+  const [timerSeconds, setTimerSeconds] = useState(0); // 0 (off), 3, 10
+  const [countdownVal, setCountdownVal] = useState(null);
   const [permissionError, setPermissionError] = useState(null);
+  const [showShutterFlash, setShowShutterFlash] = useState(false);
+  const [focusRing, setFocusRing] = useState(null); // { x, y }
 
   // GPS Geotag states
   const [coords, setCoords] = useState(null);
@@ -80,7 +92,8 @@ export default function CameraPage() {
 
   // Mode & Form states
   const [activeMode, setActiveMode] = useState('ckp');
-  const [formOpen, setFormOpen] = useState(true);
+  const [formSheetOpen, setFormSheetOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [form, setForm] = useState({
     // CKP Mode
     skpId: '',
@@ -110,7 +123,7 @@ export default function CameraPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [compressedInfo, setCompressedInfo] = useState(null);
 
-  // Recent captures history (in current session and persistent in storage)
+  // Recent captures history
   const [recentPhotos, setRecentPhotos] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
 
@@ -128,7 +141,6 @@ export default function CameraPage() {
   const saveRecentPhotos = (photos) => {
     setRecentPhotos(photos);
     try {
-      // Store metadata only (omit big preview URLs for storage efficiency)
       const persistent = photos.slice(0, 20).map((p) => ({
         id: p.id,
         title: p.title,
@@ -202,7 +214,7 @@ export default function CameraPage() {
     try {
       setPermissionError(null);
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setPermissionError('Browser Anda tidak mendukung Web Media API untuk kamera langsung.');
+        setPermissionError('Peramban Anda tidak mendukung Web Media API untuk kamera langsung.');
         return;
       }
 
@@ -328,7 +340,7 @@ export default function CameraPage() {
     } catch (err) {
       console.error('Camera initialization error:', err);
       setPermissionError(
-        'Izin akses kamera ditolak atau kamera sedang digunakan oleh aplikasi lain. Anda tetap dapat menggunakan tombol Pilih Foto dari Galeri di bagian atas.'
+        'Izin akses kamera ditolak atau sedang digunakan oleh aplikasi lain. Anda tetap dapat menggunakan tombol Pilih Foto dari Galeri.'
       );
       setCameraActive(false);
     }
@@ -375,6 +387,31 @@ export default function CameraPage() {
         }
       }
     }
+  };
+
+  // Toggle Aspect Ratio
+  const handleToggleAspect = () => {
+    const currIdx = ASPECT_RATIOS.indexOf(aspectRatio);
+    const nextIdx = (currIdx + 1) % ASPECT_RATIOS.length;
+    setAspectRatio(ASPECT_RATIOS[nextIdx]);
+  };
+
+  // Toggle Timer (Off -> 3s -> 10s)
+  const handleToggleTimer = () => {
+    if (timerSeconds === 0) setTimerSeconds(3);
+    else if (timerSeconds === 3) setTimerSeconds(10);
+    else setTimerSeconds(0);
+  };
+
+  // Tap-to-Focus handler
+  const handleViewfinderTap = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setFocusRing({ x, y });
+    setTimeout(() => {
+      setFocusRing(null);
+    }, 1200);
   };
 
   // Zoom Handler
@@ -440,7 +477,7 @@ export default function CameraPage() {
           ctx.fillRect(0, startY, width, bannerHeight);
 
           // Accent border line at top of banner
-          ctx.fillStyle = '#6366f1';
+          ctx.fillStyle = '#ffc72c';
           ctx.fillRect(0, startY, width, Math.max(3, Math.round(width * 0.003)));
 
           // Watermark Typography
@@ -451,9 +488,9 @@ export default function CameraPage() {
           let currentY = startY + headerFontSize + Math.round(width * 0.015);
 
           // 1. Official Header Badge
-          ctx.fillStyle = '#38bdf8';
+          ctx.fillStyle = '#ffc72c';
           ctx.font = `bold ${headerFontSize}px ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif`;
-          ctx.fillText('BADAN PUSAT STATISTIK | SUPERBRAIN FIELD CAMERA', paddingX, currentY);
+          ctx.fillText('BADAN PUSAT STATISTIK | DOKUMENTASI RESMI', paddingX, currentY);
 
           // 2. Petugas & Satuan Kerja
           currentY += baseFontSize * 1.5;
@@ -481,7 +518,7 @@ export default function CameraPage() {
           });
           ctx.fillStyle = '#e2e8f0';
           ctx.font = `normal ${baseFontSize}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
-          ctx.fillText(`Waktu   : ${dateStr}, ${timeStr} WIB`, paddingX, currentY);
+          ctx.fillText(`Waktu   : ${dateStr}, ${timeStr}`, paddingX, currentY);
 
           // 4. Koordinat Geotag & Akurasi
           currentY += baseFontSize * 1.4;
@@ -489,7 +526,7 @@ export default function CameraPage() {
           if (coords) {
             coordsStr = `Koordinat: Lat ${coords.lat.toFixed(6)}, Lon ${coords.lon.toFixed(6)} (Akurasi: ±${coords.accuracy ? Math.round(coords.accuracy) : 5}m)`;
           }
-          ctx.fillStyle = '#a5b4fc';
+          ctx.fillStyle = '#38bdf8';
           ctx.font = `500 ${baseFontSize}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace`;
           ctx.fillText(coordsStr, paddingX, currentY);
 
@@ -497,9 +534,9 @@ export default function CameraPage() {
           currentY += baseFontSize * 1.4;
           let detailLabel = '';
           if (activeMode === 'ckp') {
-            detailLabel = `Kegiatan CKP: ${form.rincian || 'Dokumentasi Pelaksanaan Tugas Lapangan'}`;
+            detailLabel = `Kegiatan CKP: ${form.rincian || 'Dokumentasi Bukti Fisik CKP'}`;
           } else if (activeMode === 'field') {
-            detailLabel = `Survei/Sensus: ${form.namaSurvei || 'Pemeriksaan Lapangan'} | Wilayah: ${form.lokasiWilayah || 'Wilayah Kerja'}`;
+            detailLabel = `Survei/Sensus: ${form.namaSurvei || 'Pemeriksaan Lapangan'} | Lokasi: ${form.lokasiWilayah || 'Wilayah Tugas'}`;
           } else if (activeMode === 'schedule') {
             const sc = scheduleDocs.find((s) => s.id === form.selectedScheduleId);
             detailLabel = `Agenda: ${sc ? sc.judul : form.judulJadwal || 'Dokumentasi Agenda Rapat/Dinas'}`;
@@ -555,10 +592,12 @@ export default function CameraPage() {
     }
   };
 
-  // Capture Shutter Action from live video
-  const handleCapture = async () => {
+  // Trigger snapshot from video
+  const triggerCapture = async () => {
     if (!videoRef.current) return;
     setIsProcessing(true);
+    setShowShutterFlash(true);
+    setTimeout(() => setShowShutterFlash(false), 220);
 
     try {
       const snapCanvas = document.createElement('canvas');
@@ -588,6 +627,27 @@ export default function CameraPage() {
     }
   };
 
+  // Handle Shutter click (honoring active timer)
+  const handleShutterClick = () => {
+    if (isProcessing) return;
+    if (timerSeconds > 0) {
+      let count = timerSeconds;
+      setCountdownVal(count);
+      const timerInt = setInterval(() => {
+        count -= 1;
+        if (count <= 0) {
+          clearInterval(timerInt);
+          setCountdownVal(null);
+          triggerCapture();
+        } else {
+          setCountdownVal(count);
+        }
+      }, 1000);
+    } else {
+      triggerCapture();
+    }
+  };
+
   // Handle Photo Pick from Local Device Gallery / Storage
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0];
@@ -598,65 +658,75 @@ export default function CameraPage() {
       return;
     }
 
-    await processImageToPreview(file);
-    e.target.value = '';
+    try {
+      await processImageToPreview(file);
+    } catch (err) {
+      console.error('File pick error:', err);
+      showAlert('Gagal memproses berkas galeri: ' + err.message);
+    }
   };
 
-  // Retake Photo
+  // Retake or discard preview
   const handleRetake = () => {
     if (watermarkedUrl) {
       URL.revokeObjectURL(watermarkedUrl);
     }
-    setWatermarkedUrl(null);
-    setWatermarkedBlob(null);
     setCapturedBlob(null);
+    setWatermarkedBlob(null);
+    setWatermarkedUrl(null);
     setCompressedInfo(null);
   };
 
-  // Download directly to local storage / gallery
+  // Download directly to local storage
   const handleDownloadLocal = () => {
     if (!watermarkedBlob) return;
-    const url = URL.createObjectURL(watermarkedBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `SuperBrain_BPS_${Date.now()}.jpg`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showAlert('Foto berhasil diunduh ke galeri perangkat Anda.');
+    const link = document.createElement('a');
+    link.href = watermarkedUrl;
+    link.download = `Dokumentasi_BPS_${activeMode.toUpperCase()}_${Date.now()}.jpg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showAlert('Foto berhasil diunduh ke penyimpanan perangkat Anda!');
   };
 
-  // Save photo and metadata as CKP Draft
+  // Save as Draft CKP (so user can fill details later)
   const handleSaveAsCkpDraft = async () => {
     if (!watermarkedBlob || !user) {
-      showAlert('Silakan login terlebih dahulu untuk menyimpan draft kegiatan.');
+      showAlert('Silakan login terlebih dahulu untuk menyimpan draft.');
       return;
     }
 
     setIsUploading(true);
-    const now = new Date();
-    const todayYMD = now.toISOString().split('T')[0];
-    const timestampId = Date.now();
-    const fileName = `Draft_Geotag_${todayYMD}_${timestampId}.jpg`;
-    const finalFile = new File([watermarkedBlob], fileName, { type: 'image/jpeg' });
-
     try {
-      const draftTitle = form.rincian?.trim() || form.namaSurvei?.trim() || `Foto Geotag Lapangan (${todayYMD})`;
+      const now = new Date();
+      const todayYMD = now.toISOString().split('T')[0];
+      const timestampId = Date.now();
+      const fileName = `Draft_CKP_${todayYMD}_${timestampId}.jpg`;
+      const finalFile = new File([watermarkedBlob], fileName, { type: 'image/jpeg' });
+
+      let draftTitle = 'Foto Lapangan';
+      if (activeMode === 'ckp') {
+        draftTitle = form.rincian || 'Dokumentasi Bukti CKP';
+      } else if (activeMode === 'field') {
+        draftTitle = `${form.namaSurvei || 'Dinas Lapangan'} (${form.lokasiWilayah || 'SLS'})`;
+      } else if (activeMode === 'schedule') {
+        draftTitle = form.judulJadwal || 'Lampiran Jadwal';
+      }
+
       const draftPayload = {
-        id: `draft_cam_${timestampId}`,
+        id: timestampId,
         title: draftTitle,
-        userId: user.uid,
         form: {
           tanggal: todayYMD,
-          isFullday: form.isFullday ?? true,
-          waktuMulai: form.isFullday ? '08:00' : (form.waktuMulai || '08:00'),
-          waktuSelesai: form.isFullday ? '16:00' : (form.waktuSelesai || '16:00'),
           skpId: form.skpId || '',
           skpIds: form.skpId ? [Number(form.skpId)] : [],
-          rincian: draftTitle,
-          kuantitas: form.jumlah || 1,
+          rincian: form.rincian || draftTitle,
+          jumlah: Number(form.jumlah) || 1,
           satuan: form.satuan || 'Dokumen',
+          kualitas: Number(form.kualitas) || 100,
+          waktuMulai: form.waktuMulai || '08:00',
+          waktuSelesai: form.waktuSelesai || '16:00',
+          isFullday: form.isFullday,
           timKerja: 'Subbagian Umum',
         },
         files: [finalFile],
@@ -695,7 +765,7 @@ export default function CameraPage() {
     let driveLink = null;
     let isSavedOffline = false;
 
-    // 1. Attempt upload to Google Drive if access token available and online
+    // 1. Attempt upload to Google Drive if OAuth access token available and online
     if (accessToken && navigator.onLine) {
       try {
         const rootFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
@@ -851,6 +921,32 @@ export default function CameraPage() {
     }
   };
 
+  // Helper label for active task pill
+  const getActiveTaskLabel = () => {
+    if (activeMode === 'ckp') {
+      const selectedSkp = skpData.find((s) => String(s.id) === String(form.skpId));
+      if (form.rincian) return form.rincian;
+      if (selectedSkp) return `SKP #${selectedSkp.id} - ${selectedSkp.nama || selectedSkp.rencanaKinerja}`;
+      return 'Ketuk untuk atur Butir SKP & Rincian';
+    }
+    if (activeMode === 'field') {
+      return form.namaSurvei ? `${form.namaSurvei} (${form.lokasiWilayah || 'SLS'})` : 'Ketuk untuk atur Nama Survei / Lokasi';
+    }
+    if (activeMode === 'schedule') {
+      const sc = scheduleDocs.find((s) => s.id === form.selectedScheduleId);
+      return sc ? sc.judul : form.judulJadwal || 'Ketuk untuk pilih Agenda Hari Ini';
+    }
+    return form.catatanRingkas || 'Ketuk untuk tambah Catatan Cepat';
+  };
+
+  // Determine aspect frame class
+  const getFrameClass = () => {
+    if (aspectRatio === 'FULL') return styles.frameFull;
+    if (aspectRatio === '9:16') return styles.frame169;
+    if (aspectRatio === '1:1') return styles.frame11;
+    return styles.frame34;
+  };
+
   return (
     <div className={styles.cameraContainer}>
       {/* Hidden File Input for Gallery / Local File Upload */}
@@ -862,11 +958,11 @@ export default function CameraPage() {
         onChange={handleFileSelect}
       />
 
-      {/* Fallback Permission Error Screen */}
+      {/* Permission Error Fallback */}
       {permissionError && !cameraActive && (
         <div className={styles.permissionScreen}>
           <div className={styles.permissionIcon}>
-            <Camera size={32} />
+            <Camera size={34} />
           </div>
           <h2 className={styles.permissionTitle}>Akses Kamera Diperlukan</h2>
           <p className={styles.permissionDesc}>{permissionError}</p>
@@ -881,442 +977,539 @@ export default function CameraPage() {
             <button
               onClick={() => fileInputRef.current?.click()}
               className={styles.permissionBtn}
-              style={{ background: '#334155' }}
+              style={{ background: '#334155', color: '#fff' }}
             >
               <ImageIcon size={18} />
               Pilih dari Galeri
             </button>
           </div>
-          <Link href="/" className={styles.backBtn} style={{ width: 'auto', padding: '8px 16px', gap: '8px', marginTop: '8px' }}>
+          <button
+            onClick={() => router.push('/')}
+            className={styles.iconBtn}
+            style={{ width: 'auto', padding: '8px 16px', borderRadius: '12px', background: 'rgba(255,255,255,0.1)', marginTop: '8px', gap: '8px' }}
+          >
             <ArrowLeft size={16} />
-            Kembali ke Dashboard
-          </Link>
+            Kembali ke SuperBrain
+          </button>
         </div>
       )}
 
-      {/* Main Camera App Screen */}
+      {/* Main Samsung Native Camera Viewport */}
       {(!permissionError || cameraActive) && (
-        <div className={styles.cameraApp}>
-          {/* Top Bar Header */}
+        <>
+          {/* Top Control Bar (Samsung Quick Controls) */}
           <header className={styles.topBar}>
-            <div className={styles.brandGroup}>
-              <Link href="/" className={styles.backBtn} title="Kembali ke Dashboard">
-                <ArrowLeft size={18} />
-              </Link>
-              <div className={styles.appTitleBlock}>
-                <span className={styles.appTitle}>
-                  <Camera size={18} color="#6366f1" />
-                  Kamera Lapangan
-                </span>
-                <span className={styles.appSubtitle}>
-                  {profile?.displayName || user?.displayName || 'Petugas BPS'}
-                </span>
-              </div>
-            </div>
-
-            <div className={styles.topActions}>
-              {/* Pick Image from Gallery Button */}
+            <div className={styles.topBarLeft}>
               <button
                 type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className={styles.actionIconBtn}
-                title="Pilih Foto dari Galeri / Berkas"
+                onClick={() => router.push('/')}
+                className={styles.iconBtn}
+                title="Kembali ke Dashboard SuperBrain"
               >
-                <ImageIcon size={18} />
+                <ArrowLeft size={22} />
               </button>
 
+              <button
+                type="button"
+                onClick={() => setShowSettings(!showSettings)}
+                className={`${styles.iconBtn} ${showSettings ? styles.iconBtnActive : ''}`}
+                title="Pengaturan Kamera & Watermark"
+              >
+                <Settings size={20} />
+              </button>
+
+              <button
+                type="button"
+                onClick={handleToggleTimer}
+                className={`${styles.iconBtn} ${timerSeconds > 0 ? styles.iconBtnActive : ''}`}
+                title="Timer Otomatis"
+              >
+                <TimerIcon size={20} />
+                {timerSeconds > 0 && (
+                  <span style={{ fontSize: '10px', fontWeight: 800, marginLeft: '-4px' }}>
+                    {timerSeconds}s
+                  </span>
+                )}
+              </button>
+            </div>
+
+            <div className={styles.topBarRight}>
+              {/* Aspect Ratio Pill */}
+              <button
+                type="button"
+                onClick={handleToggleAspect}
+                className={styles.aspectPill}
+                title="Ganti Rasio Bidang Kamera"
+              >
+                {aspectRatio}
+              </button>
+
+              {/* Torch / Flash Toggle */}
               {flashSupported && !isFrontCamera && (
                 <button
                   type="button"
                   onClick={handleToggleFlash}
-                  className={`${styles.actionIconBtn} ${flashOn ? styles.actionIconBtnActive : ''}`}
+                  className={`${styles.iconBtn} ${flashOn ? styles.iconBtnActive : ''}`}
                   title={flashOn ? 'Matikan Lampu Kilat' : 'Nyalakan Lampu Kilat'}
                 >
-                  {flashOn ? <Zap size={18} /> : <ZapOff size={18} />}
+                  {flashOn ? <Zap size={20} /> : <ZapOff size={20} />}
                 </button>
               )}
 
+              {/* 3x3 Grid Toggle */}
               <button
                 type="button"
                 onClick={() => setGridActive(!gridActive)}
-                className={`${styles.actionIconBtn} ${gridActive ? styles.actionIconBtnActive : ''}`}
-                title="Bantuan Garis Grid 3x3"
+                className={`${styles.iconBtn} ${gridActive ? styles.iconBtnActive : ''}`}
+                title="Garis Bantu Komposisi 3x3"
               >
-                <Grid size={18} />
+                <Grid size={20} />
               </button>
 
-              <button
-                type="button"
-                onClick={() => setShowHistory(true)}
-                className={styles.actionIconBtn}
-                title="Riwayat Jepretan Lapangan"
+              {/* GPS Geotag Indicator */}
+              <div
+                className={styles.gpsIndicator}
+                onClick={handleCopyCoords}
+                title={coords ? `GPS Terkunci: ${coords.lat.toFixed(5)}, ${coords.lon.toFixed(5)} (Klik untuk salin)` : 'Mencari sinyal GPS...'}
               >
-                <Layers size={18} />
-              </button>
+                <span
+                  className={
+                    gpsStatus === 'locked'
+                      ? styles.gpsDotGreen
+                      : gpsStatus === 'searching'
+                      ? styles.gpsDotYellow
+                      : styles.gpsDotRed
+                  }
+                />
+                <span>GPS</span>
+              </div>
             </div>
           </header>
 
-          {/* Mode Selector Carousel */}
-          <nav className={styles.modeSelector}>
-            {CAPTURE_MODES.map((mode) => (
-              <button
-                key={mode.id}
-                onClick={() => setActiveMode(mode.id)}
-                className={`${styles.modeTab} ${activeMode === mode.id ? styles.modeTabActive : ''}`}
-              >
-                {mode.id === 'ckp' && <FileText size={14} />}
-                {mode.id === 'field' && <Building2 size={14} />}
-                {mode.id === 'schedule' && <Calendar size={14} />}
-                {mode.id === 'quick' && <Sparkles size={14} />}
-                {mode.label}
-              </button>
-            ))}
-          </nav>
-
           {/* Viewfinder Main Viewport */}
           <div className={styles.viewfinderArea}>
-            <video
-              ref={videoRef}
-              playsInline
-              autoPlay
-              muted
-              className={`${styles.videoElement} ${isFrontCamera ? styles.videoElementFlipped : ''}`}
-            />
+            <div className={getFrameClass()} onClick={handleViewfinderTap}>
+              <video
+                ref={videoRef}
+                playsInline
+                autoPlay
+                muted
+                className={`${styles.videoElement} ${isFrontCamera ? styles.videoElementFlipped : ''}`}
+              />
 
-            {/* Grid 3x3 overlay */}
-            {gridActive && (
-              <div className={styles.gridOverlay}>
-                <div className={styles.gridLineHoriz1} />
-                <div className={styles.gridLineHoriz2} />
-                <div className={styles.gridLineVert1} />
-                <div className={styles.gridLineVert2} />
+              {/* Shutter White Flash Effect */}
+              {showShutterFlash && <div className={styles.shutterFlash} />}
+
+              {/* Tap to Focus Ring (Samsung Yellow) */}
+              {focusRing && (
+                <div
+                  className={styles.focusRing}
+                  style={{ left: focusRing.x, top: focusRing.y }}
+                />
+              )}
+
+              {/* 3x3 Grid Overlay */}
+              {gridActive && (
+                <div className={styles.gridOverlay}>
+                  <div className={styles.gridH1} />
+                  <div className={styles.gridH2} />
+                  <div className={styles.gridV1} />
+                  <div className={styles.gridV2} />
+                </div>
+              )}
+
+              {/* Level Horizon Line Indicator */}
+              <div className={styles.levelIndicator}>
+                <div className={styles.levelLineLeft} />
+                <div className={styles.levelCenterDot} />
+                <div className={styles.levelLineRight} />
               </div>
-            )}
 
-            {/* HUD Status Badge (Top-Left) */}
-            <div className={styles.hudLiveBadge}>
-              <span className={styles.pulseDot} />
-              <span>LIVE HUD</span>
-              <span>•</span>
-              <span>{currentTimeStr || 'Memuat...'}</span>
-            </div>
-
-            {/* HUD GPS Box (Bottom-Left) */}
-            <div className={styles.hudGpsBox}>
-              <div className={styles.hudGpsHeader}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <MapPin size={13} />
-                  GEOTAG REAL-TIME
+              {/* Real-Time Geotag Watermark HUD Badge */}
+              <div className={styles.hudBadge}>
+                <span className={styles.hudBadgeTitle}>BADAN PUSAT STATISTIK</span>
+                <span className={styles.hudBadgeMeta}>
+                  {coords ? `${coords.lat.toFixed(5)}, ${coords.lon.toFixed(5)}` : 'Mencari GPS...'}
                 </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  {gpsStatus === 'locked' ? (
-                    <span style={{ color: '#4ade80' }}>TERKUNCI (±{gpsAccuracy}m)</span>
-                  ) : gpsStatus === 'searching' ? (
-                    <span style={{ color: '#facc15' }}>MENCARI GPS...</span>
-                  ) : (
-                    <span style={{ color: '#f87171' }}>GPS TIDAK TERSEDIA</span>
-                  )}
-                  {coords && (
-                    <button
-                      type="button"
-                      onClick={handleCopyCoords}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: copiedCoords ? '#4ade80' : '#94a3b8',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center'
-                      }}
-                      title="Salin Koordinat"
-                    >
-                      {copiedCoords ? <Check size={12} /> : <Copy size={12} />}
-                    </button>
-                  )}
+                <span className={styles.hudBadgeMeta} style={{ color: '#94a3b8' }}>
+                  {currentTimeStr}
                 </span>
               </div>
-              <div className={styles.hudGpsCoords}>
-                {coords ? (
-                  <>
-                    <span>Lat: {coords.lat.toFixed(6)}</span>
-                    <span>Lon: {coords.lon.toFixed(6)}</span>
-                  </>
-                ) : (
-                  <span>Menunggu sinyal satelit GPS...</span>
-                )}
-              </div>
-              <div className={styles.hudGpsMeta}>
-                <span>{profile?.satker || 'BPS Republik Indonesia'}</span>
-                <span>{CAPTURE_MODES.find((m) => m.id === activeMode)?.label}</span>
-              </div>
-            </div>
 
-            {/* Controls Bar: Lens & Zoom Slider */}
-            <div className={styles.controlsBar}>
-              {!isFrontCamera && (
-                <div className={styles.lensButtonGroup}>
+              {/* Timer Countdown Big Number Overlay */}
+              {countdownVal !== null && (
+                <div className={styles.countdownOverlay}>
+                  <div className={styles.countdownNumber}>{countdownVal}</div>
+                </div>
+              )}
+
+              {/* Floating Task Pill: Clean Parameter Preview */}
+              <button
+                type="button"
+                className={styles.taskPill}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFormSheetOpen(true);
+                }}
+                title="Buka Lembar Parameter & Rincian Tugas"
+              >
+                <span className={styles.taskPillDot} />
+                <span className={styles.taskPillText}>{getActiveTaskLabel()}</span>
+                <SlidersHorizontal size={14} color="#ffc72c" />
+              </button>
+            </div>
+          </div>
+
+          {/* Bottom Section: Zoom, Modes, Shutter */}
+          <div className={styles.bottomSection}>
+            {/* Zoom & Lens Quick Pills */}
+            <div className={styles.zoomContainer}>
+              <div className={styles.zoomPill}>
+                {!isFrontCamera && (
                   <button
+                    type="button"
                     onClick={() => handleLensSelect('0.5x')}
                     className={`${styles.lensBtn} ${cameraLens === '0.5x' ? styles.lensBtnActive : ''}`}
                   >
-                    0.5x
+                    .5
                   </button>
-                  <button
-                    onClick={() => handleLensSelect('1x')}
-                    className={`${styles.lensBtn} ${cameraLens === '1x' ? styles.lensBtnActive : ''}`}
-                  >
-                    1x
-                  </button>
-                </div>
-              )}
-
-              {zoomCaps && (
-                <div className={styles.zoomSliderContainer}>
-                  <Sliders size={14} color="#94a3b8" />
-                  <input
-                    type="range"
-                    min={zoomCaps.min || 1}
-                    max={zoomCaps.max || 5}
-                    step={zoomCaps.step || 0.1}
-                    value={zoomLevel}
-                    onChange={(e) => handleZoomChange(e.target.value)}
-                    className={styles.zoomRange}
-                  />
-                  <span className={styles.zoomLabel}>{zoomLevel.toFixed(1)}x</span>
-                </div>
-              )}
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleLensSelect('1x')}
+                  className={`${styles.lensBtn} ${cameraLens === '1x' && zoomLevel <= 1 ? styles.lensBtnActive : ''}`}
+                >
+                  1x
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleZoomChange(2)}
+                  className={`${styles.lensBtn} ${zoomLevel >= 2 ? styles.lensBtnActive : ''}`}
+                >
+                  2x
+                </button>
+              </div>
             </div>
-          </div>
 
-          {/* Mode Contextual Form Drawer (Foldable) */}
-          <div className={styles.formPanel}>
-            <div className={styles.formHeader}>
-              <span className={styles.formTitle}>
-                {activeMode === 'ckp' && <FileText size={16} color="#6366f1" />}
-                {activeMode === 'field' && <Building2 size={16} color="#38bdf8" />}
-                {activeMode === 'schedule' && <Calendar size={16} color="#34d399" />}
-                {activeMode === 'quick' && <Sparkles size={16} color="#f59e0b" />}
-                Parameter Entri: {CAPTURE_MODES.find((m) => m.id === activeMode)?.label}
+            {/* Mode Carousel (Samsung One UI signature) */}
+            <nav className={styles.modeCarousel}>
+              {CAPTURE_MODES.map((mode) => (
+                <button
+                  key={mode.id}
+                  type="button"
+                  onClick={() => setActiveMode(mode.id)}
+                  className={`${styles.modeItem} ${activeMode === mode.id ? styles.modeItemActive : ''}`}
+                >
+                  {mode.label}
+                </button>
+              ))}
+            </nav>
+
+            {/* Shutter Row (Samsung Native Controls) */}
+            <footer className={styles.shutterRow}>
+              {/* Gallery / Recent Snap Thumbnail Button */}
+              <button
+                type="button"
+                onClick={() => setShowHistory(true)}
+                className={styles.galleryBtn}
+                title="Buka Galeri Foto Sesi Lapangan"
+              >
+                {recentPhotos.length > 0 && recentPhotos[0].previewUrl ? (
+                  <img src={recentPhotos[0].previewUrl} alt="Thumbnail" className={styles.galleryThumbImg} />
+                ) : (
+                  <ImageIcon size={22} color="#ffffff" />
+                )}
+              </button>
+
+              {/* Samsung Shutter Button */}
+              <button
+                type="button"
+                onClick={handleShutterClick}
+                disabled={isProcessing}
+                className={styles.shutterBtn}
+                title="Ambil Foto Dokumentasi Resmi"
+              >
+                <div className={styles.shutterInner} />
+              </button>
+
+              {/* Flip Camera Button */}
+              <button
+                type="button"
+                onClick={handleFlipCamera}
+                className={styles.flipBtn}
+                title="Putar ke Kamera Depan / Belakang"
+              >
+                <RotateCcw size={22} />
+              </button>
+            </footer>
+          </div>
+        </>
+      )}
+
+      {/* Samsung Bottom Sheet: Parameter Form (Slide-Up, Zero Main Scroll) */}
+      {formSheetOpen && (
+        <div className={styles.sheetOverlay} onClick={() => setFormSheetOpen(false)}>
+          <div className={styles.sheetCard} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.sheetHandle} />
+            <div className={styles.sheetHeader}>
+              <span className={styles.sheetTitle}>
+                <SlidersHorizontal size={18} color="#ffc72c" />
+                Parameter {CAPTURE_MODES.find((m) => m.id === activeMode)?.label}
               </span>
               <button
                 type="button"
-                onClick={() => setFormOpen(!formOpen)}
-                className={styles.collapseToggle}
+                onClick={() => setFormSheetOpen(false)}
+                className={styles.sheetCloseBtn}
               >
-                {formOpen ? (
-                  <>
-                    <span>Tutup Form</span>
-                    <ChevronDown size={14} />
-                  </>
-                ) : (
-                  <>
-                    <span>Buka Form</span>
-                    <ChevronUp size={14} />
-                  </>
-                )}
+                <X size={18} />
               </button>
             </div>
 
-            {formOpen && (
-              <div className={styles.formGrid}>
-                {/* CKP Form Mode */}
-                {activeMode === 'ckp' && (
-                  <>
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>Pilih Butir SKP Terkait</label>
-                      <select
-                        value={form.skpId}
-                        onChange={(e) => setForm({ ...form, skpId: e.target.value })}
-                        className={styles.formSelect}
-                      >
-                        <option value="">-- Tanpa Kaitan SKP Spesifik --</option>
-                        {skpData.map((skp) => {
-                          const skpTitle = skp.nama || skp.rencanaKinerja || `SKP #${skp.id}`;
-                          return (
-                            <option key={skp.id} value={skp.id}>
-                              #{skp.id} - {skpTitle.length > 50 ? skpTitle.substring(0, 50) + '...' : skpTitle}
-                            </option>
-                          );
-                        })}
-                      </select>
-                    </div>
-
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>Rincian Kegiatan CKP</label>
-                      <input
-                        type="text"
-                        placeholder="Contoh: Pencacahan survei lapangan..."
-                        value={form.rincian}
-                        onChange={(e) => setForm({ ...form, rincian: e.target.value })}
-                        className={styles.formInput}
-                      />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>Volume / Jumlah</label>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <input
-                          type="number"
-                          min="1"
-                          value={form.jumlah}
-                          onChange={(e) => setForm({ ...form, jumlah: e.target.value })}
-                          className={styles.formInput}
-                          style={{ width: '80px' }}
-                        />
-                        <input
-                          type="text"
-                          placeholder="Satuan (Dokumen/Kegiatan)"
-                          value={form.satuan}
-                          onChange={(e) => setForm({ ...form, satuan: e.target.value })}
-                          className={styles.formInput}
-                        />
-                      </div>
-                    </div>
-
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>Kualitas (%)</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="100"
-                        value={form.kualitas}
-                        onChange={(e) => setForm({ ...form, kualitas: e.target.value })}
-                        className={styles.formInput}
-                      />
-                    </div>
-                  </>
-                )}
-
-                {/* Field Documentation Mode */}
-                {activeMode === 'field' && (
-                  <>
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>Nama Survei / Sensus / Tugas</label>
-                      <input
-                        type="text"
-                        placeholder="Contoh: Survei Biaya Hidup / Updating SLS"
-                        value={form.namaSurvei}
-                        onChange={(e) => setForm({ ...form, namaSurvei: e.target.value })}
-                        className={styles.formInput}
-                      />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>Lokasi / SLS / Desa / Responden</label>
-                      <input
-                        type="text"
-                        placeholder="Contoh: RT 02 / RW 01 Kel. Sukamaju"
-                        value={form.lokasiWilayah}
-                        onChange={(e) => setForm({ ...form, lokasiWilayah: e.target.value })}
-                        className={styles.formInput}
-                      />
-                    </div>
-
-                    <div className={`${styles.formGroup} ${styles.formGridFull}`}>
-                      <label className={styles.formLabel}>Catatan Lapangan & Temuan</label>
-                      <textarea
-                        placeholder="Keterangan kondisi responden, batas wilayah, atau verifikasi lapangan..."
-                        value={form.catatanLapangan}
-                        onChange={(e) => setForm({ ...form, catatanLapangan: e.target.value })}
-                        className={styles.formTextarea}
-                      />
-                    </div>
-                  </>
-                )}
-
-                {/* Schedule Attachment Mode */}
-                {activeMode === 'schedule' && (
-                  <>
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>Pilih Agenda Hari Ini</label>
-                      <select
-                        value={form.selectedScheduleId}
-                        onChange={(e) => setForm({ ...form, selectedScheduleId: e.target.value })}
-                        className={styles.formSelect}
-                      >
-                        <option value="">-- Buat Agenda Baru / Tanpa Link --</option>
-                        {scheduleDocs.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.waktu || '00:00'} - {s.judul}
+            <div className={styles.sheetBody}>
+              {/* Mode: CKP */}
+              {activeMode === 'ckp' && (
+                <>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Butir SKP Terkait</label>
+                    <select
+                      value={form.skpId}
+                      onChange={(e) => setForm({ ...form, skpId: e.target.value })}
+                      className={styles.formSelect}
+                    >
+                      <option value="">-- Tanpa Kaitan SKP Spesifik --</option>
+                      {skpData.map((skp) => {
+                        const skpTitle = skp.nama || skp.rencanaKinerja || `SKP #${skp.id}`;
+                        return (
+                          <option key={skp.id} value={skp.id}>
+                            #{skp.id} - {skpTitle.length > 50 ? skpTitle.substring(0, 50) + '...' : skpTitle}
                           </option>
-                        ))}
-                      </select>
-                    </div>
+                        );
+                      })}
+                    </select>
+                  </div>
 
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>Judul Agenda Baru (Jika Belum Terdaftar)</label>
-                      <input
-                        type="text"
-                        placeholder="Contoh: Rapat Koordinasi Tim Kerja"
-                        value={form.judulJadwal}
-                        onChange={(e) => setForm({ ...form, judulJadwal: e.target.value })}
-                        className={styles.formInput}
-                      />
-                    </div>
-                  </>
-                )}
-
-                {/* Quick Snap Mode */}
-                {activeMode === 'quick' && (
-                  <div className={`${styles.formGroup} ${styles.formGridFull}`}>
-                    <label className={styles.formLabel}>Catatan Cepat (Opsional)</label>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Rincian Kegiatan CKP</label>
                     <input
                       type="text"
-                      placeholder="Ketik catatan singkat dokumentasi..."
-                      value={form.catatanRingkas}
-                      onChange={(e) => setForm({ ...form, catatanRingkas: e.target.value })}
+                      placeholder="Contoh: Pencacahan lapangan survei..."
+                      value={form.rincian}
+                      onChange={(e) => setForm({ ...form, rincian: e.target.value })}
                       className={styles.formInput}
                     />
                   </div>
-                )}
-              </div>
-            )}
-          </div>
 
-          {/* Shutter Bar Bottom */}
-          <footer className={styles.shutterSection}>
-            {/* Recent Photo Thumbnail */}
-            <button
-              onClick={() => setShowHistory(true)}
-              className={styles.thumbBtn}
-              title="Lihat Galeri Foto Terkini"
-            >
-              {recentPhotos.length > 0 && recentPhotos[0].previewUrl ? (
-                <img src={recentPhotos[0].previewUrl} alt="Last Snap" className={styles.thumbImage} />
-              ) : (
-                <Layers size={20} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>Volume</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={form.jumlah}
+                        onChange={(e) => setForm({ ...form, jumlah: e.target.value })}
+                        className={styles.formInput}
+                      />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label className={styles.formLabel}>Satuan</label>
+                      <input
+                        type="text"
+                        placeholder="Dokumen / Kegiatan"
+                        value={form.satuan}
+                        onChange={(e) => setForm({ ...form, satuan: e.target.value })}
+                        className={styles.formInput}
+                      />
+                    </div>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Target Kualitas (%)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={form.kualitas}
+                      onChange={(e) => setForm({ ...form, kualitas: e.target.value })}
+                      className={styles.formInput}
+                    />
+                  </div>
+                </>
               )}
-            </button>
 
-            {/* Shutter Button */}
-            <button
-              onClick={handleCapture}
-              disabled={isProcessing}
-              className={styles.shutterBtnOuter}
-              title="Ambil Foto Ber-Watermark"
-            >
-              <div className={styles.shutterBtnInner} />
-            </button>
+              {/* Mode: Field Documentation */}
+              {activeMode === 'field' && (
+                <>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Nama Survei / Sensus / Tugas</label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Survei Biaya Hidup / Updating SLS"
+                      value={form.namaSurvei}
+                      onChange={(e) => setForm({ ...form, namaSurvei: e.target.value })}
+                      className={styles.formInput}
+                    />
+                  </div>
 
-            {/* Flip Camera Button */}
-            <button
-              onClick={handleFlipCamera}
-              className={styles.flipBtn}
-              title="Balik Kamera Depan / Belakang"
-            >
-              <RotateCcw size={22} />
-            </button>
-          </footer>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Lokasi / SLS / Desa / Responden</label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: RT 02 / RW 01 Kel. Sukamaju"
+                      value={form.lokasiWilayah}
+                      onChange={(e) => setForm({ ...form, lokasiWilayah: e.target.value })}
+                      className={styles.formInput}
+                    />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Catatan Lapangan & Temuan</label>
+                    <textarea
+                      placeholder="Keterangan kondisi responden, batas wilayah, atau kendala lapangan..."
+                      value={form.catatanLapangan}
+                      onChange={(e) => setForm({ ...form, catatanLapangan: e.target.value })}
+                      className={styles.formTextarea}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Mode: Schedule */}
+              {activeMode === 'schedule' && (
+                <>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Pilih Agenda Hari Ini</label>
+                    <select
+                      value={form.selectedScheduleId}
+                      onChange={(e) => setForm({ ...form, selectedScheduleId: e.target.value })}
+                      className={styles.formSelect}
+                    >
+                      <option value="">-- Buat Agenda Baru / Tanpa Link --</option>
+                      {scheduleDocs.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.waktu || '00:00'} - {s.judul}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Judul Agenda Baru (Jika Belum Terdaftar)</label>
+                    <input
+                      type="text"
+                      placeholder="Contoh: Rapat Koordinasi Tim Kerja"
+                      value={form.judulJadwal}
+                      onChange={(e) => setForm({ ...form, judulJadwal: e.target.value })}
+                      className={styles.formInput}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Mode: Quick Snap */}
+              {activeMode === 'quick' && (
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Catatan Ringkas (Opsional)</label>
+                  <input
+                    type="text"
+                    placeholder="Contoh: Dokumentasi cepat arsip kegiatan..."
+                    value={form.catatanRingkas}
+                    onChange={(e) => setForm({ ...form, catatanRingkas: e.target.value })}
+                    className={styles.formInput}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className={styles.sheetFooter}>
+              <button
+                type="button"
+                onClick={() => setFormSheetOpen(false)}
+                className={styles.sheetApplyBtn}
+              >
+                Terapkan Parameter & Siap Ambil Foto
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Review Screen Overlay */}
+      {/* Settings Modal (Samsung Quick Options) */}
+      {showSettings && (
+        <div className={styles.sheetOverlay} onClick={() => setShowSettings(false)}>
+          <div className={styles.sheetCard} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.sheetHandle} />
+            <div className={styles.sheetHeader}>
+              <span className={styles.sheetTitle}>
+                <Settings size={18} color="#ffc72c" />
+                Pengaturan Kamera SuperBrain
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowSettings(false)}
+                className={styles.sheetCloseBtn}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className={styles.sheetBody}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>Watermark Resmi BPS</div>
+                  <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Sertakan logo BPS, geotag, nama petugas & waktu</div>
+                </div>
+                <span style={{ color: '#4ade80', fontSize: '0.8rem', fontWeight: 700 }}>Aktif Otomatis</span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>Identitas Petugas</div>
+                  <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+                    {profile?.displayName || user?.displayName || 'Petugas BPS'} (Satker: {profile?.satker || 'BPS'})
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>Ambil dari Galeri HP</div>
+                  <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>Pilih foto yang sudah diambil untuk diberi watermark</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSettings(false);
+                    fileInputRef.current?.click();
+                  }}
+                  className={styles.btnSecondary}
+                  style={{ flex: 'none', padding: '8px 14px' }}
+                >
+                  <ImageIcon size={15} />
+                  Pilih Berkas
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.sheetFooter}>
+              <button
+                type="button"
+                onClick={() => setShowSettings(false)}
+                className={styles.sheetApplyBtn}
+              >
+                Tutup Pengaturan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Review Screen Overlay (Post-Capture Preview) */}
       {watermarkedUrl && (
         <div className={styles.reviewOverlay}>
           <header className={styles.reviewHeader}>
-            <span className={styles.reviewTitle}>Pratinjau Foto Watermark Resmi</span>
-            <button onClick={handleRetake} className={styles.actionIconBtn} title="Tutup">
-              <X size={18} />
+            <span className={styles.reviewTitle}>Pratinjau Hasil Jepretan</span>
+            <button onClick={handleRetake} className={styles.iconBtn} title="Batal & Ulangi">
+              <X size={22} />
             </button>
           </header>
 
@@ -1326,8 +1519,8 @@ export default function CameraPage() {
 
           <footer className={styles.reviewFooter}>
             <div className={styles.reviewMetaSummary}>
-              <div className={styles.reviewMetaItem}>
-                <MapPin size={14} color="#38bdf8" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <MapPin size={13} color="#38bdf8" />
                 <span>
                   {coords
                     ? `Lat ${coords.lat.toFixed(5)}, Lon ${coords.lon.toFixed(5)}`
@@ -1337,21 +1530,21 @@ export default function CameraPage() {
                   <button
                     type="button"
                     onClick={handleCopyCoords}
-                    style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                    style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}
                     title="Salin Koordinat"
                   >
                     {copiedCoords ? <Check size={12} color="#4ade80" /> : <Copy size={12} />}
                   </button>
                 )}
               </div>
-              <div className={styles.reviewMetaItem}>
-                <Clock size={14} color="#a5b4fc" />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Clock size={13} color="#ffc72c" />
                 <span>{currentTimeStr}</span>
               </div>
               {compressedInfo && (
-                <div className={styles.reviewMetaItem}>
-                  <Sparkles size={14} color="#4ade80" />
-                  <span>Ukuran: {formatBytes(compressedInfo.compressedSize)}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4ade80' }}>
+                  <Sparkles size={13} />
+                  <span>{formatBytes(compressedInfo.compressedSize)}</span>
                 </div>
               )}
             </div>
@@ -1362,9 +1555,10 @@ export default function CameraPage() {
                 onClick={handleRetake}
                 className={styles.btnSecondary}
                 disabled={isUploading}
+                title="Ambil Ulang Foto"
               >
-                <RotateCcw size={16} />
-                Ulangi Foto
+                <RotateCcw size={15} />
+                Ulangi
               </button>
 
               <button
@@ -1372,10 +1566,10 @@ export default function CameraPage() {
                 onClick={handleDownloadLocal}
                 className={styles.btnSecondary}
                 disabled={isUploading}
-                title="Simpan Langsung ke Galeri HP"
+                title="Unduh Langsung ke Galeri HP"
               >
-                <Download size={16} />
-                Unduh ke HP
+                <Download size={15} />
+                Unduh
               </button>
 
               <button
@@ -1383,11 +1577,11 @@ export default function CameraPage() {
                 onClick={handleSaveAsCkpDraft}
                 className={styles.btnSecondary}
                 disabled={isUploading}
-                title="Simpan foto dan geotag sebagai Draft CKP untuk dilengkapi nanti"
-                style={{ borderColor: 'rgba(99, 102, 241, 0.4)', color: '#c7d2fe' }}
+                title="Simpan sementara sebagai Draft CKP"
+                style={{ color: '#ffc72c', borderColor: 'rgba(255, 199, 44, 0.4)' }}
               >
-                <FileText size={16} />
-                Simpan Draft CKP
+                <FileText size={15} />
+                Draft CKP
               </button>
 
               <button
@@ -1398,13 +1592,13 @@ export default function CameraPage() {
               >
                 {isUploading ? (
                   <>
-                    <RefreshCw size={16} className="spin" />
-                    Menyimpan ke SuperBrain...
+                    <RefreshCw size={15} className="spin" />
+                    Menyimpan...
                   </>
                 ) : (
                   <>
-                    <UploadCloud size={16} />
-                    Simpan ke SuperBrain
+                    <UploadCloud size={15} />
+                    Simpan
                   </>
                 )}
               </button>
@@ -1413,66 +1607,61 @@ export default function CameraPage() {
         </div>
       )}
 
-      {/* History Drawer Modal */}
+      {/* History / Recent Photos Modal */}
       {showHistory && (
         <div className={styles.historyModal} onClick={() => setShowHistory(false)}>
           <div className={styles.historyCard} onClick={(e) => e.stopPropagation()}>
             <header className={styles.historyHeader}>
               <span className={styles.historyTitle}>
-                <Layers size={18} color="#6366f1" />
-                Riwayat Foto Sesi Lapangan
+                <Layers size={18} color="#ffc72c" />
+                Foto Sesi Lapangan ({recentPhotos.length})
               </span>
-              <button onClick={() => setShowHistory(false)} className={styles.actionIconBtn}>
+              <button onClick={() => setShowHistory(false)} className={styles.sheetCloseBtn}>
                 <X size={18} />
               </button>
             </header>
 
             <div className={styles.historyList}>
               {recentPhotos.length === 0 ? (
-                <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem', margin: '30px 0' }}>
-                  Belum ada foto yang diambil pada sesi ini. Silakan jepret foto dokumentasi Anda.
+                <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: '0.84rem', margin: '30px 0' }}>
+                  Belum ada foto yang diambil pada sesi ini.
                 </p>
               ) : (
                 recentPhotos.map((item) => (
                   <div key={item.id} className={styles.historyItem}>
                     {item.previewUrl ? (
-                      <img src={item.previewUrl} alt={item.title} className={styles.historyItemThumb} />
+                      <img src={item.previewUrl} alt={item.title} className={styles.historyThumb} />
                     ) : (
-                      <div className={styles.historyItemThumb} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Camera size={24} color="#64748b" />
+                      <div className={styles.historyThumb} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Camera size={22} color="#64748b" />
                       </div>
                     )}
-                    <div className={styles.historyItemInfo}>
+                    <div className={styles.historyInfo}>
                       <div className={styles.historyItemTitle}>{item.title}</div>
                       <div className={styles.historyItemMeta}>
                         Pukul {item.time} {item.coords && `• ${item.coords}`}
                       </div>
                       <div>
                         {item.driveLink ? (
-                          <span className={`${styles.historyItemBadge} ${styles.badgeSuccess}`}>
-                            Tersimpan di Google Drive
-                          </span>
+                          <span className={styles.badgeSuccess}>Tersimpan di Google Drive</span>
                         ) : item.isOffline ? (
-                          <span className={`${styles.historyItemBadge} ${styles.badgeOffline}`}>
-                            Antrean Offline Lokal
-                          </span>
+                          <span className={styles.badgeOffline}>Antrean Offline Lokal</span>
                         ) : (
-                          <span className={`${styles.historyItemBadge} ${styles.badgeSuccess}`}>
-                            Tersimpan di Sistem
-                          </span>
+                          <span className={styles.badgeSuccess}>Tersimpan di Sistem</span>
                         )}
                       </div>
                     </div>
-                    <div className={styles.historyActions}>
+                    <div style={{ display: 'flex', gap: '8px' }}>
                       {item.driveLink && (
                         <a
                           href={item.driveLink}
                           target="_blank"
                           rel="noreferrer"
-                          className={styles.historyActionBtn}
+                          className={styles.iconBtn}
+                          style={{ width: '32px', height: '32px', background: 'rgba(255,255,255,0.08)' }}
                           title="Buka di Google Drive"
                         >
-                          <ExternalLink size={15} />
+                          <ExternalLink size={14} />
                         </a>
                       )}
                       {item.coords && (
@@ -1480,10 +1669,11 @@ export default function CameraPage() {
                           href={`https://www.google.com/maps?q=${item.coords.replace(/\s+/g, '')}`}
                           target="_blank"
                           rel="noreferrer"
-                          className={styles.historyActionBtn}
+                          className={styles.iconBtn}
+                          style={{ width: '32px', height: '32px', background: 'rgba(255,255,255,0.08)' }}
                           title="Lihat Titik di Google Maps"
                         >
-                          <MapPin size={15} />
+                          <MapPin size={14} />
                         </a>
                       )}
                     </div>
