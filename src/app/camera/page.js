@@ -143,6 +143,7 @@ export default function CameraPage() {
   const [capturedBlob, setCapturedBlob] = useState(null);
   const [watermarkedBlob, setWatermarkedBlob] = useState(null);
   const [watermarkedUrl, setWatermarkedUrl] = useState(null);
+  const [photoThumbnailUrl, setPhotoThumbnailUrl] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [compressedInfo, setCompressedInfo] = useState(null);
@@ -158,9 +159,24 @@ export default function CameraPage() {
   const refreshGalleryMedia = useCallback(async () => {
     try {
       const items = await getCameraMedia(user?.uid);
-      setGalleryMedia(items);
-      if (items.length > 0 && items[0].thumbnailUrl) {
-        setLatestThumbnail(items[0].thumbnailUrl);
+      const processed = items.map((item) => {
+        let displayThumb = item.thumbnailUrl;
+        if (!displayThumb || displayThumb.startsWith('blob:')) {
+          if (item.blob) {
+            try {
+              displayThumb = URL.createObjectURL(item.blob);
+            } catch (_) {}
+          }
+        }
+        return {
+          ...item,
+          displayThumb: displayThumb || item.thumbnailUrl
+        };
+      });
+
+      setGalleryMedia(processed);
+      if (processed.length > 0 && processed[0].displayThumb) {
+        setLatestThumbnail(processed[0].displayThumb);
       }
     } catch (e) {
       console.warn('Failed to load camera media from IndexedDB:', e);
@@ -733,10 +749,34 @@ export default function CameraPage() {
             scheduleDocs
           });
 
-          // Output canvas as compressed JPEG
+          // Output canvas as compressed JPEG and create persistent base64 thumbnail
           canvas.toBlob(
             (finalBlob) => {
-              resolve(finalBlob);
+              let thumbDataUrl = null;
+              try {
+                const thumbCanvas = document.createElement('canvas');
+                const tMax = 320;
+                let tw = width;
+                let th = height;
+                if (tw > th) {
+                  if (tw > tMax) {
+                    th = Math.round((th * tMax) / tw);
+                    tw = tMax;
+                  }
+                } else {
+                  if (th > tMax) {
+                    tw = Math.round((tw * tMax) / th);
+                    th = tMax;
+                  }
+                }
+                thumbCanvas.width = tw;
+                thumbCanvas.height = th;
+                const tCtx = thumbCanvas.getContext('2d');
+                tCtx.drawImage(canvas, 0, 0, tw, th);
+                thumbDataUrl = thumbCanvas.toDataURL('image/jpeg', 0.85);
+              } catch (_) {}
+
+              resolve({ watermarkedBlob: finalBlob, thumbnailDataUrl: thumbDataUrl });
             },
             'image/jpeg',
             0.82
@@ -754,9 +794,13 @@ export default function CameraPage() {
     try {
       setCapturedBlob(rawBlob);
 
-      // Render official watermark
-      const watermarked = await generateWatermarkedImage(rawBlob);
+      // Render official watermark with persistent thumbnail
+      const { watermarkedBlob: watermarked, thumbnailDataUrl } = await generateWatermarkedImage(rawBlob);
       setWatermarkedBlob(watermarked);
+      setPhotoThumbnailUrl(thumbnailDataUrl);
+      if (thumbnailDataUrl) {
+        setLatestThumbnail(thumbnailDataUrl);
+      }
 
       // Compression estimation
       const compressed = await compressImage(
@@ -1025,6 +1069,7 @@ export default function CameraPage() {
     setCapturedBlob(null);
     setWatermarkedBlob(null);
     setWatermarkedUrl(null);
+    setPhotoThumbnailUrl(null);
     setCompressedInfo(null);
   };
 
@@ -1104,7 +1149,7 @@ export default function CameraPage() {
           timKerja: 'Subbagian Umum',
         },
         files: [finalFile],
-        previewImage: watermarkedUrl,
+        previewImage: photoThumbnailUrl || (watermarkedBlob ? URL.createObjectURL(watermarkedBlob) : null),
         buktiDukung: null,
         geotag: coords ? { lat: coords.lat, lon: coords.lon, accuracy: coords.accuracy } : null,
         sumber: 'camera_geotag',
@@ -1113,12 +1158,13 @@ export default function CameraPage() {
 
       await saveDraftActivity(draftPayload, user.uid);
 
-      // Save to Geotag Gallery IndexedDB
+      // Save to Geotag Gallery IndexedDB with persistent thumbnail
+      const persistentThumb = photoThumbnailUrl || (watermarkedBlob ? URL.createObjectURL(watermarkedBlob) : null);
       await saveCameraMedia({
         id: `photo_${timestampId}`,
         type: 'photo',
         blob: watermarkedBlob,
-        thumbnailUrl: watermarkedUrl,
+        thumbnailUrl: persistentThumb,
         title: draftTitle,
         fileName,
         mode: activeMode,
@@ -1286,12 +1332,13 @@ export default function CameraPage() {
         isSavedOffline = true;
       }
 
-      // Save to Geotag Media Gallery
+      // Save to Geotag Media Gallery with persistent thumbnail
+      const finalThumb = photoThumbnailUrl || (watermarkedBlob ? URL.createObjectURL(watermarkedBlob) : null);
       await saveCameraMedia({
         id: baseEntryId,
         type: 'photo',
         blob: watermarkedBlob,
-        thumbnailUrl: watermarkedUrl,
+        thumbnailUrl: finalThumb,
         title: mediaTitle,
         fileName,
         mode: activeMode,
@@ -1731,7 +1778,7 @@ export default function CameraPage() {
 
             {/* Shutter Row (Samsung Native Controls) */}
             <footer className={styles.shutterRow}>
-              {/* Gallery / Recent Snap Thumbnail Button */}
+              {/* Gallery / Recent Snap Thumbnail Button (Liquid Glass Portal) */}
               <button
                 type="button"
                 onClick={() => setGalleryOpen(true)}
@@ -1739,9 +1786,18 @@ export default function CameraPage() {
                 title="Buka Galeri Geotagging Lapangan"
               >
                 {latestThumbnail ? (
-                  <img src={latestThumbnail} alt="Thumbnail" className={styles.galleryThumbImg} />
+                  <div className={styles.galleryThumbWrapper}>
+                    <img
+                      src={latestThumbnail}
+                      alt="Thumbnail Terakhir"
+                      className={styles.galleryThumbImg}
+                      onError={() => setLatestThumbnail(null)}
+                    />
+                  </div>
                 ) : (
-                  <ImageIcon size={22} color="#ffffff" />
+                  <div className={styles.galleryEmptyIcon}>
+                    <ImageIcon size={20} color="#ffffff" />
+                  </div>
                 )}
               </button>
 
@@ -2301,36 +2357,73 @@ export default function CameraPage() {
             ) : (
               <div className={styles.galleryGrid}>
                 {filteredGalleryMedia.map((item) => {
-                  const previewSrc = item.thumbnailUrl || (item.blob ? URL.createObjectURL(item.blob) : '');
+                  const previewSrc = item.displayThumb || (item.thumbnailUrl && item.thumbnailUrl.startsWith('data:') ? item.thumbnailUrl : (item.blob ? URL.createObjectURL(item.blob) : item.thumbnailUrl));
                   return (
                     <div
                       key={item.id}
                       className={styles.galleryCard}
                       onClick={() => setSelectedMediaDetail(item)}
+                      title={item.title}
                     >
-                      {item.type === 'video' ? (
-                        <>
-                          {previewSrc ? (
-                            <img src={previewSrc} alt={item.title} className={styles.galleryCardThumb} />
-                          ) : (
-                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1c1f2b' }}>
-                              <VideoIcon size={24} color="#ef4444" />
-                            </div>
-                          )}
-                          <span className={styles.galleryCardVideoBadge}>
-                            <Play size={10} fill="#ffffff" />
-                            {item.duration ? formatSeconds(item.duration) : 'VID'}
-                          </span>
-                        </>
-                      ) : (
-                        <img src={previewSrc} alt={item.title} className={styles.galleryCardThumb} />
-                      )}
+                      <div className={styles.galleryCardImageWrapper}>
+                        {previewSrc ? (
+                          <img
+                            src={previewSrc}
+                            alt={item.title}
+                            className={styles.galleryCardThumb}
+                            loading="lazy"
+                            onError={(e) => {
+                              if (item.blob && !e.target.dataset.triedBlob) {
+                                e.target.dataset.triedBlob = 'true';
+                                e.target.src = URL.createObjectURL(item.blob);
+                              }
+                            }}
+                          />
+                        ) : (
+                          <div className={styles.galleryCardEmptyThumb}>
+                            {item.type === 'video' ? (
+                              <VideoIcon size={24} color="#f43f5e" />
+                            ) : (
+                              <ImageIcon size={24} color="#94a3b8" />
+                            )}
+                          </div>
+                        )}
 
-                      {item.coords && (
-                        <span className={styles.galleryCardGpsBadge}>
-                          <MapPin size={11} />
-                        </span>
-                      )}
+                        {/* Liquid Glass Dark Scrim Overlay */}
+                        <div className={styles.galleryCardScrim} />
+
+                        {/* Top Bar: Mode & GPS */}
+                        <div className={styles.galleryCardTopBar}>
+                          <span className={styles.galleryCardModeBadge}>
+                            {item.mode === 'ckp' ? 'CKP' : item.mode === 'field' ? 'DINAS' : item.mode === 'schedule' ? 'AGENDA' : item.type === 'video' ? 'VIDEO' : 'FOTO'}
+                          </span>
+                          {item.coords && (
+                            <span className={styles.galleryCardGpsBadge} title="Memiliki Geotag GPS">
+                              <MapPin size={10} />
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Bottom Bar: Time or Video Duration & Sync */}
+                        <div className={styles.galleryCardBottomBar}>
+                          {item.type === 'video' ? (
+                            <span className={styles.galleryCardVideoBadge}>
+                              <Play size={9} fill="#ffffff" />
+                              {item.duration ? formatSeconds(item.duration) : 'VID'}
+                            </span>
+                          ) : (
+                            <span className={styles.galleryCardTimeBadge}>
+                              {item.timeFormatted || 'Foto'}
+                            </span>
+                          )}
+
+                          {item.driveLink && (
+                            <span className={styles.galleryCardDriveBadge} title="Tersimpan di Google Drive">
+                              <UploadCloud size={10} color="#34d399" />
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   );
                 })}

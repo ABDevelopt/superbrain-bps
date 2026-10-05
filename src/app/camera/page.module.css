@@ -605,8 +605,8 @@
   background: rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 2px solid rgba(255, 255, 255, 0.28);
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.3), 0 6px 20px rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.35), 0 8px 24px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -614,22 +614,44 @@
   cursor: pointer;
   color: #f8fafc;
   padding: 0;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .galleryBtn:hover {
-  border-color: rgba(255, 255, 255, 0.45);
-  transform: scale(1.05);
+  border-color: rgba(251, 191, 36, 0.6);
+  transform: scale(1.06);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.4), 0 0 20px rgba(251, 191, 36, 0.35), 0 10px 28px rgba(0, 0, 0, 0.5);
 }
 
 .galleryBtn:active {
   transform: scale(0.92);
 }
 
+.galleryThumbWrapper {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
 .galleryThumbImg {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
+  border-radius: 50%;
+}
+
+.galleryEmptyIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.85;
 }
 
 /* Iconic Dual-Ring Liquid Glass Shutter Button */
@@ -1199,19 +1221,26 @@
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.15), 0 4px 16px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.18);
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .galleryCard:hover {
-  transform: translateY(-3px) scale(1.02);
-  border-color: rgba(255, 255, 255, 0.28);
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.25), 0 12px 28px rgba(0, 0, 0, 0.55);
+  transform: translateY(-4px) scale(1.02);
+  border-color: rgba(251, 191, 36, 0.45);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(251, 191, 36, 0.25);
 }
 
 .galleryCard:active {
-  transform: scale(0.95);
+  transform: scale(0.96);
+}
+
+.galleryCardImageWrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
 }
 
 .galleryCardThumb {
@@ -1219,42 +1248,118 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.galleryCardVideoBadge {
-  position: absolute;
-  bottom: 6px;
-  left: 6px;
+.galleryCard:hover .galleryCardThumb {
+  transform: scale(1.07);
+}
+
+.galleryCardEmptyThumb {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 7px;
-  border-radius: 8px;
-  background: rgba(10, 5, 8, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: #ffffff;
+  justify-content: center;
+  background: rgba(18, 24, 38, 0.8);
+}
+
+/* Subtle Gradient Scrim at top and bottom for readability */
+.galleryCardScrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(3, 5, 8, 0.45) 0%, transparent 35%, transparent 60%, rgba(3, 5, 8, 0.85) 100%);
+  pointer-events: none;
+}
+
+/* Top Badge Bar */
+.galleryCardTopBar {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.galleryCardModeBadge {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #fbbf24;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(6, 10, 18, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  letter-spacing: 0.5px;
 }
 
 .galleryCardGpsBadge {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: rgba(6, 10, 18, 0.72);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(56, 189, 248, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #38bdf8;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.25);
+}
+
+/* Bottom Bar */
+.galleryCardBottomBar {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.galleryCardTimeBadge {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.galleryCardVideoBadge {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(18, 5, 8, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.galleryCardDriveBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(6, 10, 18, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(52, 211, 153, 0.4);
 }
 
 /* ─── Gallery Detail Viewer Modal ───────────────────────────────────────── */
