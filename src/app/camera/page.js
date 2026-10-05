@@ -49,12 +49,12 @@ const CAPTURE_MODES = [
 ];
 
 export default function CameraPage() {
-  const { user } = useAuth();
+  const { user, accessToken, loginWithGoogle } = useAuth();
   const { profile } = useUserProfile();
   const { skpData } = useSkps();
-  const { addDoc: addCkpDoc } = useFirestore('ckp');
+  const { addDocument: addCkpDoc } = useFirestore('ckp');
   const { docs: scheduleDocs } = useFirestore('schedule');
-  const { addDoc: addScheduleDoc } = useFirestore('schedule');
+  const { addDocument: addScheduleDoc } = useFirestore('schedule');
   const { showAlert } = useAlert();
 
   // Camera stream states
@@ -696,15 +696,15 @@ export default function CameraPage() {
     let isSavedOffline = false;
 
     // 1. Attempt upload to Google Drive if access token available and online
-    if (user?.accessToken && navigator.onLine) {
+    if (accessToken && navigator.onLine) {
       try {
-        const rootFolderId = await getOrCreateFolder(user.accessToken, 'SuperBrain BPS');
+        const rootFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
         let targetFolder = 'Kamera Lapangan';
         if (activeMode === 'ckp') targetFolder = 'Bukti Dukung CKP';
         else if (activeMode === 'field') targetFolder = 'Dinas Lapangan';
 
-        const subFolderId = await getOrCreateFolder(user.accessToken, targetFolder, rootFolderId);
-        driveLink = await uploadFileToDrive(finalFile, user.accessToken, subFolderId, fileName);
+        const subFolderId = await getOrCreateFolder(accessToken, targetFolder, rootFolderId);
+        driveLink = await uploadFileToDrive(finalFile, accessToken, subFolderId, fileName);
       } catch (driveErr) {
         console.warn('Google Drive direct upload failed, saving to offline sync queue...', driveErr);
       }

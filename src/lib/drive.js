@@ -1,3 +1,5 @@
+import { handleGoogleTokenExpired } from '@/lib/gcal';
+
 /**
  * Uploads a file to Google Drive using the REST API.
  * 
@@ -36,7 +38,10 @@ export async function uploadFileToDrive(file, accessToken, folderId = null, cust
     });
 
     if (!res.ok) {
-      const errorData = await res.json();
+      if (res.status === 401) {
+        handleGoogleTokenExpired();
+      }
+      const errorData = await res.json().catch(() => ({}));
       throw new Error(`Google Drive API Error (${res.status}): ${errorData.error?.message || 'Failed to upload to Google Drive'}`);
     }
 
@@ -88,6 +93,9 @@ export async function getOrCreateFolder(accessToken, folderName, parentId = null
     });
     
     if (!searchRes.ok) {
+      if (searchRes.status === 401) {
+        handleGoogleTokenExpired();
+      }
       let errMsg = `Failed to search for folder (Status ${searchRes.status})`;
       try {
         const errData = await searchRes.json();
@@ -122,6 +130,9 @@ export async function getOrCreateFolder(accessToken, folderName, parentId = null
     });
 
     if (!createRes.ok) {
+      if (createRes.status === 401) {
+        handleGoogleTokenExpired();
+      }
       let errMsg = `Failed to create folder (Status ${createRes.status})`;
       try {
         const errData = await createRes.json();

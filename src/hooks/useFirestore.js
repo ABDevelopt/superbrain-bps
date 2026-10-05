@@ -162,5 +162,5 @@ export function useFirestore(collectionName) {
     }
   };
 
-  return { docs, loading, error, addDocument, deleteDocument, updateDocument };
+  return { docs, loading, error, addDocument, addDoc: addDocument, deleteDocument, updateDocument };
 }
