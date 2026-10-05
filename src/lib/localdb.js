@@ -4,7 +4,7 @@ const DB_NAME = 'superbrain-db';
 const STORE_NAME = 'pending_uploads';
 const DRAFTS_STORE = 'draft_activities';
 
-const dbPromise = (typeof window !== 'undefined') ? openDB(DB_NAME, 2, {
+const dbPromise = (typeof window !== 'undefined') ? openDB(DB_NAME, 3, {
   upgrade(db) {
     if (!db.objectStoreNames.contains(STORE_NAME)) {
       db.createObjectStore(STORE_NAME, { keyPath: 'id' });

@@ -14,7 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useFirestore } from '@/hooks/useFirestore';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { uploadFileToDrive, getOrCreateFolder, makeFileOrFolderPublic } from '@/lib/drive';
-import { savePendingUpload, getPendingUploads, removePendingUpload, getPendingUploadCount } from '@/lib/localdb';
+import { savePendingUpload, getPendingUploads, removePendingUpload, getPendingUploadCount, saveDraftActivity, getDraftActivities, removeDraftActivity } from '@/lib/localdb';
 import { useChatAction } from '@/contexts/ChatActionContext';
 import { useAIContext } from '@/contexts/AIContext';
 import * as XLSX from 'xlsx';
@@ -438,6 +438,143 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
       console.error('Error loading custom satuan:', e);
     }
   }, [user?.uid, profile?.customSatuan]);
+
+  // Fitur Draft Kegiatan (IndexedDB Offline-First)
+  const [draftsList, setDraftsList] = useState([]);
+  const [showDraftsModal, setShowDraftsModal] = useState(false);
+  const [activeDraftId, setActiveDraftId] = useState(null);
+  const [activeDraftTitle, setActiveDraftTitle] = useState('');
+
+  const fetchDrafts = useCallback(async () => {
+    if (!user?.uid) return;
+    try {
+      const list = await getDraftActivities(user.uid);
+      const sorted = (list || []).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+      setDraftsList(sorted);
+    } catch (err) {
+      console.error('Error fetching drafts:', err);
+    }
+  }, [user?.uid]);
+
+  useEffect(() => {
+    fetchDrafts();
+  }, [fetchDrafts]);
+
+  const handleSaveDraft = async () => {
+    try {
+      const draftId = activeDraftId || `draft_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+      const hasRincian = form.rincian && form.rincian.trim();
+      let draftTitle = hasRincian ? form.rincian.trim() : '';
+
+      if (!draftTitle) {
+        if (previewImage) {
+          draftTitle = `Foto Geotag (${form.tanggal})`;
+        } else if (files && files.length > 0) {
+          draftTitle = `Lampiran ${files.length} Berkas (${form.tanggal})`;
+        } else {
+          draftTitle = `Draft Kegiatan ${form.tanggal}`;
+        }
+      }
+
+      const draftPayload = {
+        id: draftId,
+        title: draftTitle,
+        userId: user?.uid,
+        form: { ...form },
+        files: files || [],
+        previewImage: previewImage || null,
+        backgroundUploadedUrl: backgroundUploadedUrl || null,
+        backgroundUploadedStatus: backgroundUploadedStatus || null,
+        currentBuktiDukungDriveLink: currentBuktiDukungDriveLink || '',
+        buktiLink: buktiLink || '',
+        presensiFile: presensiFile || null,
+        presensiPreviewImage: presensiPreviewImage || null,
+        presensiLink: presensiLink || '',
+        currentBuktiPresensiDriveLink: currentBuktiPresensiDriveLink || '',
+        updatedAt: Date.now()
+      };
+
+      await saveDraftActivity(draftPayload, user?.uid);
+      setActiveDraftId(draftId);
+      setActiveDraftTitle(draftTitle);
+      await fetchDrafts();
+      showAlert('Draft kegiatan berhasil disimpan! Anda dapat melanjutkannya kapan saja.', 'success');
+    } catch (err) {
+      console.error('Failed to save draft:', err);
+      showAlert('Gagal menyimpan draft: ' + err.message);
+    }
+  };
+
+  const handleLoadDraft = (draft) => {
+    if (!draft) return;
+    if (draft.form) {
+      setForm(prev => ({
+        ...prev,
+        ...draft.form
+      }));
+    }
+    if (draft.files) setFiles(draft.files);
+    if (draft.previewImage) setPreviewImage(draft.previewImage);
+    if (draft.backgroundUploadedUrl) setBackgroundUploadedUrl(draft.backgroundUploadedUrl);
+    if (draft.backgroundUploadedStatus) setBackgroundUploadedStatus(draft.backgroundUploadedStatus);
+    if (draft.currentBuktiDukungDriveLink) setCurrentBuktiDukungDriveLink(draft.currentBuktiDukungDriveLink);
+    if (draft.buktiLink) setBuktiLink(draft.buktiLink);
+    if (draft.presensiFile) setPresensiFile(draft.presensiFile);
+    if (draft.presensiPreviewImage) setPresensiPreviewImage(draft.presensiPreviewImage);
+    if (draft.presensiLink) setPresensiLink(draft.presensiLink);
+    if (draft.currentBuktiPresensiDriveLink) setCurrentBuktiPresensiDriveLink(draft.currentBuktiPresensiDriveLink);
+
+    setActiveDraftId(draft.id);
+    setActiveDraftTitle(draft.title || draft.form?.rincian || 'Draft Kegiatan');
+    setShowDraftsModal(false);
+    showAlert('Draft berhasil dimuat! Silakan lengkapi dan tekan Simpan Kegiatan.', 'success');
+  };
+
+  const handleCancelActiveDraft = () => {
+    setActiveDraftId(null);
+    setActiveDraftTitle('');
+    setForm({
+      tanggal: sharedDate || getTodayStr(),
+      isFullday: false,
+      isMultiHari: false,
+      tanggalAkhir: '',
+      skipHoliday: true,
+      waktuMulai: '',
+      waktuSelesai: '',
+      skpId: '',
+      skpIds: [],
+      rincian: '',
+      kuantitas: '',
+      satuan: 'Kegiatan',
+      timKerja: TIM_KERJA_OPTIONS[0],
+    });
+    setFiles([]);
+    setPreviewImage(null);
+    setBackgroundUploadedUrl(null);
+    setBackgroundUploadedStatus(null);
+    setCurrentBuktiDukungDriveLink('');
+    setBuktiLink('');
+    setPresensiFile(null);
+    setPresensiPreviewImage(null);
+    setPresensiLink('');
+    setCurrentBuktiPresensiDriveLink('');
+    showAlert('Mode edit draft dibatalkan. Formulir dikosongkan.', 'info');
+  };
+
+  const handleDeleteDraft = async (draftId, e) => {
+    if (e) e.stopPropagation();
+    try {
+      await removeDraftActivity(draftId);
+      if (activeDraftId === draftId) {
+        setActiveDraftId(null);
+        setActiveDraftTitle('');
+      }
+      await fetchDrafts();
+      showAlert('Draft kegiatan berhasil dihapus.', 'info');
+    } catch (err) {
+      showAlert('Gagal menghapus draft: ' + err.message);
+    }
+  };
 
   // User Activity Presets (localStorage & Firestore)
   const [userPresets, setUserPresets] = useState([]);
@@ -1990,6 +2127,18 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
 
       if (cameraRef.current) cameraRef.current.value = '';
       if (presensiFileInputRef.current) presensiFileInputRef.current.value = '';
+      
+      if (activeDraftId) {
+        try {
+          await removeDraftActivity(activeDraftId);
+          setActiveDraftId(null);
+          setActiveDraftTitle('');
+          await fetchDrafts();
+        } catch (e) {
+          console.warn('Failed to remove active draft:', e);
+        }
+      }
+
       if (initialData && onCancelEdit) onCancelEdit();
     } catch (err) {
       showAlert('Terjadi kesalahan: ' + err.message);
@@ -2152,6 +2301,47 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
               <X size={16} />
             </button>
           )}
+        </div>
+      )}
+
+      {/* Active Draft Indicator */}
+      {activeDraftId && (
+        <div className={styles.activeDraftIndicator}>
+          <div className={styles.activeDraftIndicatorText}>
+            <FileText size={16} />
+            <span>
+              Sedang melanjutkan draft: <strong>{activeDraftTitle}</strong>
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleCancelActiveDraft}
+            className={styles.activeDraftCancelBtn}
+            title="Batalkan pengisian draft dan kosongkan formulir"
+          >
+            Batalkan Draft
+          </button>
+        </div>
+      )}
+
+      {/* Available Drafts Notification Banner */}
+      {!activeDraftId && draftsList.length > 0 && (
+        <div className={styles.draftsBanner}>
+          <div className={styles.draftsBannerText}>
+            <span className={styles.draftsBannerBadge}>{draftsList.length} DRAFT</span>
+            <span>
+              Terdapat <strong>{draftsList.length} draft kegiatan</strong> tersimpan (foto geotag &amp; lampiran).
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowDraftsModal(true)}
+            className={styles.draftsBannerBtn}
+            title="Buka dan lanjutkan draft kegiatan"
+          >
+            <FileText size={13} />
+            Lihat &amp; Lanjutkan Draft
+          </button>
         </div>
       )}
 
@@ -3508,7 +3698,7 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '12px' }}>
+      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
         <button type="submit" className={styles.submitBtn} disabled={isUploading}>
           {isUploading ? (
             <div className={styles.spinnerSmall} />
@@ -3516,6 +3706,16 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
             <span className={styles.submitIcon}><Save size={18} /></span>
           )}
           {isUploading ? 'Menyimpan...' : ((initialData && initialData.id) ? 'Perbarui Kegiatan' : 'Simpan Kegiatan')}
+        </button>
+        <button
+          type="button"
+          onClick={handleSaveDraft}
+          className={styles.draftBtn}
+          title="Simpan sementara sebagai draft (foto, geotag, dan isian saat ini)"
+          disabled={isUploading}
+        >
+          <FileText size={16} />
+          {activeDraftId ? 'Perbarui Draft' : 'Simpan Draft'}
         </button>
         {initialData && initialData.id && (
           <button type="button" onClick={onCancelEdit} style={{ padding: '0 24px', borderRadius: '12px', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#fff', cursor: 'pointer', fontWeight: '500' }}>
@@ -3525,6 +3725,99 @@ function TabInputKegiatan({ onSubmit, onUpdate, initialData = null, onCancelEdit
       </div>
 
       {cameraModal}
+
+      {/* Modal Daftar Draft Kegiatan */}
+      {showDraftsModal && (
+        <div className={styles.draftsModalOverlay} onClick={() => setShowDraftsModal(false)}>
+          <div className={styles.draftsModalCard} onClick={(e) => e.stopPropagation()}>
+            <header className={styles.draftsModalHeader}>
+              <div className={styles.draftsModalTitle}>
+                <FileText size={18} color="#818cf8" />
+                <span>Daftar Draft Kegiatan ({draftsList.length})</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDraftsModal(false)}
+                className={styles.draftsModalCloseBtn}
+                title="Tutup Modal"
+              >
+                <X size={18} />
+              </button>
+            </header>
+
+            <div className={styles.draftsModalBody}>
+              {draftsList.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '30px 20px', color: '#94a3b8', fontSize: '13px' }}>
+                  Tidak ada draft kegiatan tersimpan.
+                </div>
+              ) : (
+                draftsList.map((draft) => {
+                  const hasPhoto = draft.previewImage || (draft.files && draft.files.length > 0 && draft.files[0]?.type?.startsWith('image/'));
+                  const timeAgo = draft.updatedAt
+                    ? new Date(draft.updatedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                    : '';
+                  const dateStr = draft.form?.tanggal || '';
+
+                  return (
+                    <div key={draft.id} className={styles.draftCard}>
+                      {hasPhoto ? (
+                        <img
+                          src={draft.previewImage || (draft.files && draft.files[0] ? URL.createObjectURL(draft.files[0]) : '')}
+                          alt="Thumbnail Draft"
+                          className={styles.draftCardThumb}
+                        />
+                      ) : (
+                        <div className={styles.draftCardNoThumb}>
+                          <FileText size={20} />
+                        </div>
+                      )}
+
+                      <div className={styles.draftCardInfo}>
+                        <div className={styles.draftCardTitle}>
+                          {draft.title || draft.form?.rincian || 'Draft Tanpa Judul'}
+                        </div>
+                        <div className={styles.draftCardMeta}>
+                          <span>Tanggal: {dateStr || 'Hari Ini'}</span>
+                          {timeAgo && <span>• Pukul {timeAgo}</span>}
+                          {draft.files && draft.files.length > 0 && (
+                            <span className={styles.draftCardBadge}>
+                              <Paperclip size={10} /> {draft.files.length} Berkas
+                            </span>
+                          )}
+                          {draft.previewImage && (
+                            <span className={styles.draftCardBadge} style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80' }}>
+                              <Camera size={10} /> Geotag
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className={styles.draftCardActions}>
+                        <button
+                          type="button"
+                          onClick={() => handleLoadDraft(draft)}
+                          className={styles.draftResumeBtn}
+                          title="Lanjutkan pengisian form dari draft ini"
+                        >
+                          Lanjutkan
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteDraft(draft.id, e)}
+                          className={styles.draftDeleteBtn}
+                          title="Hapus draft ini"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Tambah & Kelola Satuan Kuantitas Kustom */}
       {showCustomSatuanModal && (

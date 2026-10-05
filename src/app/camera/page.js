@@ -38,7 +38,7 @@ import { useSkps } from '@/hooks/useSkps';
 import { useFirestore } from '@/hooks/useFirestore';
 import { useAlert } from '@/contexts/AlertContext';
 import { uploadFileToDrive, getOrCreateFolder } from '@/lib/drive';
-import { savePendingUpload } from '@/lib/localdb';
+import { savePendingUpload, saveDraftActivity } from '@/lib/localdb';
 import { compressImage, formatBytes } from '@/lib/compressor';
 
 const CAPTURE_MODES = [
@@ -625,6 +625,57 @@ export default function CameraPage() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     showAlert('Foto berhasil diunduh ke galeri perangkat Anda.');
+  };
+
+  // Save photo and metadata as CKP Draft
+  const handleSaveAsCkpDraft = async () => {
+    if (!watermarkedBlob || !user) {
+      showAlert('Silakan login terlebih dahulu untuk menyimpan draft kegiatan.');
+      return;
+    }
+
+    setIsUploading(true);
+    const now = new Date();
+    const todayYMD = now.toISOString().split('T')[0];
+    const timestampId = Date.now();
+    const fileName = `Draft_Geotag_${todayYMD}_${timestampId}.jpg`;
+    const finalFile = new File([watermarkedBlob], fileName, { type: 'image/jpeg' });
+
+    try {
+      const draftTitle = form.rincian?.trim() || form.namaSurvei?.trim() || `Foto Geotag Lapangan (${todayYMD})`;
+      const draftPayload = {
+        id: `draft_cam_${timestampId}`,
+        title: draftTitle,
+        userId: user.uid,
+        form: {
+          tanggal: todayYMD,
+          isFullday: form.isFullday ?? true,
+          waktuMulai: form.isFullday ? '08:00' : (form.waktuMulai || '08:00'),
+          waktuSelesai: form.isFullday ? '16:00' : (form.waktuSelesai || '16:00'),
+          skpId: form.skpId || '',
+          skpIds: form.skpId ? [Number(form.skpId)] : [],
+          rincian: draftTitle,
+          kuantitas: form.jumlah || 1,
+          satuan: form.satuan || 'Dokumen',
+          timKerja: 'Subbagian Umum',
+        },
+        files: [finalFile],
+        previewImage: watermarkedUrl,
+        buktiDukung: null,
+        geotag: coords ? { lat: coords.lat, lon: coords.lon, accuracy: coords.accuracy } : null,
+        sumber: 'camera_geotag',
+        updatedAt: timestampId
+      };
+
+      await saveDraftActivity(draftPayload, user.uid);
+      showAlert('Foto dan koordinat geotag berhasil disimpan sebagai Draft CKP! Anda dapat melengkapi rincian tugasnya nanti di menu CKP Harian.', 'success');
+      handleRetake();
+    } catch (err) {
+      console.error('Save camera draft error:', err);
+      showAlert('Gagal menyimpan draft: ' + err.message);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   // Submit and Upload to SuperBrain System (Drive & Firestore & Offline Queue)
@@ -1322,6 +1373,18 @@ export default function CameraPage() {
               >
                 <Download size={16} />
                 Unduh ke HP
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveAsCkpDraft}
+                className={styles.btnSecondary}
+                disabled={isUploading}
+                title="Simpan foto dan geotag sebagai Draft CKP untuk dilengkapi nanti"
+                style={{ borderColor: 'rgba(99, 102, 241, 0.4)', color: '#c7d2fe' }}
+              >
+                <FileText size={16} />
+                Simpan Draft CKP
               </button>
 
               <button
