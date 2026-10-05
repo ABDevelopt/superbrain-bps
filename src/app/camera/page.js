@@ -27,7 +27,9 @@ import {
   ArrowLeft,
   Calendar,
   Layers,
-  Sparkles
+  Sparkles,
+  Image as ImageIcon,
+  Copy
 } from 'lucide-react';
 import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
@@ -58,6 +60,7 @@ export default function CameraPage() {
   // Camera stream states
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const fileInputRef = useRef(null);
   const [cameraActive, setCameraActive] = useState(false);
   const [isFrontCamera, setIsFrontCamera] = useState(false);
   const [cameraLens, setCameraLens] = useState('1x');
@@ -73,6 +76,7 @@ export default function CameraPage() {
   const [gpsAccuracy, setGpsAccuracy] = useState(null);
   const [gpsStatus, setGpsStatus] = useState('searching'); // searching, locked, error
   const [currentTimeStr, setCurrentTimeStr] = useState('');
+  const [copiedCoords, setCopiedCoords] = useState(false);
 
   // Mode & Form states
   const [activeMode, setActiveMode] = useState('ckp');
@@ -106,9 +110,37 @@ export default function CameraPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [compressedInfo, setCompressedInfo] = useState(null);
 
-  // Recent captures history (in current session)
+  // Recent captures history (in current session and persistent in storage)
   const [recentPhotos, setRecentPhotos] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
+
+  // Load persistent history on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('superbrain_recent_camera_photos');
+      if (saved) {
+        setRecentPhotos(JSON.parse(saved));
+      }
+    } catch (_) {}
+  }, []);
+
+  // Save persistent history helper
+  const saveRecentPhotos = (photos) => {
+    setRecentPhotos(photos);
+    try {
+      // Store metadata only (omit big preview URLs for storage efficiency)
+      const persistent = photos.slice(0, 20).map((p) => ({
+        id: p.id,
+        title: p.title,
+        fileName: p.fileName,
+        driveLink: p.driveLink,
+        isOffline: p.isOffline,
+        time: p.time,
+        coords: p.coords
+      }));
+      localStorage.setItem('superbrain_recent_camera_photos', JSON.stringify(persistent));
+    } catch (_) {}
+  };
 
   // Real-time clock updater
   useEffect(() => {
@@ -170,7 +202,7 @@ export default function CameraPage() {
     try {
       setPermissionError(null);
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        setPermissionError('Browser Anda tidak mendukung Web Media API untuk kamera.');
+        setPermissionError('Browser Anda tidak mendukung Web Media API untuk kamera langsung.');
         return;
       }
 
@@ -296,7 +328,7 @@ export default function CameraPage() {
     } catch (err) {
       console.error('Camera initialization error:', err);
       setPermissionError(
-        'Izin akses kamera ditolak atau kamera sedang digunakan oleh aplikasi lain. Silakan periksa izin browser Anda.'
+        'Izin akses kamera ditolak atau kamera sedang digunakan oleh aplikasi lain. Anda tetap dapat menggunakan tombol Pilih Foto dari Galeri di bagian atas.'
       );
       setCameraActive(false);
     }
@@ -359,6 +391,19 @@ export default function CameraPage() {
     }
   };
 
+  // Copy Coordinates to Clipboard
+  const handleCopyCoords = () => {
+    if (!coords) {
+      showAlert('Koordinat GPS belum terkunci.');
+      return;
+    }
+    const text = `${coords.lat.toFixed(6)}, ${coords.lon.toFixed(6)}`;
+    navigator.clipboard.writeText(text);
+    setCopiedCoords(true);
+    setTimeout(() => setCopiedCoords(false), 2000);
+    showAlert(`Koordinat berhasil disalin: ${text}`);
+  };
+
   // Render Official Geotag Watermark to Canvas
   const generateWatermarkedImage = async (rawBlob) => {
     return new Promise((resolve) => {
@@ -389,8 +434,8 @@ export default function CameraPage() {
 
           // Gradient background for high legibility
           const gradient = ctx.createLinearGradient(0, startY, 0, height);
-          gradient.addColorStop(0, 'rgba(10, 15, 30, 0.82)');
-          gradient.addColorStop(1, 'rgba(5, 10, 20, 0.95)');
+          gradient.addColorStop(0, 'rgba(10, 15, 30, 0.84)');
+          gradient.addColorStop(1, 'rgba(5, 10, 20, 0.96)');
           ctx.fillStyle = gradient;
           ctx.fillRect(0, startY, width, bannerHeight);
 
@@ -440,7 +485,7 @@ export default function CameraPage() {
 
           // 4. Koordinat Geotag & Akurasi
           currentY += baseFontSize * 1.4;
-          let coordsStr = 'Koordinat: GPS Tidak Terkunci / Lokasi Manual';
+          let coordsStr = 'Koordinat: GPS Menunggu Kunci / Lokasi Manual';
           if (coords) {
             coordsStr = `Koordinat: Lat ${coords.lat.toFixed(6)}, Lon ${coords.lon.toFixed(6)} (Akurasi: ±${coords.accuracy ? Math.round(coords.accuracy) : 5}m)`;
           }
@@ -483,7 +528,34 @@ export default function CameraPage() {
     });
   };
 
-  // Capture Shutter Action
+  // Process any raw image blob into watermarked preview
+  const processImageToPreview = async (rawBlob) => {
+    setIsProcessing(true);
+    try {
+      setCapturedBlob(rawBlob);
+
+      // Render official watermark
+      const watermarked = await generateWatermarkedImage(rawBlob);
+      setWatermarkedBlob(watermarked);
+
+      // Compression estimation
+      const compressed = await compressImage(
+        new File([watermarked], `Kamera_SuperBrain_${Date.now()}.jpg`, { type: 'image/jpeg' }),
+        { quality: 0.78, maxWidth: 1600 }
+      );
+      setCompressedInfo(compressed);
+
+      const previewUrl = URL.createObjectURL(watermarked);
+      setWatermarkedUrl(previewUrl);
+    } catch (err) {
+      console.error('Image processing error:', err);
+      showAlert('Terjadi kendala saat memproses gambar: ' + err.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Capture Shutter Action from live video
   const handleCapture = async () => {
     if (!videoRef.current) return;
     setIsProcessing(true);
@@ -504,22 +576,7 @@ export default function CameraPage() {
 
       snapCanvas.toBlob(
         async (rawBlob) => {
-          setCapturedBlob(rawBlob);
-
-          // Render official watermark
-          const watermarked = await generateWatermarkedImage(rawBlob);
-          setWatermarkedBlob(watermarked);
-
-          // Compression estimation
-          const compressed = await compressImage(
-            new File([watermarked], `Kamera_SuperBrain_${Date.now()}.jpg`, { type: 'image/jpeg' }),
-            { quality: 0.78, maxWidth: 1600 }
-          );
-          setCompressedInfo(compressed);
-
-          const previewUrl = URL.createObjectURL(watermarked);
-          setWatermarkedUrl(previewUrl);
-          setIsProcessing(false);
+          await processImageToPreview(rawBlob);
         },
         'image/jpeg',
         0.95
@@ -529,6 +586,20 @@ export default function CameraPage() {
       showAlert('Terjadi kendala saat mengambil gambar: ' + err.message);
       setIsProcessing(false);
     }
+  };
+
+  // Handle Photo Pick from Local Device Gallery / Storage
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showAlert('Berkas yang dipilih harus berupa gambar (JPG, PNG, WEBP).');
+      return;
+    }
+
+    await processImageToPreview(file);
+    e.target.value = '';
   };
 
   // Retake Photo
@@ -553,7 +624,7 @@ export default function CameraPage() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showAlert('Foto berhasil diunduh ke perangkat Anda.');
+    showAlert('Foto berhasil diunduh ke galeri perangkat Anda.');
   };
 
   // Submit and Upload to SuperBrain System (Drive & Firestore & Offline Queue)
@@ -692,7 +763,7 @@ export default function CameraPage() {
         isSavedOffline = true;
       }
 
-      // Add to session captures list
+      // Add to session captures list and persist
       const newCapture = {
         id: baseEntryId,
         title:
@@ -711,7 +782,7 @@ export default function CameraPage() {
         coords: coords ? `${coords.lat.toFixed(5)}, ${coords.lon.toFixed(5)}` : null
       };
 
-      setRecentPhotos((prev) => [newCapture, ...prev]);
+      saveRecentPhotos([newCapture, ...recentPhotos]);
 
       showAlert(
         isSavedOffline
@@ -731,6 +802,15 @@ export default function CameraPage() {
 
   return (
     <div className={styles.cameraContainer}>
+      {/* Hidden File Input for Gallery / Local File Upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handleFileSelect}
+      />
+
       {/* Fallback Permission Error Screen */}
       {permissionError && !cameraActive && (
         <div className={styles.permissionScreen}>
@@ -739,14 +819,24 @@ export default function CameraPage() {
           </div>
           <h2 className={styles.permissionTitle}>Akses Kamera Diperlukan</h2>
           <p className={styles.permissionDesc}>{permissionError}</p>
-          <button
-            onClick={() => initCamera(isFrontCamera, cameraLens)}
-            className={styles.permissionBtn}
-          >
-            <RefreshCw size={18} />
-            Coba Aktifkan Kembali
-          </button>
-          <Link href="/" className={styles.backBtn} style={{ width: 'auto', padding: '8px 16px', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button
+              onClick={() => initCamera(isFrontCamera, cameraLens)}
+              className={styles.permissionBtn}
+            >
+              <RefreshCw size={18} />
+              Coba Aktifkan Kembali
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className={styles.permissionBtn}
+              style={{ background: '#334155' }}
+            >
+              <ImageIcon size={18} />
+              Pilih dari Galeri
+            </button>
+          </div>
+          <Link href="/" className={styles.backBtn} style={{ width: 'auto', padding: '8px 16px', gap: '8px', marginTop: '8px' }}>
             <ArrowLeft size={16} />
             Kembali ke Dashboard
           </Link>
@@ -774,8 +864,19 @@ export default function CameraPage() {
             </div>
 
             <div className={styles.topActions}>
+              {/* Pick Image from Gallery Button */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className={styles.actionIconBtn}
+                title="Pilih Foto dari Galeri / Berkas"
+              >
+                <ImageIcon size={18} />
+              </button>
+
               {flashSupported && !isFrontCamera && (
                 <button
+                  type="button"
                   onClick={handleToggleFlash}
                   className={`${styles.actionIconBtn} ${flashOn ? styles.actionIconBtnActive : ''}`}
                   title={flashOn ? 'Matikan Lampu Kilat' : 'Nyalakan Lampu Kilat'}
@@ -785,6 +886,7 @@ export default function CameraPage() {
               )}
 
               <button
+                type="button"
                 onClick={() => setGridActive(!gridActive)}
                 className={`${styles.actionIconBtn} ${gridActive ? styles.actionIconBtnActive : ''}`}
                 title="Bantuan Garis Grid 3x3"
@@ -793,9 +895,10 @@ export default function CameraPage() {
               </button>
 
               <button
+                type="button"
                 onClick={() => setShowHistory(true)}
                 className={styles.actionIconBtn}
-                title="Riwayat Jepretan Sesi Ini"
+                title="Riwayat Jepretan Lapangan"
               >
                 <Layers size={18} />
               </button>
@@ -824,6 +927,7 @@ export default function CameraPage() {
             <video
               ref={videoRef}
               playsInline
+              autoPlay
               muted
               className={`${styles.videoElement} ${isFrontCamera ? styles.videoElementFlipped : ''}`}
             />
@@ -853,13 +957,30 @@ export default function CameraPage() {
                   <MapPin size={13} />
                   GEOTAG REAL-TIME
                 </span>
-                <span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   {gpsStatus === 'locked' ? (
                     <span style={{ color: '#4ade80' }}>TERKUNCI (±{gpsAccuracy}m)</span>
                   ) : gpsStatus === 'searching' ? (
                     <span style={{ color: '#facc15' }}>MENCARI GPS...</span>
                   ) : (
                     <span style={{ color: '#f87171' }}>GPS TIDAK TERSEDIA</span>
+                  )}
+                  {coords && (
+                    <button
+                      type="button"
+                      onClick={handleCopyCoords}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: copiedCoords ? '#4ade80' : '#94a3b8',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                      title="Salin Koordinat"
+                    >
+                      {copiedCoords ? <Check size={12} /> : <Copy size={12} />}
+                    </button>
                   )}
                 </span>
               </div>
@@ -874,7 +995,7 @@ export default function CameraPage() {
                 )}
               </div>
               <div className={styles.hudGpsMeta}>
-                <span>{profile?.satker || 'BPS Kabupaten / Kota'}</span>
+                <span>{profile?.satker || 'BPS Republik Indonesia'}</span>
                 <span>{CAPTURE_MODES.find((m) => m.id === activeMode)?.label}</span>
               </div>
             </div>
@@ -1158,6 +1279,16 @@ export default function CameraPage() {
                     ? `Lat ${coords.lat.toFixed(5)}, Lon ${coords.lon.toFixed(5)}`
                     : 'Tanpa GPS'}
                 </span>
+                {coords && (
+                  <button
+                    type="button"
+                    onClick={handleCopyCoords}
+                    style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                    title="Salin Koordinat"
+                  >
+                    {copiedCoords ? <Check size={12} color="#4ade80" /> : <Copy size={12} />}
+                  </button>
+                )}
               </div>
               <div className={styles.reviewMetaItem}>
                 <Clock size={14} color="#a5b4fc" />
@@ -1238,7 +1369,13 @@ export default function CameraPage() {
               ) : (
                 recentPhotos.map((item) => (
                   <div key={item.id} className={styles.historyItem}>
-                    <img src={item.previewUrl} alt={item.title} className={styles.historyItemThumb} />
+                    {item.previewUrl ? (
+                      <img src={item.previewUrl} alt={item.title} className={styles.historyItemThumb} />
+                    ) : (
+                      <div className={styles.historyItemThumb} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Camera size={24} color="#64748b" />
+                      </div>
+                    )}
                     <div className={styles.historyItemInfo}>
                       <div className={styles.historyItemTitle}>{item.title}</div>
                       <div className={styles.historyItemMeta}>
