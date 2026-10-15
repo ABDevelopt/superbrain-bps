@@ -1,0 +1,1075 @@
+/* ============================================================
+   MODUL DINAS LAPANGAN & PERJALANAN DINAS (DL / SPD)
+   ============================================================ */
+
+.container {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: calc(100vh - 80px);
+}
+
+/* Header & Banner */
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.headerTitleArea {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.headerIconWrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(99, 102, 241, 0.2));
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #38bdf8;
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.15);
+}
+
+.pageTitle {
+  font-size: 22px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0 0 4px 0;
+  letter-spacing: -0.3px;
+}
+
+.pageSubtitle {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* KPI Summary Cards */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.kpiCard {
+  background: var(--surface, rgba(30, 41, 59, 0.6));
+  border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.08));
+  backdrop-filter: blur(12px);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.kpiIconBox {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.kpiValue {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f8fafc;
+  line-height: 1.2;
+}
+
+.kpiLabel {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+/* Navigation Tabs */
+.tabNav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 24px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.tabBtn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.tabBtn:hover {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.tabBtnActive {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+/* Toolbar & Filters */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 8px 14px;
+  min-width: 260px;
+}
+
+.searchInput {
+  background: transparent;
+  border: none;
+  color: #f8fafc;
+  font-size: 13px;
+  outline: none;
+  width: 100%;
+}
+
+.filterPills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.filterPill {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filterPill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+
+.filterPillActive {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+/* Trip Cards Grid */
+.tripGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 18px;
+}
+
+.tripCard {
+  background: var(--surface, rgba(30, 41, 59, 0.6));
+  border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.08));
+  border-radius: 16px;
+  padding: 18px;
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.tripCard:hover {
+  border-color: rgba(56, 189, 248, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(56, 189, 248, 0.1);
+}
+
+.tripCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.tripNumberBadge {
+  font-size: 11px;
+  font-family: monospace;
+  font-weight: 700;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+
+.statusBadge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.statusRencana {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.statusBerjalan {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.statusSelesai {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.tripMaksud {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f8fafc;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.tripMetaList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.tripMetaItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tripActionsBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 12px;
+  margin-top: auto;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.actionBtnGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Button Styles */
+.primaryBtn {
+  background: linear-gradient(135deg, #0284c7, #4f46e5);
+  color: #ffffff;
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.25);
+}
+
+.primaryBtn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+}
+
+.secondaryBtn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.secondaryBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.iconBtn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  padding: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.iconBtn:hover {
+  color: #f8fafc;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Forms & Editors */
+.formCard {
+  background: var(--surface, rgba(30, 41, 59, 0.7));
+  border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.08));
+  border-radius: 16px;
+  padding: 24px;
+  backdrop-filter: blur(12px);
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.formSectionTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 18px 0 14px 0;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.formGrid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.formLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.formInput,
+.formSelect,
+.formTextarea {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: #f8fafc;
+  font-size: 13px;
+  outline: none;
+  transition: all 0.2s;
+  width: 100%;
+  font-family: inherit;
+}
+
+.formInput:focus,
+.formSelect:focus,
+.formTextarea:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+}
+
+.dropzone {
+  border: 2px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.02);
+  transition: all 0.2s;
+}
+
+.dropzone:hover {
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.04);
+}
+
+/* ============================================================
+   PRINT PREVIEW & OFFICIAL STYLES
+   ============================================================ */
+
+.printWrapper {
+  background: #0f172a;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.noPrintToolbar {
+  max-width: 820px;
+  margin: 0 auto 20px auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px 18px;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.printSelect {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f8fafc;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  outline: none;
+}
+
+/* A4 Sheet Simulator for Screen View */
+.a4Sheet {
+  width: 210mm;
+  min-height: 297mm;
+  padding: 20mm;
+  margin: 0 auto 30px auto;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  box-sizing: border-box;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 11pt;
+  line-height: 1.5;
+}
+
+/* Official Header / Kop Surat */
+.officialHeader {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  border-bottom: 2.5px double #0f172a;
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+}
+
+.officialHeaderText {
+  text-align: center;
+  flex-grow: 1;
+}
+
+.headerLine1 {
+  font-size: 14pt;
+  font-weight: bold;
+  margin: 0;
+  letter-spacing: 0.5px;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #000000;
+}
+
+.headerLine2 {
+  font-size: 13pt;
+  font-weight: bold;
+  margin: 2px 0;
+  letter-spacing: 0.5px;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #000000;
+}
+
+.headerLine3 {
+  font-size: 8.5pt;
+  margin: 2px 0 0 0;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #334155;
+}
+
+.headerLine4 {
+  font-size: 8pt;
+  margin: 1px 0 0 0;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #334155;
+  font-style: italic;
+}
+
+/* Report Title */
+.reportTitleSection {
+  text-align: center;
+  margin-bottom: 22px;
+}
+
+.reportMainTitle {
+  font-size: 13pt;
+  font-weight: bold;
+  text-decoration: underline;
+  margin: 0 0 4px 0;
+  font-family: Arial, Helvetica, sans-serif;
+  letter-spacing: 0.5px;
+}
+
+.reportSubtitle {
+  font-size: 10pt;
+  color: #1e293b;
+}
+
+/* Report Content Sections */
+.reportBody {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sectionBlock {
+  page-break-inside: avoid;
+}
+
+.sectionHeader {
+  font-size: 11pt;
+  font-weight: bold;
+  margin: 0 0 4px 0;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.sectionText {
+  margin: 0;
+  text-align: justify;
+}
+
+.longContentText {
+  text-align: justify;
+  margin-top: 4px;
+}
+
+.longContentText p {
+  margin: 0 0 6px 0;
+}
+
+.sectionTextEmpty {
+  font-style: italic;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Key-Value Tables */
+.kvTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.kvTable td {
+  padding: 2px 0;
+  vertical-align: top;
+}
+
+.kvKey {
+  width: 180px;
+}
+
+.kvSep {
+  width: 15px;
+  text-align: center;
+}
+
+.kvVal {
+  color: #0f172a;
+}
+
+/* Data Table */
+.dataTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 6px;
+  font-size: 10pt;
+}
+
+.dataTable th,
+.dataTable td {
+  border: 1px solid #000000;
+  padding: 6px 8px;
+  vertical-align: middle;
+}
+
+.dataTable th {
+  background: #f1f5f9;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* ============================================================
+   BPS WORD LAYOUT (Exact match with user's Word document)
+   ============================================================ */
+
+.bpsWordContainer {
+  font-family: Arial, Calibri, 'Times New Roman', sans-serif;
+  color: #000000;
+  line-height: 1.45;
+  font-size: 11pt;
+}
+
+.bpsWordTitle {
+  text-align: center;
+  font-size: 13pt;
+  font-weight: bold;
+  margin: 0 0 16px 0;
+  letter-spacing: 0.5px;
+  font-family: Arial, Helvetica, sans-serif;
+  text-transform: uppercase;
+}
+
+.bpsWordTable {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1.5px solid #000000;
+  margin-bottom: 24px;
+}
+
+.bpsWordTable td,
+.bpsWordTable th {
+  border: 1px solid #000000;
+  padding: 6px 10px;
+  vertical-align: top;
+}
+
+.bpsWordMetaLabel {
+  font-weight: 500;
+  width: 120px;
+  display: inline-block;
+}
+
+.bpsWordSectionHeader {
+  font-weight: bold;
+  font-size: 11pt;
+  background: #ffffff;
+  padding: 6px 10px;
+}
+
+.bpsWordTimeCol {
+  width: 130px;
+  min-width: 120px;
+  font-weight: 600;
+  white-space: nowrap;
+  vertical-align: top;
+  border-right: 1px solid #000000;
+}
+
+.bpsWordDescCol {
+  vertical-align: top;
+  text-align: justify;
+}
+
+.bpsWordDescText {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.bpsWordSubItem {
+  margin: 2px 0 2px 16px;
+  text-indent: -16px;
+}
+
+.bpsWordDocTitle {
+  font-size: 12pt;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin: 24px 0 14px 0;
+  text-align: center;
+  letter-spacing: 0.5px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.bpsWordPhotoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.bpsWordPhotoItem {
+  border: 1px solid #000000;
+  padding: 6px;
+  background: #ffffff;
+  page-break-inside: avoid;
+  display: flex;
+  flex-direction: column;
+}
+
+.bpsWordPhotoFrame {
+  width: 100%;
+  height: 200px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+}
+
+.bpsWordPhotoImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bpsWordPhotoCaption {
+  font-size: 10pt;
+  margin-top: 6px;
+  line-height: 1.35;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* ============================================================
+   TIMELINE EDITOR IN REPORT FORM
+   ============================================================ */
+
+.timelineEditorBox {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.timelineSlotCard {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 14px;
+  transition: all 0.2s;
+}
+
+.timelineSlotCard:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.timelineSlotHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  gap: 12px;
+}
+
+.timelineSlotTime {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-grow: 1;
+}
+
+.timelineSlotInput {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: #38bdf8;
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 6px 12px;
+  width: 160px;
+  outline: none;
+}
+
+.timelineSlotInput:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+}
+
+
+/* Signatures */
+.signatureSection {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 36px;
+  page-break-inside: avoid;
+}
+
+.sigColumn {
+  width: 45%;
+  text-align: center;
+}
+
+.sigTitle {
+  margin: 0 0 2px 0;
+  font-size: 10.5pt;
+}
+
+.sigRole {
+  margin: 0;
+  font-size: 10.5pt;
+  font-weight: bold;
+}
+
+.sigSpace {
+  height: 60px;
+}
+
+.sigName {
+  margin: 0;
+  font-size: 10.5pt;
+  font-weight: bold;
+}
+
+.sigNip {
+  margin: 0;
+  font-size: 10pt;
+}
+
+/* Documentation Photo Page */
+.docHeader {
+  border-bottom: 2px solid #000000;
+  padding-bottom: 10px;
+  margin-bottom: 16px;
+}
+
+.docHeaderSatker {
+  font-size: 9.5pt;
+  font-weight: bold;
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.docHeaderTitle {
+  font-size: 12pt;
+  font-weight: bold;
+  margin: 2px 0 0 0;
+  font-family: Arial, Helvetica, sans-serif;
+  letter-spacing: 0.3px;
+}
+
+.docHeaderMeta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 16px;
+  font-size: 9pt;
+  margin-top: 8px;
+  background: #f8fafc;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+}
+
+.photoGrid2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+.photoGrid4 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.photoItemCard {
+  border: 1px solid #94a3b8;
+  border-radius: 6px;
+  padding: 8px;
+  background: #ffffff;
+  page-break-inside: avoid;
+  display: flex;
+  flex-direction: column;
+}
+
+.photoFrame {
+  position: relative;
+  width: 100%;
+  background: #000000;
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+}
+
+.photoGrid2 .photoFrame {
+  min-height: 240px;
+  max-height: 320px;
+}
+
+.photoGrid4 .photoFrame {
+  min-height: 160px;
+  max-height: 200px;
+}
+
+.photoImg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.photoPlaceholder {
+  color: #94a3b8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.photoNumberBadge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #ffffff;
+  font-size: 9.5pt;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.photoCaptionBox {
+  margin-top: 8px;
+  font-size: 9.5pt;
+  line-height: 1.4;
+}
+
+.photoCaptionText {
+  margin: 0 0 4px 0;
+}
+
+.photoMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 8.5pt;
+  color: #475569;
+  flex-wrap: wrap;
+}
+
+.docFooter {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+  font-size: 8.5pt;
+  color: #64748b;
+  border-top: 1px dashed #cbd5e1;
+  padding-top: 6px;
+}
+
+.pageBreakAfter {
+  page-break-after: always;
+}
+
+/* ============================================================
+   @MEDIA PRINT RULES (A4 PRINT & SAVE PDF)
+   ============================================================ */
+
+@media print {
+  /* Hide SuperBrain UI Elements */
+  :global(body),
+  :global(html) {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  :global(nav),
+  :global(aside),
+  :global(header),
+  .noPrintToolbar,
+  .tabNav,
+  .toolbar,
+  .kpiGrid,
+  .pageHeader {
+    display: none !important;
+  }
+
+  .printWrapper {
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .a4Sheet {
+    width: 100% !important;
+    min-height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .pageBreakAfter {
+    page-break-after: always !important;
+  }
+}
+
+/* Responsive UI for Mobile */
+@media (max-width: 768px) {
+  .container {
+    padding: 16px 12px;
+  }
+
+  .tripGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .formGrid2 {
+    grid-template-columns: 1fr;
+  }
+
+  .a4Sheet {
+    width: 100%;
+    padding: 16px;
+  }
+
+  .noPrintToolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

@@ -343,6 +343,109 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  max-height: calc(100vh - 280px);
+  min-height: 120px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.taskList::-webkit-scrollbar {
+  width: 5px;
+}
+
+.taskList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.taskList::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+}
+
+.taskList::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Time Range Filter Bar for Done Column */
+.doneFilterBar {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 3px;
+  margin-bottom: 2px;
+}
+
+.doneFilterPill {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 5px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.doneFilterPill:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.doneFilterPillActive {
+  background: rgba(74, 222, 128, 0.18);
+  color: #4ade80;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(74, 222, 128, 0.15);
+}
+
+.doneFilterNotice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.doneFilterNoticeBtn {
+  background: transparent;
+  border: none;
+  color: #38bdf8;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.doneFilterNoticeBtn:hover {
+  color: #7dd3fc;
+}
+
+.emptyFilteredState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  border: 1.5px dashed rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  color: #64748b;
+  font-size: 12px;
+  text-align: center;
+  min-height: 90px;
 }
 
 /* ===== Task Card ===== */

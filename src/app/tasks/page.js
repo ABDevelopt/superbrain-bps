@@ -35,6 +35,39 @@ function getRoleIcon(iconName, size = 14) {
   }
 }
 
+function getLocalDateStr(dateObj = new Date()) {
+  const y = dateObj.getFullYear();
+  const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const d = String(dateObj.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function getTaskCompletionDate(task) {
+  if (task.completedAt) {
+    const d = new Date(task.completedAt);
+    if (!isNaN(d.getTime())) return d;
+  }
+  if (task.updatedAt) {
+    if (typeof task.updatedAt.toDate === 'function') return task.updatedAt.toDate();
+    const d = new Date(task.updatedAt);
+    if (!isNaN(d.getTime())) return d;
+  }
+  if (task.dueDate) {
+    const d = new Date(task.dueDate + 'T00:00:00');
+    if (!isNaN(d.getTime())) return d;
+  }
+  if (task.tanggalDibuat) {
+    const d = new Date(task.tanggalDibuat + 'T00:00:00');
+    if (!isNaN(d.getTime())) return d;
+  }
+  if (task.createdAt) {
+    if (typeof task.createdAt.toDate === 'function') return task.createdAt.toDate();
+    const d = new Date(task.createdAt);
+    if (!isNaN(d.getTime())) return d;
+  }
+  return null;
+}
+
 export default function TasksPage() {
   const { accessToken, user, loginWithGoogle } = useAuth();
   const router = useRouter();
@@ -51,6 +84,23 @@ export default function TasksPage() {
   const [filterSkp, setFilterSkp] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilter, setShowFilter] = useState(false);
+  const [doneTimeFilter, setDoneTimeFilter] = useState('all'); // 'today' | 'week' | 'month' | 'all'
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('sb_kanban_done_filter');
+      if (saved && ['today', 'week', 'month', 'all'].includes(saved)) {
+        setDoneTimeFilter(saved);
+      }
+    }
+  }, []);
+
+  const handleDoneTimeFilterChange = (filterVal) => {
+    setDoneTimeFilter(filterVal);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sb_kanban_done_filter', filterVal);
+    }
+  };
 
   // GDrive & Sync states
   const [openingFolder, setOpeningFolder] = useState(false);
@@ -504,7 +554,13 @@ export default function TasksPage() {
 
   const handleMoveStatus = async (taskId, newStatus) => {
     try {
-      await updateTask(taskId, { status: newStatus });
+      const updatePayload = { status: newStatus };
+      if (newStatus === 'done') {
+        updatePayload.completedAt = new Date().toISOString();
+      } else {
+        updatePayload.completedAt = null;
+      }
+      await updateTask(taskId, updatePayload);
       showToast(`Status tugas berhasil dipindahkan.`, 'success');
       
       const taskObj = tasks.find(t => t.id === taskId);
@@ -826,6 +882,39 @@ export default function TasksPage() {
   const todoTasks = useMemo(() => filteredTasks.filter((t) => t.status === 'todo'), [filteredTasks]);
   const inProgressTasks = useMemo(() => filteredTasks.filter((t) => t.status === 'in_progress'), [filteredTasks]);
   const doneTasks = useMemo(() => filteredTasks.filter((t) => t.status === 'done'), [filteredTasks]);
+
+  const filteredDoneTasks = useMemo(() => {
+    if (doneTimeFilter === 'all') return doneTasks;
+
+    const now = new Date();
+    const todayStr = getLocalDateStr(now);
+
+    return doneTasks.filter((task) => {
+      const taskDate = getTaskCompletionDate(task);
+      if (!taskDate) return false;
+
+      const taskDateStr = getLocalDateStr(taskDate);
+
+      if (doneTimeFilter === 'today') {
+        return taskDateStr === todayStr;
+      }
+
+      if (doneTimeFilter === 'week') {
+        const diffMs = now.getTime() - taskDate.getTime();
+        const diffDays = diffMs / (1000 * 60 * 60 * 24);
+        return diffDays >= 0 && diffDays <= 7;
+      }
+
+      if (doneTimeFilter === 'month') {
+        return (
+          taskDate.getMonth() === now.getMonth() &&
+          taskDate.getFullYear() === now.getFullYear()
+        );
+      }
+
+      return true;
+    });
+  }, [doneTasks, doneTimeFilter]);
 
   // Total stats for header
   const completedRatio = useMemo(() => {
@@ -1155,7 +1244,7 @@ export default function TasksPage() {
                 title="Filter"
               >
                 <SlidersHorizontal size={16} />
-                {(filterRole !== 'all' || filterSkp !== 'all') && <span className={styles.filterDot} />}
+                {(filterRole !== 'all' || filterSkp !== 'all' || doneTimeFilter !== 'all') && <span className={styles.filterDot} />}
               </button>
             </div>
             <button className={styles.addBtn} onClick={handleOpenAddModal}>
@@ -1186,8 +1275,25 @@ export default function TasksPage() {
                   <option key={s.id} value={s.id}>SKP #{s.id}: {s.nama}</option>
                 ))}
               </select>
-              {(filterRole !== 'all' || filterSkp !== 'all') && (
-                <button className={styles.clearFilterBtn} onClick={() => { setFilterRole('all'); setFilterSkp('all'); }}>
+              <select 
+                className={styles.filterSelect}
+                value={doneTimeFilter}
+                onChange={(e) => handleDoneTimeFilterChange(e.target.value)}
+              >
+                <option value="all">Kolom Selesai: Semua Waktu</option>
+                <option value="today">Kolom Selesai: Hari Ini</option>
+                <option value="week">Kolom Selesai: 7 Hari Terakhir</option>
+                <option value="month">Kolom Selesai: Bulan Ini</option>
+              </select>
+              {(filterRole !== 'all' || filterSkp !== 'all' || doneTimeFilter !== 'all') && (
+                <button 
+                  className={styles.clearFilterBtn} 
+                  onClick={() => { 
+                    setFilterRole('all'); 
+                    setFilterSkp('all'); 
+                    handleDoneTimeFilterChange('all'); 
+                  }}
+                >
                   <X size={13} /> Reset
                 </button>
               )}
@@ -1263,11 +1369,50 @@ export default function TasksPage() {
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#4ade80', display: 'inline-block' }} />
                   Selesai
                 </span>
-                <span className={styles.columnCount}>{doneTasks.length}</span>
+                <span className={styles.columnCount}>
+                  {filteredDoneTasks.length}
+                  {doneTimeFilter !== 'all' && filteredDoneTasks.length !== doneTasks.length ? ` / ${doneTasks.length}` : ''}
+                </span>
+              </div>
+
+              {/* Time Range Filter Bar */}
+              <div className={styles.doneFilterBar}>
+                <button
+                  type="button"
+                  className={`${styles.doneFilterPill} ${doneTimeFilter === 'today' ? styles.doneFilterPillActive : ''}`}
+                  onClick={() => handleDoneTimeFilterChange('today')}
+                  title="Tugas yang selesai hari ini"
+                >
+                  Hari Ini
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.doneFilterPill} ${doneTimeFilter === 'week' ? styles.doneFilterPillActive : ''}`}
+                  onClick={() => handleDoneTimeFilterChange('week')}
+                  title="Tugas yang selesai dalam 7 hari terakhir"
+                >
+                  7 Hari
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.doneFilterPill} ${doneTimeFilter === 'month' ? styles.doneFilterPillActive : ''}`}
+                  onClick={() => handleDoneTimeFilterChange('month')}
+                  title="Tugas yang selesai bulan ini"
+                >
+                  Bulan Ini
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.doneFilterPill} ${doneTimeFilter === 'all' ? styles.doneFilterPillActive : ''}`}
+                  onClick={() => handleDoneTimeFilterChange('all')}
+                  title="Tampilkan seluruh tugas selesai"
+                >
+                  Semua ({doneTasks.length})
+                </button>
               </div>
 
               <div className={styles.taskList}>
-                {doneTasks.map((task) => (
+                {filteredDoneTasks.map((task) => (
                   <TaskCard 
                     key={task.id}
                     task={task}
@@ -1282,7 +1427,39 @@ export default function TasksPage() {
                     skpData={skpData}
                   />
                 ))}
-                {doneTasks.length === 0 && <EmptyColumnState />}
+                {filteredDoneTasks.length === 0 && (
+                  <div className={styles.emptyFilteredState}>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>
+                      {doneTasks.length > 0 
+                        ? `Tidak ada tugas selesai pada periode ini.` 
+                        : 'Belum ada tugas yang selesai.'}
+                    </p>
+                    {doneTasks.length > 0 && doneTimeFilter !== 'all' && (
+                      <button 
+                        type="button"
+                        className={styles.doneFilterNoticeBtn} 
+                        style={{ marginTop: 8 }}
+                        onClick={() => handleDoneTimeFilterChange('all')}
+                      >
+                        Tampilkan Semua ({doneTasks.length} tugas)
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Notice if older tasks are hidden by filter */}
+                {doneTimeFilter !== 'all' && doneTasks.length > filteredDoneTasks.length && (
+                  <div className={styles.doneFilterNotice}>
+                    <span>+{doneTasks.length - filteredDoneTasks.length} tugas lampau disembunyikan</span>
+                    <button 
+                      type="button"
+                      className={styles.doneFilterNoticeBtn}
+                      onClick={() => handleDoneTimeFilterChange('all')}
+                    >
+                      Lihat Semua
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

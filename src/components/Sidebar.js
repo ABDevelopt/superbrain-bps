@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, ClipboardList, Edit3, Calendar, BrainCircuit, LogOut, PanelLeftClose, PanelLeftOpen, Settings, CheckSquare, Link2, FileArchive, Camera } from 'lucide-react';
+import { Home, ClipboardList, Edit3, Calendar, BrainCircuit, LogOut, PanelLeftClose, PanelLeftOpen, Settings, CheckSquare, Link2, FileArchive, Camera, MapPin } from 'lucide-react';
 import styles from './Sidebar.module.css';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -11,15 +11,16 @@ import ThemeToggle from './ThemeToggle';
 import { useState } from 'react';
 
 const navItems = [
-  { href: '/',         icon: <Home size={20} />, label: 'Dashboard' },
-  { href: '/camera',   icon: <Camera size={20} />, label: 'Kamera Lapangan' },
-  { href: '/schedule', icon: <Calendar size={20} />, label: 'Jadwal & Agenda' },
-  { href: '/tasks',    icon: <CheckSquare size={20} />, label: 'Papan & Peta Kerja' },
-  { href: '/ckp',      icon: <Edit3 size={20} />, label: 'CKP Harian' },
-  { href: '/skp',      icon: <ClipboardList size={20} />, label: 'Manajemen SKP' },
-  { href: '/compress', icon: <FileArchive size={20} />, label: 'Kompres Berkas' },
-  { href: '/short-links', icon: <Link2 size={20} />, label: 'Ringkas Link' },
-  { href: '/settings', icon: <Settings size={20} />, label: 'Pengaturan' },
+  { href: '/',               icon: <Home size={20} />, label: 'Dashboard' },
+  { href: '/dinas-lapangan', icon: <MapPin size={20} />, label: 'Dinas Lapangan' },
+  { href: '/camera',         icon: <Camera size={20} />, label: 'Kamera Lapangan' },
+  { href: '/schedule',       icon: <Calendar size={20} />, label: 'Jadwal & Agenda' },
+  { href: '/tasks',          icon: <CheckSquare size={20} />, label: 'Papan & Peta Kerja' },
+  { href: '/ckp',            icon: <Edit3 size={20} />, label: 'CKP Harian' },
+  { href: '/skp',            icon: <ClipboardList size={20} />, label: 'Manajemen SKP' },
+  { href: '/compress',       icon: <FileArchive size={20} />, label: 'Kompres Berkas' },
+  { href: '/short-links',     icon: <Link2 size={20} />, label: 'Ringkas Link' },
+  { href: '/settings',       icon: <Settings size={20} />, label: 'Pengaturan' },
 ];
 
 export default function Sidebar({ isOpen = true, onToggle }) {
