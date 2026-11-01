@@ -146,7 +146,7 @@ let md = `# DAFTAR BUKTI DUKUNG CKP BULAN OKTOBER 2026
    - 20 Okt: Pengawasan lapangan & pemeriksaan survei SPDT-NTP di Kelurahan Sepan dan Riko (Kec. Penajam).
    - 26 Okt: Pengawasan lapangan & supervisi wawancara survei SPDT-NTP di Kelurahan Sotek (Kec. Penajam).
    - 27 Okt: Pengawasan lapangan & validasi entri kuesioner survei SPDT-NTP di Kelurahan Gersik (Kec. Penajam).
-3. **Data Cleaning Otomasi FASIH-SM (\`fasih-sm-bot\`):**
+3. **Data Cleaning Otomasi FASIH-SM:**
    - Verifikasi 8 Nilai Tambah Bruto (NTB): Kalibrasi 6.455 unit usaha (6.193 auto-calibrate ratio median, 94 koreksi skala, 79 korporasi besar, 36 typo digit ekstrem, 132 konfirmasi keterangan lapangan wajar).
    - Data Cleaning Sosek & Bansos: Rekonsiliasi 586 bansos coklit, 492 realign bansos master, audit 183 NIK duplikat nasional, dan penegakan invariant kematian (8 kasus).
    - Data Cleaning BANR: Pengiriman batch 28 penugasan draft BANR via FormGear MinIO S3 dengan hasil 0 galat.

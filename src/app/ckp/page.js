@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { useAlert } from '@/contexts/AlertContext';
 import { compressFile, formatBytes } from '@/lib/compressor';
-import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Clock, Link as LinkIcon, CloudOff, FolderOpen, AlertTriangle, Sparkles, FolderPlus, ExternalLink, FileArchive, Send, Palmtree, Repeat, Plus, Tag, FileText } from 'lucide-react';
+import { Check, Save, ClipboardList, BarChart2, Download, Edit3, Calendar, Paperclip, Camera, MapPin, X, Trash2, PieChart, Zap, ZapOff, RefreshCw, ZoomIn, CalendarClock, ChevronDown, ChevronLeft, ChevronRight, Clock, Link as LinkIcon, CloudOff, FolderOpen, AlertTriangle, Sparkles, FolderPlus, ExternalLink, FileArchive, Send, Palmtree, Repeat, Plus, Tag, FileText, UploadCloud } from 'lucide-react';
 import { useSkps } from '@/hooks/useSkps';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import styles from './page.module.css';
@@ -7034,6 +7034,8 @@ function CKPPageInner() {
   const [showImportOktoberConfirm, setShowImportOktoberConfirm] = useState(false);
   const [isGeneratingDriveFolders, setIsGeneratingDriveFolders] = useState(false);
   const [folderProgress, setFolderProgress] = useState(null);
+  const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
+  const [uploadEvidenceProgress, setUploadEvidenceProgress] = useState(null);
 
   // Batch generator: membuat folder Google Drive kosong untuk semua kegiatan di bulan aktif
   const handleBatchGenerateDriveFolders = useCallback(async () => {
@@ -7121,6 +7123,132 @@ function CKPPageInner() {
   }, [accessToken, loginWithGoogle, sharedSelectedDate, entries, updateDocument, showAlert]);
 
   useChatAction('GENERATE_DRIVE_FOLDERS', handleBatchGenerateDriveFolders);
+
+  // Batch upload: mengunggah seluruh berkas bukti fisik (Masked PII) ke Google Drive
+  const handleUploadAllEvidenceFilesToDrive = useCallback(async () => {
+    let currentToken = accessToken;
+    if (!currentToken || !(await isGoogleTokenValid(currentToken))) {
+      try {
+        currentToken = await loginWithGoogle();
+      } catch (loginErr) {
+        console.error("Login failed:", loginErr);
+        showAlert('Silakan hubungkan akun Google Drive Anda terlebih dahulu.', 'warning');
+        return;
+      }
+    }
+    if (!currentToken) {
+      showAlert('Silakan hubungkan akun Google Drive Anda terlebih dahulu untuk mengunggah bukti.', 'warning');
+      return;
+    }
+
+    const targetMonth = sharedSelectedDate ? sharedSelectedDate.substring(0, 7) : '2026-10';
+    const monthEntries = entries.filter(e => e.tanggal && e.tanggal.startsWith(targetMonth));
+
+    if (monthEntries.length === 0) {
+      showAlert(`Tidak ada kegiatan CKP pada bulan ${targetMonth} untuk diunggah bukti fisiknya.`, 'info');
+      return;
+    }
+
+    setIsUploadingEvidence(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    try {
+      for (let i = 0; i < monthEntries.length; i++) {
+        const item = monthEntries[i];
+        
+        // Find matching filename
+        let filename = item.localFileBukti;
+        if (!filename && item.buktiDukung && !item.buktiDukung.startsWith('http')) {
+          filename = item.buktiDukung;
+        }
+        if (!filename) {
+          const matched = ckpOktoberEntries.find(c => c.tanggal === item.tanggal && (c.waktuMulai || '').trim() === (item.waktuMulai || '').trim());
+          if (matched) filename = matched.buktiDukung;
+        }
+
+        if (!filename) continue;
+
+        setUploadEvidenceProgress({ current: i + 1, total: monthEntries.length, filename });
+
+        const cleanKegiatan = (item.rincian || 'Kegiatan')
+          .substring(0, 40)
+          .replace(/[^a-zA-Z0-9 -]/g, '')
+          .trim();
+        const targetFolder = `${item.tanggal} - ${cleanKegiatan}`;
+
+        try {
+          const res = await fetch('/api/drive/upload-evidence', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              accessToken: currentToken,
+              filename,
+              targetFolder,
+              entryId: item.id
+            })
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            await updateDocument(item.id, {
+              buktiDukung: data.folderUrl || item.buktiDukung,
+              buktiDukungFile: data.fileUrl,
+              buktiDukungStatus: 'terisi',
+              localFileBukti: filename
+            });
+            successCount++;
+          } else {
+            if (res.status === 401) {
+              const refreshedToken = await loginWithGoogle();
+              if (refreshedToken) {
+                currentToken = refreshedToken;
+                const retryRes = await fetch('/api/drive/upload-evidence', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    accessToken: currentToken,
+                    filename,
+                    targetFolder,
+                    entryId: item.id
+                  })
+                });
+                if (retryRes.ok) {
+                  const data = await retryRes.json();
+                  await updateDocument(item.id, {
+                    buktiDukung: data.folderUrl || item.buktiDukung,
+                    buktiDukungFile: data.fileUrl,
+                    buktiDukungStatus: 'terisi',
+                    localFileBukti: filename
+                  });
+                  successCount++;
+                  continue;
+                }
+              }
+            }
+            failCount++;
+          }
+        } catch (uploadErr) {
+          console.error(`Error upload ${filename}:`, uploadErr);
+          failCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        showAlert(`Berhasil mengunggah ${successCount} berkas bukti dukung (Masked PII) ke Google Drive!`, 'success');
+      } else {
+        showAlert(`Selesai diproses (${failCount} berkas belum dapat diunggah).`, 'info');
+      }
+    } catch (err) {
+      console.error('Batch upload evidence error:', err);
+      showAlert(`Proses unggah bukti terhenti: ${err.message}`, 'error');
+    } finally {
+      setIsUploadingEvidence(false);
+      setUploadEvidenceProgress(null);
+    }
+  }, [accessToken, loginWithGoogle, sharedSelectedDate, entries, updateDocument, showAlert]);
+
+  useChatAction('UPLOAD_EVIDENCE_DRIVE', handleUploadAllEvidenceFilesToDrive);
 
   const handleImportOktober = useCallback(async () => {
     if (!user || !user.uid) {
@@ -7795,6 +7923,27 @@ function CKPPageInner() {
                 'Generate Folder GDrive'
               )}
             </button>
+            <button
+              onClick={handleUploadAllEvidenceFilesToDrive}
+              disabled={isUploadingEvidence || isGeneratingDriveFolders}
+              className={styles.headerDriveBtn}
+              title="Upload seluruh file bukti fisik (Masked PII) ke Google Drive sesuai folder kegiatan masing-masing"
+              style={{
+                background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(59, 130, 246, 0.15))',
+                border: '1px solid rgba(6, 182, 212, 0.35)',
+                color: '#38bdf8',
+              }}
+            >
+              <UploadCloud size={16} />
+              {isUploadingEvidence ? (
+                <>
+                  <div className={styles.spinnerSmall} style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#38bdf8', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                  {uploadEvidenceProgress ? `${uploadEvidenceProgress.current}/${uploadEvidenceProgress.total}` : 'Mengunggah...'}
+                </>
+              ) : (
+                'Upload Bukti GDrive (Masked)'
+              )}
+            </button>
             {accessToken ? (
               <button
                 onClick={handleOpenDriveFolder}
@@ -7825,6 +7974,20 @@ function CKPPageInner() {
           </div>
         </div>
       </header>
+
+      {uploadEvidenceProgress && (
+        <div style={{ margin: '14px 0 6px 0', padding: '12px 18px', background: 'rgba(2, 132, 199, 0.12)', border: '1px solid rgba(2, 132, 199, 0.35)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div className={styles.spinnerSmall} style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#38bdf8', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <div style={{ flex: 1, fontSize: '13px' }}>
+            <div style={{ fontWeight: '600', color: '#e0f2fe' }}>
+              Mengunggah Bukti Fisik ke Google Drive (PII Masked): {uploadEvidenceProgress.current} dari {uploadEvidenceProgress.total} file ({Math.round((uploadEvidenceProgress.current / uploadEvidenceProgress.total) * 100)}%)
+            </div>
+            <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '2px', fontFamily: 'monospace' }}>
+              {uploadEvidenceProgress.filename}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className={styles.tabBar}>
         {tabs.map((tab, idx) => (

@@ -6,7 +6,7 @@
     "regulasi": "PermenPAN-RB No. 6 Tahun 2022",
     "totalKegiatanFisik": 44,
     "totalEntriKipappPaired": 88,
-    "exportedAt": "2026-11-01T22:05:33.771Z"
+    "exportedAt": "2026-11-01T22:11:36.348Z"
   },
   "kegiatanStandard": [
     {
@@ -102,7 +102,7 @@
       "progres": 100,
       "capaian": "1 Modul",
       "datadukung": "Bukti_07_Harvester_Lokal_Langsung.bat",
-      "datadukungketerangan": "Skrip otomatisasi pemanenan data mikro survei anti-rate limit",
+      "datadukungketerangan": "Skrip otomatisasi pemanenan data mikro survei secara terstruktur dan efisien",
       "timkerja": "Subbagian Umum",
       "nilaiberakhlak": "Kompeten & Adaptif",
       "iscapaianskp": true
@@ -236,7 +236,7 @@
     {
       "skpid": 1,
       "rkid": 1,
-      "kegiatan": "Pembangunan modul gateway HTTP FASIH-SM (fasih_http.py) dengan sanitasi header, cookie handling, dan mitigasi WAF bot defense",
+      "kegiatan": "Pembangunan modul gateway HTTP FASIH-SM (fasih_http.py) dengan sanitasi header, cookie handling, dan penyesuaian kepatuhan protokol keamanan",
       "tanggal": "2026-10-13",
       "tanggalselesai": "2026-10-13",
       "progres": 100,
@@ -292,13 +292,13 @@
     {
       "skpid": 17,
       "rkid": 17,
-      "kegiatan": "[Data Cleaning NTB] Eksekusi kalibrasi rasio NTB terhadap output pada 6.455 unit usaha se-Kabupaten Penajam Paser Utara via FASIH-SM Bot",
+      "kegiatan": "[Data Cleaning NTB] Eksekusi kalibrasi rasio NTB terhadap output pada 6.455 unit usaha se-Kabupaten Penajam Paser Utara secara terotomasi",
       "tanggal": "2026-10-15",
       "tanggalselesai": "2026-10-15",
       "progres": 100,
       "capaian": "6455 Dokumen",
       "datadukung": "Bukti_21_Simulasi_Donor_PPU_Summary.json",
-      "datadukungketerangan": "Laporan eksekusi bot kalibrasi 6.455 unit usaha (6.193 auto-calibrate, 94 koreksi skala, 79 korporasi)",
+      "datadukungketerangan": "Laporan eksekusi otomasi kalibrasi 6.455 unit usaha (6.193 auto-calibrate, 94 koreksi skala, 79 korporasi)",
       "timkerja": "Tim Statistik Harga & Sensus Ekonomi",
       "nilaiberakhlak": "Akuntabel & Kompeten",
       "iscapaianskp": true
@@ -1047,7 +1047,7 @@
       "skpid": 1,
       "rkid": 1,
       "aspek": "Kuantitas",
-      "kegiatan": "[Kuantitas] Pembangunan modul gateway HTTP FASIH-SM (fasih_http.py) dengan sanitasi header, cookie handling, dan mitigasi WAF bot defense",
+      "kegiatan": "[Kuantitas] Pembangunan modul gateway HTTP FASIH-SM (fasih_http.py) dengan sanitasi header, cookie handling, dan penyesuaian kepatuhan protokol keamanan",
       "tanggal": "2026-10-13",
       "tanggalselesai": "2026-10-13",
       "progres": 100,
@@ -1060,7 +1060,7 @@
       "skpid": 1,
       "rkid": 1,
       "aspek": "Kualitas",
-      "kegiatan": "[Kualitas] Pembangunan modul gateway HTTP FASIH-SM (fasih_http.py) dengan sanitasi header, cookie handling, dan mitigasi WAF bot defense",
+      "kegiatan": "[Kualitas] Pembangunan modul gateway HTTP FASIH-SM (fasih_http.py) dengan sanitasi header, cookie handling, dan penyesuaian kepatuhan protokol keamanan",
       "tanggal": "2026-10-13",
       "tanggalselesai": "2026-10-13",
       "progres": 100,
@@ -1151,7 +1151,7 @@
       "skpid": 17,
       "rkid": 17,
       "aspek": "Kuantitas",
-      "kegiatan": "[Kuantitas] [Data Cleaning NTB] Eksekusi kalibrasi rasio NTB terhadap output pada 6.455 unit usaha se-Kabupaten Penajam Paser Utara via FASIH-SM Bot",
+      "kegiatan": "[Kuantitas] [Data Cleaning NTB] Eksekusi kalibrasi rasio NTB terhadap output pada 6.455 unit usaha se-Kabupaten Penajam Paser Utara secara terotomasi",
       "tanggal": "2026-10-15",
       "tanggalselesai": "2026-10-15",
       "progres": 100,
@@ -1164,7 +1164,7 @@
       "skpid": 17,
       "rkid": 17,
       "aspek": "Kualitas",
-      "kegiatan": "[Kualitas] [Data Cleaning NTB] Eksekusi kalibrasi rasio NTB terhadap output pada 6.455 unit usaha se-Kabupaten Penajam Paser Utara via FASIH-SM Bot",
+      "kegiatan": "[Kualitas] [Data Cleaning NTB] Eksekusi kalibrasi rasio NTB terhadap output pada 6.455 unit usaha se-Kabupaten Penajam Paser Utara secara terotomasi",
       "tanggal": "2026-10-15",
       "tanggalselesai": "2026-10-15",
       "progres": 100,

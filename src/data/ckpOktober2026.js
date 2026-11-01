@@ -207,7 +207,7 @@ export const ckpOktoberEntries = [
     "isFullday": false,
     "nilaiBerakhlak": "Kompeten & Adaptif",
     "buktiDukung": "Bukti_07_Harvester_Lokal_Langsung.bat",
-    "buktiDukungKet": "Skrip otomatisasi pemanenan data mikro survei anti-rate limit",
+    "buktiDukungKet": "Skrip otomatisasi pemanenan data mikro survei secara terstruktur dan efisien",
     "buktiDukungStatus": "file"
   },
   {
@@ -480,7 +480,7 @@ export const ckpOktoberEntries = [
     "targetKualitas": 100,
     "capaian": "1 Modul",
     "progres": 100,
-    "rincian": "Pembangunan modul gateway HTTP FASIH-SM (fasih_http.py) dengan sanitasi header, cookie handling, dan mitigasi WAF bot defense",
+    "rincian": "Pembangunan modul gateway HTTP FASIH-SM (fasih_http.py) dengan sanitasi header, cookie handling, dan penyesuaian kepatuhan protokol keamanan",
     "kuantitas": 1,
     "satuan": "Modul",
     "timKerja": "Subbagian Umum",
@@ -592,14 +592,14 @@ export const ckpOktoberEntries = [
     "targetKualitas": 100,
     "capaian": "6455 Dokumen",
     "progres": 100,
-    "rincian": "[Data Cleaning NTB] Eksekusi kalibrasi rasio NTB terhadap output pada 6.455 unit usaha se-Kabupaten Penajam Paser Utara via FASIH-SM Bot",
+    "rincian": "[Data Cleaning NTB] Eksekusi kalibrasi rasio NTB terhadap output pada 6.455 unit usaha se-Kabupaten Penajam Paser Utara secara terotomasi",
     "kuantitas": 6455,
     "satuan": "Dokumen",
     "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
     "isFullday": false,
     "nilaiBerakhlak": "Akuntabel & Kompeten",
     "buktiDukung": "Bukti_21_Simulasi_Donor_PPU_Summary.json",
-    "buktiDukungKet": "Laporan eksekusi bot kalibrasi 6.455 unit usaha (6.193 auto-calibrate, 94 koreksi skala, 79 korporasi)",
+    "buktiDukungKet": "Laporan eksekusi otomasi kalibrasi 6.455 unit usaha (6.193 auto-calibrate, 94 koreksi skala, 79 korporasi)",
     "buktiDukungStatus": "file"
   },
   {
