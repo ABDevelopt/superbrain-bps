@@ -350,4 +350,16 @@ export const skpData = [
     tim: 'Tim Statistik Sosial',
     cluster: 'Pembinaan Desa Cinta Statistik Tahun 2026',
   },
+  {
+    id: 30,
+    kategori: 'utama',
+    nama: 'Terlaksananya Pelaksanaan Survei Penyusunan Diagram Timbang Nilai Tukar Petani (SPDT-NTP) Tahun 2026 sesuai SOP',
+    indikator: [
+      { jenis: 'kuantitas', target: 100, realisasi: 100 },
+      { jenis: 'kualitas', target: 100, realisasi: 100 },
+    ],
+    status: 'selesai',
+    tim: 'Tim Statistik Distribusi',
+    cluster: 'Survei Diagram Timbang Nilai Tukar Petani (SPDT-NTP) Tahun 2026',
+  },
 ];

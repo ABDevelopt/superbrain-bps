@@ -136,11 +136,11 @@ console.log('\n--- SUITE 3: SKP Master Data Integrity ---');
 import { skpData } from '../src/data/skpData.js';
 
 assert(Array.isArray(skpData), 'skpData is a valid array');
-assert(skpData.length === 29, `skpData contains exactly 29 SKP points (actual: ${skpData.length})`);
+assert(skpData.length === 30, `skpData contains exactly 30 SKP points (actual: ${skpData.length})`);
 
 const skpIds = skpData.map(s => Number(s.id));
 const uniqueIds = new Set(skpIds);
-assert(uniqueIds.size === 29, 'All 29 SKP IDs are unique from 1 to 29');
+assert(uniqueIds.size === 30, 'All 30 SKP IDs are unique from 1 to 30');
 
 const validCategories = ['utama', 'tambahan'];
 const hasValidCategories = skpData.every(s => validCategories.includes(s.kategori?.toLowerCase()));
