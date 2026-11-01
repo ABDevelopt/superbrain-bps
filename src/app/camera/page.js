@@ -1198,16 +1198,20 @@ export default function CameraPage() {
 
     // 3. Save to Firestore, IndexedDB Pending Queue, and Geotag Gallery
     try {
+      let addedCkpRef = null;
+      let addedScheduleRef = null;
       if (ckpRecord) {
-        await addCkpDoc(ckpRecord);
+        addedCkpRef = await addCkpDoc(ckpRecord);
       }
       if (scheduleRecord) {
-        await addScheduleDoc(scheduleRecord);
+        addedScheduleRef = await addScheduleDoc(scheduleRecord);
       }
 
       // If no drive link (offline or unauthenticated drive), queue file locally
       if (!driveLink) {
-        await savePendingUpload(baseEntryId, finalFile, fileName, 'ckp', null, null, user.uid);
+        const targetEntryId = (ckpRecord ? addedCkpRef?.id : addedScheduleRef?.id) || baseEntryId;
+        const uploadType = scheduleRecord ? 'schedule' : 'ckp';
+        await savePendingUpload(targetEntryId, finalFile, fileName, uploadType, null, null, user.uid);
         isSavedOffline = true;
       }
 

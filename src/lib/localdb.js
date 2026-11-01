@@ -127,6 +127,15 @@ export async function removeCameraMedia(id) {
   await db.delete(CAMERA_MEDIA_STORE, id);
 }
 
+export async function updateCameraMedia(id, updates) {
+  if (!dbPromise) return;
+  const db = await dbPromise;
+  const item = await db.get(CAMERA_MEDIA_STORE, id);
+  if (item) {
+    await db.put(CAMERA_MEDIA_STORE, { ...item, ...updates });
+  }
+}
+
 export async function clearCameraMedia(userId = null) {
   if (!dbPromise) return;
   const db = await dbPromise;

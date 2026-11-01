@@ -13,8 +13,8 @@ import styles from './page.module.css';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFirestore } from '@/hooks/useFirestore';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { uploadFileToDrive, getOrCreateFolder, makeFileOrFolderPublic } from '@/lib/drive';
-import { savePendingUpload, getPendingUploads, removePendingUpload, getPendingUploadCount, saveDraftActivity, getDraftActivities, removeDraftActivity } from '@/lib/localdb';
+import { uploadFileToDrive, getOrCreateFolder, makeFileOrFolderPublic, isGoogleTokenValid } from '@/lib/drive';
+import { savePendingUpload, getPendingUploads, removePendingUpload, getPendingUploadCount, saveDraftActivity, getDraftActivities, removeDraftActivity, updateCameraMedia } from '@/lib/localdb';
 import { useChatAction } from '@/contexts/ChatActionContext';
 import { useAIContext } from '@/contexts/AIContext';
 import * as XLSX from 'xlsx';
@@ -7340,22 +7340,40 @@ function CKPPageInner() {
   }, [fetchPendingUploads, activeTab]);
 
   const handleSyncOfflineFiles = async () => {
-    let currentToken = accessToken;
-    if (!currentToken) {
-      try {
-        currentToken = await loginWithGoogle();
-      } catch (err) {
-        showAlert('Gagal menghubungkan ke Google Drive.');
-        return;
-      }
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      showAlert('Perangkat sedang offline. Sambungkan koneksi internet terlebih dahulu.', 'warning');
+      return;
     }
+
     setIsSyncing(true);
+    let currentToken = accessToken;
+
+    // 1. Proactively validate or refresh token with direct user click context
+    try {
+      const isValid = await isGoogleTokenValid(currentToken);
+      if (!currentToken || !isValid) {
+        currentToken = await loginWithGoogle();
+        if (!currentToken) {
+          showAlert('Koneksi Google Drive dibatalkan.', 'info');
+          setIsSyncing(false);
+          return;
+        }
+      }
+    } catch (authErr) {
+      console.error("Google Drive connection error:", authErr);
+      showAlert('Gagal menghubungkan Google Drive. Periksa izin popup di peramban Anda.', 'error');
+      setIsSyncing(false);
+      return;
+    }
+
     let successCount = 0;
+    const failErrors = [];
     
     try {
       const list = await getPendingUploads(user?.uid);
       const ckpList = list.filter(item => !item.type || item.type === 'ckp');
       if (!ckpList || ckpList.length === 0) {
+        showAlert('Tidak ada file bukti dukung yang menunggu sinkronisasi.', 'info');
         setIsSyncing(false);
         return;
       }
@@ -7366,13 +7384,25 @@ function CKPPageInner() {
       for (let k = 0; k < ckpList.length; k++) {
         const item = ckpList[k];
         try {
+          // Clean up corrupted or empty queue entries
+          const hasFiles = (item.files && item.files.length > 0) || item.file || item.presensiFile;
+          if (!hasFiles) {
+            console.warn("Menghapus item antrean offline yang tidak memiliki file:", item.id);
+            await removePendingUpload(item.id);
+            continue;
+          }
+
           let updatedFields = {};
           let hasUploadedAnything = false;
+          let driveUrl = null;
 
           // 1. Process files (bukti dukung)
           if (item.files && item.files.length > 0) {
             if (item.files.length === 1) {
-              const driveUrl = await uploadFileToDrive(item.files[0].file, currentToken, folderId, item.files[0].customFileName);
+              const fObj = item.files[0];
+              const f = fObj.file || fObj;
+              const fName = fObj.customFileName || f.name || `bukti_${Date.now()}`;
+              driveUrl = await uploadFileToDrive(f, currentToken, folderId, fName);
               updatedFields.buktiDukung = driveUrl;
               updatedFields.buktiDukungStatus = 'file';
               hasUploadedAnything = true;
@@ -7385,16 +7415,18 @@ function CKPPageInner() {
               await makeFileOrFolderPublic(subfolderId, currentToken);
               
               for (const fObj of item.files) {
-                await uploadFileToDrive(fObj.file, currentToken, subfolderId, fObj.customFileName);
+                const f = fObj.file || fObj;
+                const fName = fObj.customFileName || f.name || `bukti_${Date.now()}`;
+                await uploadFileToDrive(f, currentToken, subfolderId, fName);
               }
-              const driveUrl = `https://drive.google.com/drive/folders/${subfolderId}`;
+              driveUrl = `https://drive.google.com/drive/folders/${subfolderId}`;
               updatedFields.buktiDukung = driveUrl;
               updatedFields.buktiDukungStatus = 'folder';
               hasUploadedAnything = true;
             }
           } else if (item.file) {
-            // Fallback for single file if saved under old format
-            const driveUrl = await uploadFileToDrive(item.file, currentToken, folderId, item.customFileName);
+            const fName = item.customFileName || item.file.name || `bukti_${Date.now()}`;
+            driveUrl = await uploadFileToDrive(item.file, currentToken, folderId, fName);
             updatedFields.buktiDukung = driveUrl;
             updatedFields.buktiDukungStatus = 'file';
             hasUploadedAnything = true;
@@ -7403,61 +7435,90 @@ function CKPPageInner() {
           // 2. Process presensiFile (bukti presensi)
           if (item.presensiFile) {
             const presensiFolderId = await getOrCreateFolder(currentToken, 'Bukti Presensi CKP', parentFolderId);
-            const driveUrl = await uploadFileToDrive(item.presensiFile.file, currentToken, presensiFolderId, item.presensiFile.customFileName);
-            updatedFields.buktiPresensi = driveUrl;
+            const pObj = item.presensiFile;
+            const pFile = pObj.file || pObj;
+            const pName = pObj.customFileName || pFile.name || `presensi_${Date.now()}`;
+            const presensiDriveUrl = await uploadFileToDrive(pFile, currentToken, presensiFolderId, pName);
+            updatedFields.buktiPresensi = presensiDriveUrl;
             hasUploadedAnything = true;
           }
 
           if (hasUploadedAnything) {
-            const entry = entries.find(e => e.id === item.id);
-            if (entry && entry.groupId) {
-              const groupEntries = entries.filter(e => e.groupId === entry.groupId);
-              for (const gEntry of groupEntries) {
-                await updateDocument(gEntry.id, { ...updatedFields });
+            // A. Update Firestore Document
+            try {
+              let targetEntry = entries.find(e => e.id === item.id);
+              if (!targetEntry && (item.id.startsWith('photo_') || item.id.startsWith('vid_'))) {
+                targetEntry = entries.find(e => 
+                  (!e.buktiDukung || e.buktiDukung === '') && 
+                  (e.rincian?.includes('[Quick Snap]') || e.rincian?.includes('[Dinas Lapangan]'))
+                );
               }
-            } else {
-              await updateDocument(item.id, updatedFields);
+
+              if (targetEntry) {
+                if (targetEntry.groupId) {
+                  const groupEntries = entries.filter(e => e.groupId === targetEntry.groupId);
+                  for (const gEntry of groupEntries) {
+                    await updateDocument(gEntry.id, { ...updatedFields });
+                  }
+                } else {
+                  await updateDocument(targetEntry.id, updatedFields);
+                }
+              } else {
+                await updateDocument(item.id, updatedFields);
+              }
+            } catch (docErr) {
+              console.warn("Catatan: Dokumen CKP tidak ditemukan di Firestore, file tetap tersimpan di Drive:", item.id, docErr.message);
             }
+
+            // B. Update local Camera Geotag Media Gallery in IndexedDB if applicable
+            try {
+              if (driveUrl) {
+                await updateCameraMedia(item.id, { driveLink: driveUrl, isOffline: false });
+              }
+            } catch (camErr) {
+              console.warn("Camera media update warning:", camErr);
+            }
+
+            // C. Remove successfully synced item from pending queue
             await removePendingUpload(item.id);
             successCount++;
           }
-        } catch (err) {
-          console.error("Sync error for item", item.id, err);
-          if (err.message && err.message.includes('401')) {
-            showAlert('Sesi Google Drive kedaluwarsa. Mencoba menghubungkan ulang...', 'info');
+        } catch (itemErr) {
+          console.error("Sync error for item", item.id, itemErr);
+          if (itemErr.message && itemErr.message.includes('401')) {
+            showAlert('Sesi Google Drive kedaluwarsa. Menghubungkan ulang...', 'info');
             try {
               const newToken = await loginWithGoogle();
               if (newToken) {
                 currentToken = newToken;
                 parentFolderId = await getOrCreateFolder(currentToken, 'SuperBrain BPS');
                 folderId = await getOrCreateFolder(currentToken, 'Bukti Dukung CKP', parentFolderId);
-                k--; // Retry current item
+                k--; // Retry current item with fresh token
+                continue;
               }
             } catch (reloginErr) {
               console.error("Auto relogin failed:", reloginErr);
-              showAlert('Sesi kedaluwarsa. Gagal menghubungkan ulang Google Drive.');
+              failErrors.push('Sesi Google Drive kedaluwarsa.');
               break;
             }
+          } else {
+            failErrors.push(itemErr.message || 'Gagal mengunggah berkas');
           }
         }
       }
       
-      if (successCount > 0) {
-        showAlert(`Berhasil menyinkronkan ${successCount} file ke Google Drive.`);
-        fetchPendingUploads();
+      await fetchPendingUploads();
+
+      if (successCount > 0 && failErrors.length === 0) {
+        showAlert(`Berhasil menyinkronkan ${successCount} file bukti dukung ke Google Drive!`, 'success');
+      } else if (successCount > 0 && failErrors.length > 0) {
+        showAlert(`Berhasil menyinkronkan ${successCount} file. ${failErrors.length} file belum berhasil: ${failErrors[0]}`, 'warning');
+      } else if (failErrors.length > 0) {
+        showAlert(`Gagal menyinkronkan file: ${failErrors[0]}. Silakan coba klik kembali.`, 'error');
       }
     } catch (err) {
-      console.error(err);
-      if (err.message && err.message.includes('401')) {
-        showAlert('Sesi Google Drive kedaluwarsa. Mencoba menghubungkan ulang...', 'info');
-        try {
-          await loginWithGoogle();
-        } catch (reloginErr) {
-          console.error("Auto relogin failed in main block:", reloginErr);
-        }
-      } else {
-        showAlert('Gagal mengakses penyimpanan lokal.');
-      }
+      console.error("General sync failure:", err);
+      showAlert(`Gagal menyinkronkan: ${err.message || 'Terjadi kesalahan sistem'}.`, 'error');
     } finally {
       setIsSyncing(false);
     }

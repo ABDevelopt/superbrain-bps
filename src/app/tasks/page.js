@@ -21,7 +21,7 @@ import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, writeBatch, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/hooks/useFirestore';
 import { useAuth } from '@/contexts/AuthContext';
-import { uploadFileToDrive, getOrCreateFolder } from '@/lib/drive';
+import { uploadFileToDrive, getOrCreateFolder, isGoogleTokenValid } from '@/lib/drive';
 import { savePendingUpload, getPendingUploads, removePendingUpload } from '@/lib/localdb';
 
 function getRoleIcon(iconName, size = 14) {
@@ -251,63 +251,115 @@ export default function TasksPage() {
   };
 
   const handleSyncOfflineFiles = async () => {
-    if (!accessToken) {
-      try {
-        await loginWithGoogle();
-      } catch (err) {
-        alert('Gagal menghubungkan ke Google Drive.');
-        return;
-      }
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      alert('Perangkat sedang offline. Sambungkan koneksi internet terlebih dahulu.');
+      return;
     }
+
     setIsSyncing(true);
+    let currentToken = accessToken;
+
+    try {
+      const isValid = await isGoogleTokenValid(currentToken);
+      if (!currentToken || !isValid) {
+        currentToken = await loginWithGoogle();
+        if (!currentToken) {
+          alert('Koneksi Google Drive dibatalkan.');
+          setIsSyncing(false);
+          return;
+        }
+      }
+    } catch (authErr) {
+      console.error("Google Drive connection error in tasks:", authErr);
+      alert('Gagal menghubungkan Google Drive. Periksa izin popup peramban Anda.');
+      setIsSyncing(false);
+      return;
+    }
+
     let successCount = 0;
+    const failErrors = [];
     
     try {
       const list = await getPendingUploads(user?.uid);
       const tasksList = list.filter(item => item.type === 'tasks');
-      if (tasksList.length === 0) return;
+      if (tasksList.length === 0) {
+        alert('Tidak ada file lampiran tugas yang menunggu sinkronisasi.');
+        setIsSyncing(false);
+        return;
+      }
       
-      const parentFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
-      const folderId = await getOrCreateFolder(accessToken, 'Lampiran Tugas', parentFolderId);
+      let parentFolderId = await getOrCreateFolder(currentToken, 'SuperBrain BPS');
+      let folderId = await getOrCreateFolder(currentToken, 'Lampiran Tugas', parentFolderId);
       const updatesByTaskId = {};
 
-      for (const item of tasksList) {
+      for (let k = 0; k < tasksList.length; k++) {
+        const item = tasksList[k];
         try {
-          const driveUrl = await uploadFileToDrive(item.file, accessToken, folderId, item.customFileName);
+          if (!item.file) {
+            await removePendingUpload(item.id);
+            continue;
+          }
+          const fileName = item.customFileName || item.file.name || `lampiran_tugas_${Date.now()}`;
+          const driveUrl = await uploadFileToDrive(item.file, currentToken, folderId, fileName);
           const [taskId] = item.id.split('_');
           
           if (!updatesByTaskId[taskId]) {
             updatesByTaskId[taskId] = [];
           }
-          updatesByTaskId[taskId].push({ name: item.file.name, url: driveUrl });
+          updatesByTaskId[taskId].push({ name: item.file.name || fileName, url: driveUrl });
           
           await removePendingUpload(item.id);
           successCount++;
         } catch (err) {
           console.error("Sync error for task item", item.id, err);
           if (err.message && err.message.includes('401')) {
-            alert('Sesi Google Drive kedaluwarsa. Hubungkan ulang.');
-            break;
+            try {
+              const newToken = await loginWithGoogle();
+              if (newToken) {
+                currentToken = newToken;
+                parentFolderId = await getOrCreateFolder(currentToken, 'SuperBrain BPS');
+                folderId = await getOrCreateFolder(currentToken, 'Lampiran Tugas', parentFolderId);
+                k--;
+                continue;
+              }
+            } catch (reloginErr) {
+              console.error("Auto relogin failed in tasks:", reloginErr);
+              failErrors.push('Sesi Google Drive kedaluwarsa.');
+              break;
+            }
+          } else {
+            failErrors.push(err.message || 'Gagal mengunggah');
           }
         }
       }
 
       // Update Firestore documents with the new attachments
       for (const taskId of Object.keys(updatesByTaskId)) {
-        const existingTask = tasks.find(t => t.id === taskId);
-        const currentAttachments = existingTask?.attachments || [];
-        await updateTask(taskId, {
-          attachments: [...currentAttachments, ...updatesByTaskId[taskId]]
-        });
+        try {
+          const existingTask = tasks.find(t => t.id === taskId);
+          if (existingTask) {
+            const currentAttachments = existingTask?.attachments || [];
+            await updateTask(taskId, {
+              attachments: [...currentAttachments, ...updatesByTaskId[taskId]]
+            });
+          }
+        } catch (updateErr) {
+          console.warn("Could not update task attachments:", taskId, updateErr);
+        }
       }
 
-      if (successCount > 0) {
-        alert(`Berhasil menyinkronkan ${successCount} file lampiran tugas ke Google Drive.`);
-        fetchPendingUploads();
+      await fetchPendingUploads();
+
+      if (successCount > 0 && failErrors.length === 0) {
+        alert(`Berhasil menyinkronkan ${successCount} file lampiran tugas ke Google Drive!`);
+      } else if (successCount > 0 && failErrors.length > 0) {
+        alert(`Berhasil menyinkronkan ${successCount} file. ${failErrors.length} file belum berhasil: ${failErrors[0]}`);
+      } else if (failErrors.length > 0) {
+        alert(`Gagal menyinkronkan file: ${failErrors[0]}. Silakan coba lagi.`);
       }
     } catch (err) {
-      console.error(err);
-      alert('Gagal menyinkronkan file lampiran: ' + err.message);
+      console.error("General tasks sync error:", err);
+      alert(`Gagal menyinkronkan file lampiran: ${err.message || 'Terjadi kesalahan sistem'}.`);
     } finally {
       setIsSyncing(false);
     }

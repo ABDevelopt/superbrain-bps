@@ -1,9 +1,35 @@
 import { handleGoogleTokenExpired } from '@/lib/gcal';
 
 /**
+ * Validates whether the given Google OAuth access token is active and valid.
+ * 
+ * @param {string} accessToken - Google OAuth access token
+ * @returns {Promise<boolean>} - True if valid, false if expired or invalid
+ */
+export async function isGoogleTokenValid(accessToken) {
+  if (!accessToken) return false;
+  try {
+    const res = await fetch('https://www.googleapis.com/drive/v3/about?fields=user', {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (res.status === 401) {
+      handleGoogleTokenExpired();
+      return false;
+    }
+    return res.ok;
+  } catch (e) {
+    // If offline, assume token might still be valid for local operations
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      return true;
+    }
+    return false;
+  }
+}
+
+/**
  * Uploads a file to Google Drive using the REST API.
  * 
- * @param {File} file - The file to upload
+ * @param {File|Blob} file - The file to upload
  * @param {string} accessToken - Google OAuth access token with Drive scope
  * @param {string} [folderId] - Optional folder ID to upload into
  * @param {string} [customFileName] - Optional custom file name
@@ -14,9 +40,12 @@ export async function uploadFileToDrive(file, accessToken, folderId = null, cust
     throw new Error('File and access token are required');
   }
 
+  const safeFileName = customFileName || file.name || `bukti_${Date.now()}`;
+  const mimeType = file.type || 'application/octet-stream';
+
   const metadata = {
-    name: customFileName || file.name,
-    mimeType: file.type || 'application/octet-stream',
+    name: safeFileName,
+    mimeType: mimeType,
   };
 
   if (folderId) {
@@ -25,7 +54,7 @@ export async function uploadFileToDrive(file, accessToken, folderId = null, cust
 
   const form = new FormData();
   form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-  form.append('file', file);
+  form.append('file', file, safeFileName);
 
   try {
     // 1. Upload the file
@@ -49,18 +78,25 @@ export async function uploadFileToDrive(file, accessToken, folderId = null, cust
     const fileId = data.id;
     let webViewLink = data.webViewLink;
 
-    // 2. Make the file readable by anyone with the link
-    await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        role: 'reader',
-        type: 'anyone',
-      }),
-    });
+    // 2. Make the file readable by anyone with the link (non-blocking for domain-restricted accounts)
+    try {
+      const permRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          role: 'reader',
+          type: 'anyone',
+        }),
+      });
+      if (!permRes.ok && permRes.status === 401) {
+        handleGoogleTokenExpired();
+      }
+    } catch (permErr) {
+      console.warn('Google Drive set permission warning (non-blocking):', permErr);
+    }
 
     return webViewLink;
   } catch (error) {
@@ -68,6 +104,7 @@ export async function uploadFileToDrive(file, accessToken, folderId = null, cust
     throw error;
   }
 }
+
 /**
  * Searches for a folder by name or creates it if it doesn't exist.
  * If parentId is provided, searches or creates inside the parent folder.
@@ -79,8 +116,11 @@ export async function uploadFileToDrive(file, accessToken, folderId = null, cust
  */
 export async function getOrCreateFolder(accessToken, folderName, parentId = null) {
   try {
+    // Escape single quotes and backslashes for Google Drive API query syntax
+    const safeFolderName = (folderName || 'Folder').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
     // 1. Search for the folder
-    let queryStr = `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`;
+    let queryStr = `mimeType='application/vnd.google-apps.folder' and name='${safeFolderName}' and trashed=false`;
     if (parentId) {
       queryStr += ` and '${parentId}' in parents`;
     } else {
@@ -153,6 +193,7 @@ export async function getOrCreateFolder(accessToken, folderName, parentId = null
 
 /**
  * Sets public (anyone with link) reader permissions on a file or folder in Google Drive.
+ * Fails gracefully (non-blocking) if organizational Google Workspace policies prevent public sharing.
  * 
  * @param {string} fileId - The ID of the file or folder
  * @param {string} accessToken - Google OAuth access token
@@ -173,15 +214,22 @@ export async function makeFileOrFolderPublic(fileId, accessToken) {
     });
 
     if (!res.ok) {
-      const errData = await res.json();
-      console.error('Google Drive Permissions Error:', errData);
-      throw new Error(`Failed to set permissions: ${errData.error?.message || res.statusText}`);
+      if (res.status === 401) {
+        handleGoogleTokenExpired();
+        throw new Error('Google Drive API Error (401): Sesi telah kedaluwarsa');
+      }
+      const errData = await res.json().catch(() => ({}));
+      console.warn('Google Drive Permissions Warning (non-blocking):', errData);
+      return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error making file/folder public:', error);
-    throw error;
+    if (error.message?.includes('401')) {
+      throw error;
+    }
+    console.warn('Error making file/folder public (non-blocking):', error);
+    return false;
   }
 }
 
