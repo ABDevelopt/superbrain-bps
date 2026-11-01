@@ -1,6 +1,9 @@
 {
-  "timestamp": "2026-11-01T16:37:28.577Z",
+  "timestamp": "2026-11-01T16:47:40.465Z",
   "version": "1.0",
+  "totalActivities": 44,
+  "bulan": "Oktober 2026",
+  "satuanKerja": "BPS Kabupaten Penajam Paser Utara (6409)",
   "data": {
     "ckp": [
       {
@@ -28,17 +31,17 @@
         "waktuMulai": "13:00",
         "waktuSelesai": "16:00",
         "durasi": 180,
-        "skpId": 3,
+        "skpId": 2,
         "skpIds": [
-          3
+          2
         ],
-        "rincian": "Sinkronisasi statistik dinamis dan penyesuaian dropdown SLS 16 digit pada dasbor pemantauan survei",
+        "rincian": "Pengembangan algoritma standarisasi ejaan nama usaha dan nama kepala keluarga sensus ekonomi SE2026",
         "kuantitas": 1,
-        "satuan": "Dokumen",
+        "satuan": "Modul",
         "timKerja": "Tim IPJKD & DLS",
         "isFullday": false,
-        "buktiDukung": "Bukti_02_Sinkronisasi_SLS_16Digit.xlsx",
-        "buktiDukungKet": "Laporan tabel rekapitulasi penyesuaian dropdown SLS 16 digit",
+        "buktiDukung": "Bukti_02_Modul_SE2026_Name_Standardizer.py",
+        "buktiDukungKet": "Modul fasih-sm-se2026-name-standardizer untuk standarisasi nama entitas bisnis dan keluarga",
         "buktiDukungStatus": "file"
       },
       {
@@ -64,8 +67,8 @@
         "id": "ckp_20261002_2",
         "tanggal": "2026-10-02",
         "waktuMulai": "13:30",
-        "waktuSelesai": "16:30",
-        "durasi": 180,
+        "waktuSelesai": "17:00",
+        "durasi": 210,
         "skpId": 1,
         "skpIds": [
           1
@@ -104,17 +107,17 @@
         "waktuMulai": "13:00",
         "waktuSelesai": "16:00",
         "durasi": 180,
-        "skpId": 1,
+        "skpId": 17,
         "skpIds": [
-          1
+          17
         ],
-        "rincian": "Pengujian mode rekam video, galeri offline IndexedDB, dan optimasi arsitektur multi-tenant Firestore SuperBrain",
+        "rincian": "Analisis skema validasi FormGear CAPI/CAWI dan pola anomali data lapangan sensus SE2026-P dan SE2026-L",
         "kuantitas": 1,
-        "satuan": "Sistem",
-        "timKerja": "Subbagian Umum",
+        "satuan": "Dokumen",
+        "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
         "isFullday": false,
-        "buktiDukung": "Bukti_06_Schema_Firestore_MultiTenant.pdf",
-        "buktiDukungKet": "Dokumen arsitektur Firestore multi-tenant dan galeri offline IndexedDB",
+        "buktiDukung": "Bukti_06_SOP_Perbaikan_Anomali_SE2026.md",
+        "buktiDukungKet": "Dokumen telaah 5 kategori anomali utama FormGear kuesioner SE2026",
         "buktiDukungStatus": "file"
       },
       {
@@ -180,17 +183,17 @@
         "waktuMulai": "13:00",
         "waktuSelesai": "16:00",
         "durasi": 180,
-        "skpId": 16,
+        "skpId": 3,
         "skpIds": [
-          16
+          3
         ],
-        "rincian": "Finalisasi bahan paparan pelatihan SPDT NTP sub-sektor kehutanan dan peternakan (IKB)",
+        "rincian": "Telaah metodologi pendataan kawasan khusus dan tata cara penomoran ulang bangunan sensus SLS (b1_r108)",
         "kuantitas": 1,
         "satuan": "Dokumen",
-        "timKerja": "Tim Statistik Sosial",
+        "timKerja": "Tim IPJKD & DLS",
         "isFullday": false,
-        "buktiDukung": "Bukti_10_Bahan_Ajar_SPDT_NTP_Kehutanan.pptx",
-        "buktiDukungKet": "Slide paparan pelatihan SPDT NTP sub-sektor Kehutanan dan Peternakan",
+        "buktiDukung": "Bukti_10_Resume_Building_Renumbering.md",
+        "buktiDukungKet": "Pedoman alur kerja renumbering bangunan sensus SLS pada aplikasi FASIH-SM",
         "buktiDukungStatus": "file"
       },
       {
@@ -218,17 +221,17 @@
         "waktuMulai": "13:00",
         "waktuSelesai": "16:00",
         "durasi": 180,
-        "skpId": 10,
+        "skpId": 17,
         "skpIds": [
-          10
+          17
         ],
-        "rincian": "Uji coba ekstraksi data mikro survei terintegrasi secure SSH SOCKS5 tunnel pada lingkungan komputasi lokal",
+        "rincian": "Ekstraksi dan penelaahan daftar prelist SLS dan nomor BANR per Koordinator Sensus (Kako) di wilayah Kab. PPU (6409)",
         "kuantitas": 1,
         "satuan": "Dataset",
-        "timKerja": "Tim IPJKD & DLS",
+        "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
         "isFullday": false,
-        "buktiDukung": "Bukti_12_Dataset_Microdata_Tunnel_SSH.xlsx",
-        "buktiDukungKet": "Tabel ekstraksi data mikro via secure SSH SOCKS5 tunnel",
+        "buktiDukung": "Bukti_12_Nomor_BANR_per_Kako_6409.csv",
+        "buktiDukungKet": "Dataset identifikasi nomor BANR per kecamatan untuk penanganan non-respon",
         "buktiDukungStatus": "file"
       },
       {
@@ -237,25 +240,25 @@
         "waktuMulai": "07:30",
         "waktuSelesai": "11:30",
         "durasi": 240,
-        "skpId": 1,
+        "skpId": 17,
         "skpIds": [
-          1
+          17
         ],
-        "rincian": "Pemantauan dan verifikasi kestabilan eksekusi pemanenan data kuesioner pada harvester lokal",
+        "rincian": "Penyusunan SOP dan skrip inspeksi penanganan anomali Verifikasi 2 (Profesi Nelayan/Petani False Negatif) untuk re-aktivasi usaha keluarga",
         "kuantitas": 1,
-        "satuan": "Laporan",
-        "timKerja": "Subbagian Umum",
+        "satuan": "Dokumen",
+        "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
         "isFullday": false,
-        "buktiDukung": "Bukti_13_Pantau_Harvester_Lokal.bat",
-        "buktiDukungKet": "Log laporan hasil eksekusi stabil harvester lokal",
+        "buktiDukung": "Bukti_13_SOP_Inspeksi_Verifikasi_2.py",
+        "buktiDukungKet": "SOP dan skrip inspeksi verifikasi 2 re-aktivasi usaha keluarga",
         "buktiDukungStatus": "file"
       },
       {
         "id": "ckp_20261009_2",
         "tanggal": "2026-10-09",
         "waktuMulai": "13:30",
-        "waktuSelesai": "16:30",
-        "durasi": 180,
+        "waktuSelesai": "17:00",
+        "durasi": 210,
         "skpId": 7,
         "skpIds": [
           7
@@ -279,13 +282,13 @@
         "skpIds": [
           11
         ],
-        "rincian": "Pelaksanaan koordinasi dan supervisi dinas lapangan ke Kantor Desa dan aparat di Desa Bukit Raya dan Desa Giri Mukti (Kec. Sepaku)",
+        "rincian": "[Dinas Lapangan] Koordinasi dan supervisi dinas lapangan ke Kantor Desa dan aparat di Desa Bukit Raya dan Desa Giri Mukti (Kec. Sepaku)",
         "kuantitas": 1,
         "satuan": "Kegiatan",
         "timKerja": "Subbagian Umum",
         "isFullday": false,
         "buktiDukung": "Bukti_15_Foto_Dinas_Kantor_Desa_Bukit_Raya.jpg",
-        "buktiDukungKet": "Foto koordinasi lapangan di Kantor Desa Bukit Raya dan Desa Giri Mukti Sepaku",
+        "buktiDukungKet": "Foto koordinasi dinas lapangan di Kantor Desa Bukit Raya (Kec. Sepaku)",
         "buktiDukungStatus": "file"
       },
       {
@@ -298,13 +301,13 @@
         "skpIds": [
           11
         ],
-        "rincian": "Pendampingan lapangan wawancara responden dan verifikasi batas wilayah SLS di Desa Giri Mukti",
+        "rincian": "[Dinas Lapangan] Pendampingan lapangan wawancara responden dan verifikasi batas wilayah SLS di Desa Giri Mukti (Kec. Sepaku)",
         "kuantitas": 1,
         "satuan": "Kegiatan",
         "timKerja": "Subbagian Umum",
         "isFullday": false,
         "buktiDukung": "Bukti_16_Foto_Wawancara_Responden_Giri_Mukti.jpg",
-        "buktiDukungKet": "Foto pendampingan pencacahan dan verifikasi batas wilayah SLS Giri Mukti",
+        "buktiDukungKet": "Foto pendampingan wawancara dan verifikasi batas wilayah SLS Giri Mukti",
         "buktiDukungStatus": "file"
       },
       {
@@ -317,13 +320,13 @@
         "skpIds": [
           1
         ],
-        "rincian": "Penguatan sistem keamanan autentikasi SSO Keycloak BPS, alur OIDC, dan mitigasi WAF bot defense pada VPS Tencent",
+        "rincian": "Pembangunan modul gateway HTTP FASIH-SM (fasih_http.py) dengan sanitasi header, cookie handling, dan mitigasi WAF bot defense",
         "kuantitas": 1,
-        "satuan": "Sistem",
+        "satuan": "Modul",
         "timKerja": "Subbagian Umum",
         "isFullday": false,
         "buktiDukung": "Bukti_17_Arsitektur_SSO_Keycloak_OIDC.pdf",
-        "buktiDukungKet": "Dokumen teknis penguatan keamanan SSO Keycloak & mitigasi WAF",
+        "buktiDukungKet": "Dokumen teknis penguatan keamanan SSO Keycloak & gateway API BPS",
         "buktiDukungStatus": "file"
       },
       {
@@ -332,17 +335,17 @@
         "waktuMulai": "13:00",
         "waktuSelesai": "16:00",
         "durasi": 180,
-        "skpId": 1,
+        "skpId": 17,
         "skpIds": [
-          1
+          17
         ],
-        "rincian": "Implementasi opsi multi-mode autentikasi login SSO (Direct login, kunci TOTP Base32, dan manual OTP 6-digit)",
+        "rincian": "Penyusunan diagram alir (Flowchart) komprehensif penanganan Verifikasi 8 (Ketidakwajaran Nilai Tambah Bruto/NTB) SE2026",
         "kuantitas": 1,
-        "satuan": "Fitur",
-        "timKerja": "Subbagian Umum",
+        "satuan": "Dokumen",
+        "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
         "isFullday": false,
-        "buktiDukung": "Bukti_18_Antarmuka_Login_MultiMode_OTP.png",
-        "buktiDukungKet": "Tangkapan layar fitur login multi-mode OTP (TOTP Base32 & manual OTP)",
+        "buktiDukung": "Bukti_18_Flowchart_Penanganan_Verif8_SE2026.md",
+        "buktiDukungKet": "Dokumen pedoman dan bagan alur penanganan anomali Verifikasi 8 SE2026 format Markdown & PDF",
         "buktiDukungStatus": "file"
       },
       {
@@ -355,13 +358,13 @@
         "skpIds": [
           17
         ],
-        "rincian": "Audit data anomali sensus/survei usaha Kabupaten Penajam Paser Utara (Kab. 6409) pada basis data SE2026",
+        "rincian": "[Data Cleaning NTB] Audit ketidakwajaran data verifikasi 8 per petugas lapangan sensus di BPS Kabupaten Penajam Paser Utara",
         "kuantitas": 1,
         "satuan": "Dokumen",
         "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
         "isFullday": false,
         "buktiDukung": "Bukti_19_Audit_Anomali_SE2026_PPU.csv",
-        "buktiDukungKet": "Tabel audit kompilasi data anomali survei usaha Kab. PPU (6409)",
+        "buktiDukungKet": "Rekapitulasi anomali verifikasi 8 per petugas lapangan (Kabupaten 6409 PPU)",
         "buktiDukungStatus": "file"
       },
       {
@@ -374,13 +377,13 @@
         "skpIds": [
           17
         ],
-        "rincian": "Penyusunan daftar anomali usaha dan formulasi pohon keputusan penanganan verifikasi rasio output dan nilai tambah",
-        "kuantitas": 1,
-        "satuan": "Laporan",
+        "rincian": "[Data Cleaning NTB] Penanganan kasus penugasan kosong dan penyesuaian rasio NTB wajar 0,28 - 0,81 pada 14 kuesioner usaha keluarga",
+        "kuantitas": 14,
+        "satuan": "Kuesioner",
         "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
         "isFullday": false,
-        "buktiDukung": "Bukti_20_Pohon_Keputusan_Koreksi_Verifikasi.pdf",
-        "buktiDukungKet": "Dokumen SOP pohon keputusan verifikasi rasio output dan nilai tambah",
+        "buktiDukung": "Bukti_20_Hasil_Eksekusi_NTB_Keluarga.json",
+        "buktiDukungKet": "Berkas eksekusi analisis 14 kasus anomali kuesioner lapangan dengan rasio wajar",
         "buktiDukungStatus": "file"
       },
       {
@@ -393,13 +396,13 @@
         "skpIds": [
           17
         ],
-        "rincian": "Eksekusi perbaikan anomali Verifikasi 8 (Ketidakwajaran Nilai Tambah Bruto / NTB) pada dokumen usaha SE2026 Kabupaten PPU",
-        "kuantitas": 25,
-        "satuan": "Kuesioner",
+        "rincian": "[Data Cleaning NTB] Eksekusi kalibrasi rasio NTB terhadap output pada 6.455 unit usaha se-Kabupaten Penajam Paser Utara via FASIH-SM Bot",
+        "kuantitas": 6455,
+        "satuan": "Dokumen",
         "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
         "isFullday": false,
-        "buktiDukung": "Bukti_21_Perbaikan_Verif8_NTB_SE2026.xlsx",
-        "buktiDukungKet": "Tabel rekapitulasi koreksi Verifikasi 8 NTB 25 kuesioner usaha SE2026",
+        "buktiDukung": "Bukti_21_Simulasi_Donor_PPU_Summary.json",
+        "buktiDukungKet": "Laporan eksekusi bot kalibrasi 6.455 unit usaha (6.193 auto-calibrate, 94 koreksi skala, 79 korporasi)",
         "buktiDukungStatus": "file"
       },
       {
@@ -412,13 +415,13 @@
         "skpIds": [
           17
         ],
-        "rincian": "Verifikasi hasil perbaikan variabel omzet, biaya antara, dan pelabelan kode remark cleaning data (#1 s.d. #4)",
-        "kuantitas": 20,
-        "satuan": "Kuesioner",
+        "rincian": "[Data Cleaning NTB] Verifikasi hasil perbaikan variabel omzet, biaya antara, dan pelabelan kode remark cleaning data Deputi NAS (#1 s.d. #4)",
+        "kuantitas": 132,
+        "satuan": "Dokumen",
         "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
         "isFullday": false,
-        "buktiDukung": "Bukti_22_Log_Remark_Data_Cleaning_SE2026.xlsx",
-        "buktiDukungKet": "Log verifikasi dan pembubuhan kode remark data cleaning (#1 s.d. #4)",
+        "buktiDukung": "Bukti_22_Simulasi_Donor_PPU_Calibrated.csv",
+        "buktiDukungKet": "Tabel verifikasi status 6.323 selesai diperbaiki dan 132 konfirmasi keterangan lapangan wajar",
         "buktiDukungStatus": "file"
       },
       {
@@ -437,15 +440,15 @@
         "timKerja": "Subbagian Umum",
         "isFullday": false,
         "buktiDukung": "Bukti_23_Laporan_Perjadin_BukitRaya_GiriMukti.docx",
-        "buktiDukungKet": "Dokumen resmi Laporan Perjalanan Dinas Supervisi Lapangan Sepaku",
+        "buktiDukungKet": "Dokumen resmi Laporan Perjalanan Dinas Supervisi Lapangan Sepaku format Word BPS",
         "buktiDukungStatus": "file"
       },
       {
         "id": "ckp_20261016_2",
         "tanggal": "2026-10-16",
         "waktuMulai": "13:30",
-        "waktuSelesai": "16:30",
-        "durasi": 180,
+        "waktuSelesai": "17:00",
+        "durasi": 210,
         "skpId": 1,
         "skpIds": [
           1
@@ -456,7 +459,7 @@
         "timKerja": "Subbagian Umum",
         "isFullday": false,
         "buktiDukung": "Bukti_24_Modul_Dinas_Lapangan_SuperBrain.png",
-        "buktiDukungKet": "Tangkapan layar antarmuka modul Dinas Lapangan dan ekspor Word BPS",
+        "buktiDukungKet": "Tangkapan layar antarmuka modul Dinas Lapangan & generator laporan dinas BPS",
         "buktiDukungStatus": "file"
       },
       {
@@ -465,17 +468,17 @@
         "waktuMulai": "07:30",
         "waktuSelesai": "12:00",
         "durasi": 270,
-        "skpId": 5,
+        "skpId": 10,
         "skpIds": [
-          5
+          10
         ],
-        "rincian": "Perancangan kerangka kerja antarmuka \"Taka UI CSS Framework\" untuk kebutuhan portal monitoring data statistik BPS PPU",
+        "rincian": "[Data Cleaning Microdata] Analisis mendalam coverage usaha dan keluarga per desa/kecamatan pada basis data microdata SE2026 Kab. PPU",
         "kuantitas": 1,
-        "satuan": "Modul",
+        "satuan": "Laporan",
         "timKerja": "Tim IPJKD & DLS",
         "isFullday": false,
-        "buktiDukung": "Bukti_25_Framework_Taka_UI_CSS.css",
-        "buktiDukungKet": "Source code framework desain antarmuka Taka UI CSS BPS PPU",
+        "buktiDukung": "Bukti_25_Analisis_Coverage_Usaha_Desa.csv",
+        "buktiDukungKet": "Tabel analisis cakupan pendataan usaha dan keluarga per desa di wilayah Kabupaten PPU",
         "buktiDukungStatus": "file"
       },
       {
@@ -484,17 +487,17 @@
         "waktuMulai": "13:00",
         "waktuSelesai": "16:00",
         "durasi": 180,
-        "skpId": 5,
+        "skpId": 17,
         "skpIds": [
-          5
+          17
         ],
-        "rincian": "Pembuatan komponen tabel data densitas tinggi (high-density table) dan penataan tema kontras tinggi Taka UI",
-        "kuantitas": 1,
-        "satuan": "Fitur",
-        "timKerja": "Tim IPJKD & DLS",
+        "rincian": "[Data Cleaning Microdata] Penautan dua arah (Two-Way Linking Tier 1) batch 100 unit penugasan prelist OSS Perorangan ke kuesioner keluarga",
+        "kuantitas": 100,
+        "satuan": "Dokumen",
+        "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
         "isFullday": false,
-        "buktiDukung": "Bukti_26_Komponen_HighDensity_Table.png",
-        "buktiDukungKet": "Tangkapan layar implementasi tabel data monitoring statistik densitas tinggi",
+        "buktiDukung": "Bukti_26_Simulasi_TwoWay_Linking_Tier1.xlsx",
+        "buktiDukungKet": "100 penugasan berhasil dipadankan dengan banner kuning idsbr_match aktif dan 0 galat",
         "buktiDukungStatus": "file"
       },
       {
@@ -507,7 +510,7 @@
         "skpIds": [
           20
         ],
-        "rincian": "Pengawasan dan pendampingan lapangan petugas pencacah survei SPDT-NTP di Kelurahan Sepan (Kecamatan Penajam)",
+        "rincian": "[Dinas Lapangan] Pengawasan dan pendampingan lapangan petugas pencacah survei SPDT-NTP di Kelurahan Sepan (Kecamatan Penajam)",
         "kuantitas": 1,
         "satuan": "Kegiatan",
         "timKerja": "Tim Distribusi",
@@ -526,7 +529,7 @@
         "skpIds": [
           21
         ],
-        "rincian": "Pemeriksaan, editing, dan validasi dokumen kuesioner hasil pencacahan survei SPDT-NTP di Kelurahan Riko",
+        "rincian": "[Dinas Lapangan] Pemeriksaan, editing, dan validasi dokumen kuesioner hasil pencacahan survei SPDT-NTP di Kelurahan Riko (Kecamatan Penajam)",
         "kuantitas": 5,
         "satuan": "Dokumen",
         "timKerja": "Tim Distribusi",
@@ -570,7 +573,7 @@
         "timKerja": "Tim Statistik Sosial",
         "isFullday": false,
         "buktiDukung": "Bukti_30_Susenas_Official_Rules.py",
-        "buktiDukungKet": "Master data kewilayahan Gasik dan acuan ambang batas konsumsi",
+        "buktiDukungKet": "Master data kewilayahan Gasik dan acuan ambang batas konsumsi bahan makanan",
         "buktiDukungStatus": "file"
       },
       {
@@ -598,17 +601,17 @@
         "waktuMulai": "13:00",
         "waktuSelesai": "16:00",
         "durasi": 180,
-        "skpId": 22,
+        "skpId": 17,
         "skpIds": [
-          22
+          17
         ],
-        "rincian": "Pengecekan hasil pembacaan digit dan validasi batas wajar konsumsi kalori dan protein rumahtangga",
-        "kuantitas": 15,
-        "satuan": "Dokumen",
-        "timKerja": "Tim Statistik Sosial",
+        "rincian": "Pengembangan modul Field Notes FormGear untuk penyematan catatan verifikasi tanpa menimpa catatan asli PCL",
+        "kuantitas": 1,
+        "satuan": "Modul",
+        "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
         "isFullday": false,
-        "buktiDukung": "Bukti_32_Laporan_Validasi_Kalori_Protein.pdf",
-        "buktiDukungKet": "Laporan pemeriksaan konsistensi konsumsi kalori dan protein rumahtangga",
+        "buktiDukung": "Bukti_32_FormGear_Field_Notes.py",
+        "buktiDukungKet": "Skrip formgear_field_notes.py dan tervalidasi pada rekonsiliasi data survei rutin",
         "buktiDukungStatus": "file"
       },
       {
@@ -617,36 +620,36 @@
         "waktuMulai": "07:30",
         "waktuSelesai": "11:30",
         "durasi": 240,
-        "skpId": 1,
+        "skpId": 17,
         "skpIds": [
-          1
+          17
         ],
-        "rincian": "Implementasi sistem token autentikasi sesi HMAC zero-trust untuk integrasi API cloud ke dasbor pemantauan lapangan",
+        "rincian": "[Data Cleaning Microdata] Remediasi anomali klasifikasi KBLI unit usaha keluarga pada basis data microdata SE2026 Kab. PPU",
         "kuantitas": 1,
-        "satuan": "Sistem",
-        "timKerja": "Subbagian Umum",
+        "satuan": "Laporan",
+        "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
         "isFullday": false,
-        "buktiDukung": "Bukti_33_Token_Autentikasi_HMAC_ZeroTrust.py",
-        "buktiDukungKet": "Skrip modul generator token autentikasi sesi HMAC zero-trust",
+        "buktiDukung": "Bukti_33_Remediasi_KBLI_Plan.json",
+        "buktiDukungKet": "Dokumen rencana dan rekapitulasi remediasi KBLI anomali unit usaha PPU",
         "buktiDukungStatus": "file"
       },
       {
         "id": "ckp_20261023_2",
         "tanggal": "2026-10-23",
         "waktuMulai": "13:30",
-        "waktuSelesai": "16:30",
-        "durasi": 180,
+        "waktuSelesai": "17:00",
+        "durasi": 210,
         "skpId": 17,
         "skpIds": [
           17
         ],
-        "rincian": "Perbaikan layout overflow ikon tombol navbar pada mobile view dasbor monitoring SE2026 PPU",
-        "kuantitas": 1,
-        "satuan": "Fitur",
+        "rincian": "[Data Cleaning Sosek] Audit penegakan Strict Invariant Kematian: larangan mengubah status keluarga meninggal menjadi BANR/ditemukan",
+        "kuantitas": 8,
+        "satuan": "Dokumen",
         "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
         "isFullday": false,
-        "buktiDukung": "Bukti_34_Optimasi_Navbar_Mobile_SE2026.png",
-        "buktiDukungKet": "Tangkapan layar perbaikan tampilan responsif navbar mobile monitoring SE2026",
+        "buktiDukung": "Bukti_34_Rekap_Meninggal_vs_Pindah_Final.json",
+        "buktiDukungKet": "Berkas audit integritas demografis 8 kasus status meninggal vs pindah",
         "buktiDukungStatus": "file"
       },
       {
@@ -659,7 +662,7 @@
         "skpIds": [
           20
         ],
-        "rincian": "Pengawasan lapangan dan supervisi wawancara responden survei SPDT-NTP komoditas pertanian di Kelurahan Sotek (Kecamatan Penajam)",
+        "rincian": "[Dinas Lapangan] Pengawasan lapangan dan supervisi wawancara responden survei SPDT-NTP komoditas pertanian di Kelurahan Sotek (Kecamatan Penajam)",
         "kuantitas": 1,
         "satuan": "Kegiatan",
         "timKerja": "Tim Distribusi",
@@ -678,7 +681,7 @@
         "skpIds": [
           21
         ],
-        "rincian": "Pemeriksaan kelengkapan isian kuesioner dan konsistensi struktur ongkos usaha tani SPDT-NTP di Kelurahan Sotek",
+        "rincian": "[Dinas Lapangan] Pemeriksaan kelengkapan isian kuesioner dan konsistensi struktur ongkos usaha tani SPDT-NTP di Kelurahan Sotek (Kecamatan Penajam)",
         "kuantitas": 6,
         "satuan": "Dokumen",
         "timKerja": "Tim Distribusi",
@@ -697,7 +700,7 @@
         "skpIds": [
           20
         ],
-        "rincian": "Pengawasan dan pendampingan pencacahan lapangan survei SPDT-NTP sub-sektor perikanan/perkebunan di Kelurahan Gersik (Kecamatan Penajam)",
+        "rincian": "[Dinas Lapangan] Pengawasan dan pendampingan pencacahan lapangan survei SPDT-NTP sub-sektor perikanan/perkebunan di Kelurahan Gersik (Kecamatan Penajam)",
         "kuantitas": 1,
         "satuan": "Kegiatan",
         "timKerja": "Tim Distribusi",
@@ -716,7 +719,7 @@
         "skpIds": [
           21
         ],
-        "rincian": "Pemeriksaan rincian biaya produksi dan penerimaan responden SPDT-NTP Kelurahan Gersik pada aplikasi FASIH SM",
+        "rincian": "[Dinas Lapangan] Pemeriksaan rincian biaya produksi dan penerimaan responden SPDT-NTP Kelurahan Gersik pada aplikasi FASIH SM",
         "kuantitas": 5,
         "satuan": "Kuesioner",
         "timKerja": "Tim Distribusi",
@@ -731,17 +734,17 @@
         "waktuMulai": "07:30",
         "waktuSelesai": "12:00",
         "durasi": 270,
-        "skpId": 2,
+        "skpId": 17,
         "skpIds": [
-          2
+          17
         ],
-        "rincian": "Pengujian skala besar Name Standardizer pada 1.000 sampel dokumen SLS seluruh Kabupaten Penajam Paser Utara",
-        "kuantitas": 1000,
-        "satuan": "Dokumen",
-        "timKerja": "Tim IPJKD & DLS",
+        "rincian": "[Data Cleaning Microdata] Audit dan remediasi anomali Bangunan Khusus Usaha (BKU) dalam keluarga pada microdata SE2026 Kab. PPU",
+        "kuantitas": 1,
+        "satuan": "Laporan",
+        "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
         "isFullday": false,
-        "buktiDukung": "Bukti_39_Hasil_Scan_1000_SLS_Kab_PPU.xlsx",
-        "buktiDukungKet": "Laporan pengujian skala penuh Name Standardizer pada 1.000 dokumen SLS PPU",
+        "buktiDukung": "Bukti_39_Rincian_Anomali_BKU_Keluarga.xlsx",
+        "buktiDukungKet": "Laporan analisis kesalahan petugas penataan BKU dalam keluarga kuesioner SE2026",
         "buktiDukungStatus": "file"
       },
       {
@@ -754,13 +757,13 @@
         "skpIds": [
           2
         ],
-        "rincian": "Analisis perbandingan akurasi standarisasi penamaan unit usaha di Kecamatan Sepaku dan Babulu",
+        "rincian": "[Data Cleaning Microdata] Live scan pemadanan unit usaha keluarga yang belum terhubung dengan data prelist administratif BPS",
         "kuantitas": 1,
-        "satuan": "Laporan",
+        "satuan": "Dataset",
         "timKerja": "Tim IPJKD & DLS",
         "isFullday": false,
-        "buktiDukung": "Bukti_40_Laporan_Akurasi_Sepaku_Babulu.pdf",
-        "buktiDukungKet": "Dokumen analisis evaluasi akurasi standarisasi Kecamatan Sepaku dan Babulu",
+        "buktiDukung": "Bukti_40_Live_Scan_Unlinked_Family_Businesses.xlsx",
+        "buktiDukungKet": "Hasil pemadanan dan penyelarasan usaha keluarga unlinked pada basis data SE2026",
         "buktiDukungStatus": "file"
       },
       {
@@ -792,13 +795,13 @@
         "skpIds": [
           3
         ],
-        "rincian": "Perancangan skrip reallokasi wilayah penugasan kuesioner draft FASIH-SM (reallocate_draft_assignments.py)",
-        "kuantitas": 1,
-        "satuan": "Skrip",
+        "rincian": "[Data Cleaning Reallokasi] Pemetaan dan alokasi wilayah 1.259 penugasan prelist SE2026 serta reallokasi 123 penugasan draft antar-petugas aktif",
+        "kuantitas": 1382,
+        "satuan": "Dokumen",
         "timKerja": "Tim IPJKD & DLS",
         "isFullday": false,
-        "buktiDukung": "Bukti_42_Skrip_Reallokasi_Penugasan_SLS.py",
-        "buktiDukungKet": "Skrip reallokasi wilayah dan perpindahan penugasan kuesioner draft FASIH",
+        "buktiDukung": "Bukti_42_Laporan_Alokasi_Wilayah_Prelist_SE2026.xlsx",
+        "buktiDukungKet": "Laporan alokasi 1.259 prelist SLS dan reallokasi 123 draft assignment via API survey-user",
         "buktiDukungStatus": "file"
       },
       {
@@ -807,30 +810,30 @@
         "waktuMulai": "07:30",
         "waktuSelesai": "11:30",
         "durasi": 240,
-        "skpId": 1,
+        "skpId": 17,
         "skpIds": [
-          1
+          17
         ],
-        "rincian": "Uji coba submit penugasan SCM-EDIT FormGear via S3 MinIO Presigned URL dengan hasil validasi 0 galat",
-        "kuantitas": 1,
-        "satuan": "Laporan",
-        "timKerja": "Subbagian Umum",
+        "rincian": "[Data Cleaning BANR] Otomasi penyelesaian dan pengiriman batch kuesioner draft BANR (28 dokumen) via FormGear MinIO S3 dengan hasil 0 galat",
+        "kuantitas": 28,
+        "satuan": "Dokumen",
+        "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
         "isFullday": false,
-        "buktiDukung": "Bukti_43_Log_Submit_FormGear_MinIO_S3.pdf",
-        "buktiDukungKet": "Laporan pengiriman SCM-EDIT FormGear via S3 MinIO Presigned URL dengan 0 galat",
+        "buktiDukung": "Bukti_43_Zahra_BANR_Submit_Recap.json",
+        "buktiDukungKet": "Laporan rekapitulasi pengiriman 28 penugasan draft BANR dengan status sukses 100% dan 0 galat",
         "buktiDukungStatus": "file"
       },
       {
         "id": "ckp_20261030_2",
         "tanggal": "2026-10-30",
         "waktuMulai": "13:30",
-        "waktuSelesai": "16:30",
-        "durasi": 180,
+        "waktuSelesai": "17:00",
+        "durasi": 210,
         "skpId": 7,
         "skpIds": [
           7
         ],
-        "rincian": "Rekapitulasi capaian kinerja bulanan (CKP-R dan CKP-T) bulan Oktober 2026 dan penyusunan bukti dukung kegiatan",
+        "rincian": "Rekapitulasi capaian kinerja bulanan (CKP-R dan CKP-T) bulan Oktober 2026 dan kompilasi seluruh bukti fisik dukung kegiatan",
         "kuantitas": 1,
         "satuan": "Laporan",
         "timKerja": "Subbagian Umum",
