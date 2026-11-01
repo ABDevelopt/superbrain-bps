@@ -5,7 +5,7 @@ import { Clock, AlertTriangle, Edit3, X, Move, ChevronLeft, ChevronRight, Check,
 import styles from './DailyTimeVisualizer.module.css';
 
 const DEFAULT_START_HOUR = 6;
-const DEFAULT_END_HOUR = 18;
+const DEFAULT_END_HOUR = 21;
 
 export const getEntrySkpIds = (entry) => {
   if (!entry) return [];
@@ -656,7 +656,7 @@ export default function DailyTimeVisualizer({
             className={styles.timeVizLegendColor}
             style={{ border: '1.5px dashed rgba(16, 185, 129, 0.7)', background: 'rgba(16, 185, 129, 0.15)' }}
           />
-          <span>Jam Wajib BPS (07:30 - 16:00/16:30)</span>
+          <span>Jam Wajib Formal (07:30 - 16:00/16:30) | DL & Lembur Fleksibel (> 16:00)</span>
         </div>
         {highlightStart && highlightEnd && (
           <div className={styles.timeVizLegendItem}>

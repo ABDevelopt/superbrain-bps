@@ -70,9 +70,12 @@ Berkas cadangan SuperBrain (`superbrain-backup-*.json`) mengemas seluruh koleksi
 
 Setiap data CKP harian yang diproses oleh SuperBrain Bridge wajib lolos 4 kriteria validasi:
 
-1. **Beban Jam Kerja Harian Maksimal 7,5 Jam (450 Menit):**
-   - Jam kerja normal kantor adalah 7,5 jam efektif per hari kerja (Senin-Jumat).
-   - Bila total durasi tercatat $> 450$ menit, validator akan menandai anomali `overwork_days` dan merekomendasikan pemecahan atau penyesuaian jam kerja/lembur resmi.
+1. **Standar Jam Kerja Efektif & Fleksibilitas DL/Lembur (Sesuai Kondisi Asli):**
+   - Jam kerja formal normal kantor BPS adalah minimal 7,5 jam (450 menit) efektif per hari kerja (Senin-Jumat).
+   - **Boleh Melebihi Pukul 16:00 / 16:30:** Sesuai kondisi riil di lapangan, jam kerja **DIPERBOLEHKAN MELEBIHI PUKUL 16:00 ATAU 16:30 (misal s.d. 17:00, 17:30, 18:00, atau lebih)**, terutama saat:
+     * **Kegiatan Dinas Lapangan (DL):** Wawancara lapangan, supervisi responden, koordinasi desa, dan waktu tempuh perjalanan dinas pulang-pergi dari/ke kecamatan (Sepaku, Sepan, Riko, Sotek, Gersik).
+     * **Hari Kerja Biasa di Kantor:** Lembur pengolahan data masif, deadline pelaporan, kalibrasi bot otomasi, atau ekstraksi basis data perizinan.
+   - Durasi kerja harian yang melebihi 450 menit (> 7,5 jam) diakui sah dan valid sebagai jam kerja riil diperpanjang (*extended/overtime work*).
 2. **Anti-Tumpang Tindih Waktu (*No Overlapping Slots*):**
    - Dalam satu tanggal yang sama, tidak boleh ada dua kegiatan dengan rentang waktu yang bertabrakan (misal: Kegiatan A selesai pukul 10:00, namun Kegiatan B dimulai pukul 09:30).
 3. **Keterkaitan RHK & IKI Sah (*SKP Direct Linkage*):**

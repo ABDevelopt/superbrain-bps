@@ -23,8 +23,8 @@ import {
 } from './DailyTimeVisualizer';
 
 const START_HOUR = 6;
-const END_HOUR = 18;
-const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60; // 720 mins
+const END_HOUR = 21;
+const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60; // 900 mins (06:00 - 21:00 fleksibel DL & lembur)
 
 export default function MonthlyTimeVisualizer({
   entries = [],
@@ -294,8 +294,8 @@ export default function MonthlyTimeVisualizer({
     );
   }, [monthEntries]);
 
-  // Hour markers for ruler
-  const rulerHours = [6, 8, 10, 12, 14, 16, 18];
+  // Hour markers for ruler (06:00 s.d. 20:00 untuk mengakomodasi dinas lapangan & lembur)
+  const rulerHours = [6, 8, 10, 12, 14, 16, 18, 20];
 
   return (
     <div 

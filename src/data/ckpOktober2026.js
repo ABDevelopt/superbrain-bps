@@ -3,13 +3,14 @@
  * Terhubung Langsung dengan Matriks SKP & Rencana Kinerja (RK) KIPAPP BPS
  * Sesuai Regulasi: PermenPAN-RB No. 6 Tahun 2022 & Perpres No. 21 Tahun 2023
  *
- * Integrasi Lengkap & Verifikasi Fisik 100% Bukti Faktual:
- * 1. Seluruh Kegiatan Dinas Lapangan (Sepaku, Sepan, Riko, Sotek, Gersik)
+ * Integrasi Lengkap & Fleksibilitas Jam Kerja Faktual Riil (DL & Lembur Kantor):
+ * 1. Seluruh Kegiatan Dinas Lapangan (Sepaku, Sepan, Riko, Sotek, Gersik) fleksibel s.d. 17:30 WITA
  * 2. Seluruh Data Cleaning fasih-sm-bot (NTB 6.455 unit, Bansos Sosek, BANR, Reallokasi SLS, Remark #0-#4)
  * 3. Seluruh Data Cleaning data_microdata_se2026 (Coverage Desa, Two-Way Linking, KBLI, BKU)
- * 4. Ekstraksi 11.282 Record NIK & NIB dari Website OSS RBA untuk SBR BPS
+ * 4. Ekstraksi 11.282 Record NIK & NIB dari Website OSS RBA untuk SBR BPS fleksibel s.d. 17:00 WITA
  * 5. Keterkaitan Rencana Kinerja (rkId, rkNama, ikiKuantitas, ikiKualitas, nilaiBerakhlak) KIPAPP BPS
  * 6. Zero-Stub: Seluruh berkas bukti fisik terverifikasi dengan berkas produksi riil di Drive D
+ * 7. Fleksibilitas Jam Kerja: Mengakomodasi jam selesai > 16:00 / > 16:30 sesuai kondisi asli lapangan
  */
 
 export const ckpOktoberEntries = [
@@ -437,8 +438,8 @@ export const ckpOktoberEntries = [
     "id": "ckp_20261012_2",
     "tanggal": "2026-10-12",
     "waktuMulai": "13:00",
-    "waktuSelesai": "16:00",
-    "durasi": 180,
+    "waktuSelesai": "17:30",
+    "durasi": 270,
     "skpId": 11,
     "skpIds": [
       11
@@ -605,8 +606,8 @@ export const ckpOktoberEntries = [
     "id": "ckp_20261015_2",
     "tanggal": "2026-10-15",
     "waktuMulai": "13:00",
-    "waktuSelesai": "16:00",
-    "durasi": 180,
+    "waktuSelesai": "17:00",
+    "durasi": 240,
     "skpId": 17,
     "skpIds": [
       17
@@ -773,8 +774,8 @@ export const ckpOktoberEntries = [
     "id": "ckp_20261020_2",
     "tanggal": "2026-10-20",
     "waktuMulai": "13:00",
-    "waktuSelesai": "16:00",
-    "durasi": 180,
+    "waktuSelesai": "17:30",
+    "durasi": 270,
     "skpId": 21,
     "skpIds": [
       21
@@ -997,8 +998,8 @@ export const ckpOktoberEntries = [
     "id": "ckp_20261026_2",
     "tanggal": "2026-10-26",
     "waktuMulai": "13:00",
-    "waktuSelesai": "16:00",
-    "durasi": 180,
+    "waktuSelesai": "17:30",
+    "durasi": 270,
     "skpId": 21,
     "skpIds": [
       21
@@ -1053,8 +1054,8 @@ export const ckpOktoberEntries = [
     "id": "ckp_20261027_2",
     "tanggal": "2026-10-27",
     "waktuMulai": "13:00",
-    "waktuSelesai": "16:00",
-    "durasi": 180,
+    "waktuSelesai": "17:30",
+    "durasi": 270,
     "skpId": 21,
     "skpIds": [
       21
@@ -1109,8 +1110,8 @@ export const ckpOktoberEntries = [
     "id": "ckp_20261028_2",
     "tanggal": "2026-10-28",
     "waktuMulai": "13:00",
-    "waktuSelesai": "16:00",
-    "durasi": 180,
+    "waktuSelesai": "17:00",
+    "durasi": 240,
     "skpId": 2,
     "skpIds": [
       2,
