@@ -1008,18 +1008,7 @@
    ============================================================ */
 
 @media print {
-  /* Hide SuperBrain UI Elements */
-  :global(body),
-  :global(html) {
-    background: #ffffff !important;
-    color: #000000 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  :global(nav),
-  :global(aside),
-  :global(header),
+  /* Hide page-level elements during print (global body/nav/aside/header handled in globals.css) */
   .noPrintToolbar,
   .tabNav,
   .toolbar,

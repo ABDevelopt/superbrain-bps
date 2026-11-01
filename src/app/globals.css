@@ -854,3 +854,23 @@ body.camera-open main {
   padding-bottom: 0 !important;
   width: 100% !important;
 }
+
+/* ============================================
+   Global Print Rules (A4 Print & Save PDF)
+   ============================================ */
+@media print {
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  nav,
+  aside,
+  header {
+    display: none !important;
+  }
+}
+
