@@ -1,0 +1,712 @@
+{
+  "timestamp": "2026-11-01T16:22:15.757Z",
+  "version": "1.0",
+  "data": {
+    "ckp": [
+      {
+        "id": "ckp_20261001_1",
+        "tanggal": "2026-10-01",
+        "waktuMulai": "07:30",
+        "waktuSelesai": "12:00",
+        "durasi": 270,
+        "skpId": 1,
+        "skpIds": [
+          1
+        ],
+        "rincian": "Pengoptimalan sistem monitoring dan filter wilayah hierarkis 6-level FASIH-SM pada server VPS BPS",
+        "kuantitas": 1,
+        "satuan": "Sistem",
+        "timKerja": "Subbagian Umum",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261001_2",
+        "tanggal": "2026-10-01",
+        "waktuMulai": "13:00",
+        "waktuSelesai": "16:00",
+        "durasi": 180,
+        "skpId": 3,
+        "skpIds": [
+          3
+        ],
+        "rincian": "Sinkronisasi statistik dinamis dan penyesuaian dropdown SLS 16 digit pada dasbor pemantauan survei",
+        "kuantitas": 1,
+        "satuan": "Dokumen",
+        "timKerja": "Tim IPJKD & DLS",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261002_1",
+        "tanggal": "2026-10-02",
+        "waktuMulai": "07:30",
+        "waktuSelesai": "11:30",
+        "durasi": 240,
+        "skpId": 11,
+        "skpIds": [
+          11
+        ],
+        "rincian": "Mengikuti sosialisasi daring Pelatihan Dasar (LATSAR) CPNS dan koordinasi administrasi kepegawaian",
+        "kuantitas": 1,
+        "satuan": "Kegiatan",
+        "timKerja": "Subbagian Umum",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261002_2",
+        "tanggal": "2026-10-02",
+        "waktuMulai": "13:30",
+        "waktuSelesai": "16:30",
+        "durasi": 180,
+        "skpId": 1,
+        "skpIds": [
+          1
+        ],
+        "rincian": "Penyempurnaan fitur visual drag-and-drop alokasi waktu kegiatan harian pada modul CKP SuperBrain",
+        "kuantitas": 1,
+        "satuan": "Fitur",
+        "timKerja": "Subbagian Umum",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261005_1",
+        "tanggal": "2026-10-05",
+        "waktuMulai": "07:30",
+        "waktuSelesai": "12:00",
+        "durasi": 270,
+        "skpId": 1,
+        "skpIds": [
+          1
+        ],
+        "rincian": "Perancangan dan integrasi kamera lapangan dengan watermark geotagging real-time (koordinat GPS dan waktu WITA) untuk bukti dukung CKP",
+        "kuantitas": 1,
+        "satuan": "Modul",
+        "timKerja": "Subbagian Umum",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261005_2",
+        "tanggal": "2026-10-05",
+        "waktuMulai": "13:00",
+        "waktuSelesai": "16:00",
+        "durasi": 180,
+        "skpId": 1,
+        "skpIds": [
+          1
+        ],
+        "rincian": "Pengujian mode rekam video, galeri offline IndexedDB, dan optimasi arsitektur multi-tenant Firestore SuperBrain",
+        "kuantitas": 1,
+        "satuan": "Sistem",
+        "timKerja": "Subbagian Umum",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261006_1",
+        "tanggal": "2026-10-06",
+        "waktuMulai": "07:30",
+        "waktuSelesai": "12:00",
+        "durasi": 270,
+        "skpId": 16,
+        "skpIds": [
+          16
+        ],
+        "rincian": "Penyusunan dan penelaahan materi Bahan Ajar SPDT NTP 2026 modul metodologi dan tata cara pemeriksaan lapangan",
+        "kuantitas": 1,
+        "satuan": "Modul",
+        "timKerja": "Tim Statistik Sosial",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261006_2",
+        "tanggal": "2026-10-06",
+        "waktuMulai": "13:00",
+        "waktuSelesai": "16:00",
+        "durasi": 180,
+        "skpId": 16,
+        "skpIds": [
+          16
+        ],
+        "rincian": "Kompilasi materi pelatihan SPDT NTP 2026 sub-sektor hortikultura dan perkebunan untuk persiapan petugas",
+        "kuantitas": 1,
+        "satuan": "Bahan Ajar",
+        "timKerja": "Tim Statistik Sosial",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261007_1",
+        "tanggal": "2026-10-07",
+        "waktuMulai": "07:30",
+        "waktuSelesai": "12:00",
+        "durasi": 270,
+        "skpId": 16,
+        "skpIds": [
+          16
+        ],
+        "rincian": "Penyusunan materi ajar pengisian kuesioner SPDT NTP 2026 pada aplikasi FASIH SM dan modul konsumsi rumahtangga",
+        "kuantitas": 1,
+        "satuan": "Bahan Ajar",
+        "timKerja": "Tim Statistik Sosial",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261007_2",
+        "tanggal": "2026-10-07",
+        "waktuMulai": "13:00",
+        "waktuSelesai": "16:00",
+        "durasi": 180,
+        "skpId": 16,
+        "skpIds": [
+          16
+        ],
+        "rincian": "Finalisasi bahan paparan pelatihan SPDT NTP sub-sektor kehutanan dan peternakan (IKB)",
+        "kuantitas": 1,
+        "satuan": "Dokumen",
+        "timKerja": "Tim Statistik Sosial",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261008_1",
+        "tanggal": "2026-10-08",
+        "waktuMulai": "07:30",
+        "waktuSelesai": "12:00",
+        "durasi": 270,
+        "skpId": 1,
+        "skpIds": [
+          1
+        ],
+        "rincian": "Penyiapan dan pengujian skrip harvester otomatisasi pengunduhan data survei BPS anti-rate limit",
+        "kuantitas": 1,
+        "satuan": "Skrip",
+        "timKerja": "Subbagian Umum",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261008_2",
+        "tanggal": "2026-10-08",
+        "waktuMulai": "13:00",
+        "waktuSelesai": "16:00",
+        "durasi": 180,
+        "skpId": 10,
+        "skpIds": [
+          10
+        ],
+        "rincian": "Uji coba ekstraksi data mikro survei terintegrasi secure SSH SOCKS5 tunnel pada lingkungan komputasi lokal",
+        "kuantitas": 1,
+        "satuan": "Dataset",
+        "timKerja": "Tim IPJKD & DLS",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261009_1",
+        "tanggal": "2026-10-09",
+        "waktuMulai": "07:30",
+        "waktuSelesai": "11:30",
+        "durasi": 240,
+        "skpId": 1,
+        "skpIds": [
+          1
+        ],
+        "rincian": "Pemantauan dan verifikasi kestabilan eksekusi pemanenan data kuesioner pada harvester lokal",
+        "kuantitas": 1,
+        "satuan": "Laporan",
+        "timKerja": "Subbagian Umum",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261009_2",
+        "tanggal": "2026-10-09",
+        "waktuMulai": "13:30",
+        "waktuSelesai": "16:30",
+        "durasi": 180,
+        "skpId": 7,
+        "skpIds": [
+          7
+        ],
+        "rincian": "Pemeriksaan kelengkapan berkas administrasi dan kepegawaian CPNS di lingkungan BPS Kabupaten Penajam Paser Utara",
+        "kuantitas": 1,
+        "satuan": "Berkas",
+        "timKerja": "Subbagian Umum",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261012_1",
+        "tanggal": "2026-10-12",
+        "waktuMulai": "07:30",
+        "waktuSelesai": "12:00",
+        "durasi": 270,
+        "skpId": 11,
+        "skpIds": [
+          11
+        ],
+        "rincian": "Pelaksanaan koordinasi dan supervisi dinas lapangan ke Kantor Desa dan aparat di Desa Bukit Raya dan Desa Giri Mukti (Kec. Sepaku)",
+        "kuantitas": 1,
+        "satuan": "Kegiatan",
+        "timKerja": "Subbagian Umum",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261012_2",
+        "tanggal": "2026-10-12",
+        "waktuMulai": "13:00",
+        "waktuSelesai": "16:00",
+        "durasi": 180,
+        "skpId": 11,
+        "skpIds": [
+          11
+        ],
+        "rincian": "Pendampingan lapangan wawancara responden dan verifikasi batas wilayah SLS di Desa Giri Mukti",
+        "kuantitas": 1,
+        "satuan": "Kegiatan",
+        "timKerja": "Subbagian Umum",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261013_1",
+        "tanggal": "2026-10-13",
+        "waktuMulai": "07:30",
+        "waktuSelesai": "12:00",
+        "durasi": 270,
+        "skpId": 1,
+        "skpIds": [
+          1
+        ],
+        "rincian": "Penguatan sistem keamanan autentikasi SSO Keycloak BPS, alur OIDC, dan mitigasi WAF bot defense pada VPS Tencent",
+        "kuantitas": 1,
+        "satuan": "Sistem",
+        "timKerja": "Subbagian Umum",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261013_2",
+        "tanggal": "2026-10-13",
+        "waktuMulai": "13:00",
+        "waktuSelesai": "16:00",
+        "durasi": 180,
+        "skpId": 1,
+        "skpIds": [
+          1
+        ],
+        "rincian": "Implementasi opsi multi-mode autentikasi login SSO (Direct login, kunci TOTP Base32, dan manual OTP 6-digit)",
+        "kuantitas": 1,
+        "satuan": "Fitur",
+        "timKerja": "Subbagian Umum",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261014_1",
+        "tanggal": "2026-10-14",
+        "waktuMulai": "07:30",
+        "waktuSelesai": "12:00",
+        "durasi": 270,
+        "skpId": 17,
+        "skpIds": [
+          17
+        ],
+        "rincian": "Audit data anomali sensus/survei usaha Kabupaten Penajam Paser Utara (Kab. 6409) pada basis data SE2026",
+        "kuantitas": 1,
+        "satuan": "Dokumen",
+        "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261014_2",
+        "tanggal": "2026-10-14",
+        "waktuMulai": "13:00",
+        "waktuSelesai": "16:00",
+        "durasi": 180,
+        "skpId": 17,
+        "skpIds": [
+          17
+        ],
+        "rincian": "Penyusunan daftar anomali usaha dan formulasi pohon keputusan penanganan verifikasi rasio output dan nilai tambah",
+        "kuantitas": 1,
+        "satuan": "Laporan",
+        "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261015_1",
+        "tanggal": "2026-10-15",
+        "waktuMulai": "07:30",
+        "waktuSelesai": "12:00",
+        "durasi": 270,
+        "skpId": 17,
+        "skpIds": [
+          17
+        ],
+        "rincian": "Eksekusi perbaikan anomali Verifikasi 8 (Ketidakwajaran Nilai Tambah Bruto / NTB) pada dokumen usaha SE2026 Kabupaten PPU",
+        "kuantitas": 25,
+        "satuan": "Kuesioner",
+        "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261015_2",
+        "tanggal": "2026-10-15",
+        "waktuMulai": "13:00",
+        "waktuSelesai": "16:00",
+        "durasi": 180,
+        "skpId": 17,
+        "skpIds": [
+          17
+        ],
+        "rincian": "Verifikasi hasil perbaikan variabel omzet, biaya antara, dan pelabelan kode remark cleaning data (#1 s.d. #4)",
+        "kuantitas": 20,
+        "satuan": "Kuesioner",
+        "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261016_1",
+        "tanggal": "2026-10-16",
+        "waktuMulai": "07:30",
+        "waktuSelesai": "11:30",
+        "durasi": 240,
+        "skpId": 11,
+        "skpIds": [
+          11
+        ],
+        "rincian": "Penyusunan draf Laporan Perjalanan Dinas supervisi Desa Bukit Raya dan Giri Mukti (Sepaku) beserta lampiran dokumentasi foto",
+        "kuantitas": 1,
+        "satuan": "Laporan",
+        "timKerja": "Subbagian Umum",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261016_2",
+        "tanggal": "2026-10-16",
+        "waktuMulai": "13:30",
+        "waktuSelesai": "16:30",
+        "durasi": 180,
+        "skpId": 1,
+        "skpIds": [
+          1
+        ],
+        "rincian": "Pembangunan modul Dinas Lapangan (DL/SPD) pada SuperBrain dengan generator laporan Word (.docx) resmi dan filter status selesai",
+        "kuantitas": 1,
+        "satuan": "Modul",
+        "timKerja": "Subbagian Umum",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261019_1",
+        "tanggal": "2026-10-19",
+        "waktuMulai": "07:30",
+        "waktuSelesai": "12:00",
+        "durasi": 270,
+        "skpId": 5,
+        "skpIds": [
+          5
+        ],
+        "rincian": "Perancangan kerangka kerja antarmuka \"Taka UI CSS Framework\" untuk kebutuhan portal monitoring data statistik BPS PPU",
+        "kuantitas": 1,
+        "satuan": "Modul",
+        "timKerja": "Tim IPJKD & DLS",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261019_2",
+        "tanggal": "2026-10-19",
+        "waktuMulai": "13:00",
+        "waktuSelesai": "16:00",
+        "durasi": 180,
+        "skpId": 5,
+        "skpIds": [
+          5
+        ],
+        "rincian": "Pembuatan komponen tabel data densitas tinggi (high-density table) dan penataan tema kontras tinggi Taka UI",
+        "kuantitas": 1,
+        "satuan": "Fitur",
+        "timKerja": "Tim IPJKD & DLS",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261020_1",
+        "tanggal": "2026-10-20",
+        "waktuMulai": "07:30",
+        "waktuSelesai": "12:00",
+        "durasi": 270,
+        "skpId": 5,
+        "skpIds": [
+          5
+        ],
+        "rincian": "Perancangan aset identitas visual, logo SVG Taka UI, dan integrasi dual navigation (desktop sidebar & mobile bottom dock)",
+        "kuantitas": 1,
+        "satuan": "Paket",
+        "timKerja": "Tim IPJKD & DLS",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261020_2",
+        "tanggal": "2026-10-20",
+        "waktuMulai": "13:00",
+        "waktuSelesai": "16:00",
+        "durasi": 180,
+        "skpId": 5,
+        "skpIds": [
+          5
+        ],
+        "rincian": "Penulisan dokumentasi interaktif dan pengujian responsivitas komponen Taka UI pada berbagai resolusi layar",
+        "kuantitas": 1,
+        "satuan": "Dokumen",
+        "timKerja": "Tim IPJKD & DLS",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261021_1",
+        "tanggal": "2026-10-21",
+        "waktuMulai": "07:30",
+        "waktuSelesai": "12:00",
+        "durasi": 270,
+        "skpId": 21,
+        "skpIds": [
+          21
+        ],
+        "rincian": "Pengembangan aturan validasi kuesioner Susenas Kor dan KP pada backend aplikasi desktop Si-Periksa BPS PPU (rules_engine.py)",
+        "kuantitas": 1,
+        "satuan": "Modul",
+        "timKerja": "Tim Statistik Sosial",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261021_2",
+        "tanggal": "2026-10-21",
+        "waktuMulai": "13:00",
+        "waktuSelesai": "16:00",
+        "durasi": 180,
+        "skpId": 22,
+        "skpIds": [
+          22
+        ],
+        "rincian": "Integrasi master data kewilayahan Gasik dan database konsumsi bahan makanan ke dalam mesin validasi Si-Periksa",
+        "kuantitas": 1,
+        "satuan": "Database",
+        "timKerja": "Tim Statistik Sosial",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261022_1",
+        "tanggal": "2026-10-22",
+        "waktuMulai": "07:30",
+        "waktuSelesai": "12:00",
+        "durasi": 270,
+        "skpId": 21,
+        "skpIds": [
+          21
+        ],
+        "rincian": "Uji coba deteksi OCR dan pemindaian citra lembar kuesioner Susenas Kecamatan Sepaku pada Si-Periksa desktop",
+        "kuantitas": 15,
+        "satuan": "Dokumen",
+        "timKerja": "Tim Statistik Sosial",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261022_2",
+        "tanggal": "2026-10-22",
+        "waktuMulai": "13:00",
+        "waktuSelesai": "16:00",
+        "durasi": 180,
+        "skpId": 22,
+        "skpIds": [
+          22
+        ],
+        "rincian": "Pengecekan hasil pembacaan digit dan validasi batas wajar konsumsi kalori dan protein rumahtangga",
+        "kuantitas": 15,
+        "satuan": "Dokumen",
+        "timKerja": "Tim Statistik Sosial",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261023_1",
+        "tanggal": "2026-10-23",
+        "waktuMulai": "07:30",
+        "waktuSelesai": "11:30",
+        "durasi": 240,
+        "skpId": 1,
+        "skpIds": [
+          1
+        ],
+        "rincian": "Implementasi sistem token autentikasi sesi HMAC zero-trust untuk integrasi API cloud ke dasbor pemantauan lapangan",
+        "kuantitas": 1,
+        "satuan": "Sistem",
+        "timKerja": "Subbagian Umum",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261023_2",
+        "tanggal": "2026-10-23",
+        "waktuMulai": "13:30",
+        "waktuSelesai": "16:30",
+        "durasi": 180,
+        "skpId": 17,
+        "skpIds": [
+          17
+        ],
+        "rincian": "Perbaikan layout overflow ikon tombol navbar pada mobile view dasbor monitoring SE2026 PPU",
+        "kuantitas": 1,
+        "satuan": "Fitur",
+        "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261026_1",
+        "tanggal": "2026-10-26",
+        "waktuMulai": "07:30",
+        "waktuSelesai": "12:00",
+        "durasi": 270,
+        "skpId": 17,
+        "skpIds": [
+          17
+        ],
+        "rincian": "Penanganan verifikasi lanjutan (Verifikasi 18 & 19) pada kuesioner usaha SE2026 Kabupaten Penajam Paser Utara",
+        "kuantitas": 30,
+        "satuan": "Dokumen",
+        "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261026_2",
+        "tanggal": "2026-10-26",
+        "waktuMulai": "13:00",
+        "waktuSelesai": "16:00",
+        "durasi": 180,
+        "skpId": 17,
+        "skpIds": [
+          17
+        ],
+        "rincian": "Backup dan sinkronisasi basis data paska-verifikasi dokumen 6409_PPU.xlsx ke repositori penyimpanan aman",
+        "kuantitas": 1,
+        "satuan": "Database",
+        "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261027_1",
+        "tanggal": "2026-10-27",
+        "waktuMulai": "07:30",
+        "waktuSelesai": "12:00",
+        "durasi": 270,
+        "skpId": 2,
+        "skpIds": [
+          2
+        ],
+        "rincian": "Pengembangan modul SE2026 Name Standardizer (se2026_standardizer.py) untuk standarisasi nama badan usaha dan kepala keluarga",
+        "kuantitas": 1,
+        "satuan": "Modul",
+        "timKerja": "Tim IPJKD & DLS",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261027_2",
+        "tanggal": "2026-10-27",
+        "waktuMulai": "13:00",
+        "waktuSelesai": "16:00",
+        "durasi": 180,
+        "skpId": 2,
+        "skpIds": [
+          2
+        ],
+        "rincian": "Pengujian algoritma pembersihan nama pada 100 sampel dokumen usaha SLS wilayah Kecamatan Penajam",
+        "kuantitas": 100,
+        "satuan": "Dokumen",
+        "timKerja": "Tim IPJKD & DLS",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261028_1",
+        "tanggal": "2026-10-28",
+        "waktuMulai": "07:30",
+        "waktuSelesai": "12:00",
+        "durasi": 270,
+        "skpId": 2,
+        "skpIds": [
+          2
+        ],
+        "rincian": "Pengujian skala besar Name Standardizer pada 1.000 sampel dokumen SLS seluruh Kabupaten Penajam Paser Utara",
+        "kuantitas": 1000,
+        "satuan": "Dokumen",
+        "timKerja": "Tim IPJKD & DLS",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261028_2",
+        "tanggal": "2026-10-28",
+        "waktuMulai": "13:00",
+        "waktuSelesai": "16:00",
+        "durasi": 180,
+        "skpId": 2,
+        "skpIds": [
+          2
+        ],
+        "rincian": "Analisis perbandingan akurasi standarisasi penamaan unit usaha di Kecamatan Sepaku dan Babulu",
+        "kuantitas": 1,
+        "satuan": "Laporan",
+        "timKerja": "Tim IPJKD & DLS",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261029_1",
+        "tanggal": "2026-10-29",
+        "waktuMulai": "07:30",
+        "waktuSelesai": "12:00",
+        "durasi": 270,
+        "skpId": 1,
+        "skpIds": [
+          1
+        ],
+        "rincian": "Pengembangan ekstensi Google Chrome fasih-extension (background.js, panel.js, bridge.js) untuk akselerasi pengolahan survei",
+        "kuantitas": 1,
+        "satuan": "Ekstensi",
+        "timKerja": "Subbagian Umum",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261029_2",
+        "tanggal": "2026-10-29",
+        "waktuMulai": "13:00",
+        "waktuSelesai": "16:00",
+        "durasi": 180,
+        "skpId": 3,
+        "skpIds": [
+          3
+        ],
+        "rincian": "Perancangan skrip reallokasi wilayah penugasan kuesioner draft FASIH-SM (reallocate_draft_assignments.py)",
+        "kuantitas": 1,
+        "satuan": "Skrip",
+        "timKerja": "Tim IPJKD & DLS",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261030_1",
+        "tanggal": "2026-10-30",
+        "waktuMulai": "07:30",
+        "waktuSelesai": "11:30",
+        "durasi": 240,
+        "skpId": 1,
+        "skpIds": [
+          1
+        ],
+        "rincian": "Uji coba submit penugasan SCM-EDIT FormGear via S3 MinIO Presigned URL dengan hasil validasi 0 galat",
+        "kuantitas": 1,
+        "satuan": "Laporan",
+        "timKerja": "Subbagian Umum",
+        "isFullday": false
+      },
+      {
+        "id": "ckp_20261030_2",
+        "tanggal": "2026-10-30",
+        "waktuMulai": "13:30",
+        "waktuSelesai": "16:30",
+        "durasi": 180,
+        "skpId": 7,
+        "skpIds": [
+          7
+        ],
+        "rincian": "Rekapitulasi capaian kinerja bulanan (CKP-R dan CKP-T) bulan Oktober 2026 dan penyusunan bukti dukung kegiatan",
+        "kuantitas": 1,
+        "satuan": "Laporan",
+        "timKerja": "Subbagian Umum",
+        "isFullday": false
+      }
+    ]
+  }
+}

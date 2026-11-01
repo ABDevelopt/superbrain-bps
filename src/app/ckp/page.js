@@ -23,6 +23,7 @@ import { db } from '@/lib/firebase';
 import DailyTimeVisualizer, { getEntrySkpIds, getBackgroundForSkps } from './DailyTimeVisualizer';
 import MonthlyTimeVisualizer from './MonthlyTimeVisualizer';
 import KipappSyncModal from './KipappSyncModal';
+import { ckpOktoberEntries } from '@/data/ckpOktober2026';
 
 const SATUAN_OPTIONS = ['Kegiatan', 'Lembar', 'File', 'Dokumen', 'Orang', 'Formulir', 'Lainnya'];
 const BPS_RECOMMENDED_SATUAN = [
@@ -7012,6 +7013,45 @@ function CKPPageInner() {
   useChatAction('UPDATE_CKP', handleAIUpdateCKP);
   useChatAction('DELETE_CKP', handleAIDeleteCKP);
 
+  const [isImportingOktober, setIsImportingOktober] = useState(false);
+  const [showImportOktoberConfirm, setShowImportOktoberConfirm] = useState(false);
+
+  const handleImportOktober = useCallback(async () => {
+    if (!user || !user.uid) {
+      showAlert('Silakan login terlebih dahulu untuk menyimpan kegiatan CKP.', 'warning');
+      return;
+    }
+    setIsImportingOktober(true);
+    try {
+      const existingKeys = new Set(
+        entries.map(e => `${e.tanggal}_${(e.waktuMulai || '').trim()}`)
+      );
+      let importedCount = 0;
+      for (const item of ckpOktoberEntries) {
+        const key = `${item.tanggal}_${(item.waktuMulai || '').trim()}`;
+        if (!existingKeys.has(key)) {
+          const toSave = { ...item };
+          delete toSave.id;
+          await addDocument(toSave);
+          importedCount++;
+        }
+      }
+      if (importedCount > 0) {
+        showAlert(`Berhasil mengimpor ${importedCount} kegiatan CKP bulan Oktober 2026!`, 'success');
+      } else {
+        showAlert('Semua 44 kegiatan CKP bulan Oktober 2026 sudah terdata di sistem.', 'info');
+      }
+      setSharedSelectedDate('2026-10-01');
+      setActiveTab(2);
+    } catch (err) {
+      console.error('Failed to import CKP Oktober:', err);
+      showAlert('Gagal mengimpor kegiatan CKP: ' + err.message, 'error');
+    } finally {
+      setIsImportingOktober(false);
+      setShowImportOktoberConfirm(false);
+    }
+  }, [user, entries, addDocument, showAlert]);
+
   // Handle auto-sync of telegram files to Google Drive
   useEffect(() => {
     if (loading || !entries || !accessToken) return;
@@ -7536,6 +7576,20 @@ function CKPPageInner() {
           </div>
           
           <div className={styles.headerActions}>
+            <button
+              onClick={() => setShowImportOktoberConfirm(true)}
+              disabled={isImportingOktober}
+              className={styles.headerDriveBtn}
+              title="Impor 44 Kegiatan CKP Oktober 2026 otomatis"
+              style={{
+                background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.15))',
+                border: '1px solid rgba(168, 85, 247, 0.35)',
+                color: '#c084fc',
+              }}
+            >
+              <Sparkles size={16} />
+              {isImportingOktober ? 'Mengimpor...' : 'Impor CKP Oktober 2026'}
+            </button>
             {accessToken ? (
               <button
                 onClick={handleOpenDriveFolder}
@@ -7730,6 +7784,16 @@ function CKPPageInner() {
         confirmText="Terapkan Semua" 
         thirdText="Terapkan Hari Ini Saja"
         cancelText="Batal"
+        variant="primary" 
+      />
+
+      <ConfirmDialog 
+        isOpen={showImportOktoberConfirm} 
+        onConfirm={handleImportOktober} 
+        onCancel={() => setShowImportOktoberConfirm(false)} 
+        title="Impor Kegiatan CKP Oktober 2026" 
+        message="Apakah Anda yakin ingin mengimpor 44 kegiatan CKP lengkap untuk bulan Oktober 2026 (22 hari kerja, bebas overlap, sesuai PermenPAN-RB No. 6/2022) langsung ke akun SuperBrain Anda?" 
+        confirmText={isImportingOktober ? "Mengimpor..." : "Ya, Impor Sekarang"} 
         variant="primary" 
       />
 
