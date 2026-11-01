@@ -4565,7 +4565,7 @@ function TabRekapHarian({ entries, onEdit, onDelete, deleteDocument, updateDocum
                   )}
                   <div className={styles.timelineRincian}>{entry.rincian}</div>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                    {entry.buktiDukung ? (
+                    {entry.buktiDukung && entry.buktiDukung.startsWith('http') ? (
                       entry.buktiDukungStatus === 'kosong' ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <a href={entry.buktiDukung} target="_blank" rel="noopener noreferrer" className={styles.buktiLinkKosong} style={{ margin: 0 }}>
@@ -4585,9 +4585,9 @@ function TabRekapHarian({ entries, onEdit, onDelete, deleteDocument, updateDocum
                         <CloudOff size={14} /> Bukti Dukung (Offline)
                       </span>
                     ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         <span className={styles.warningBadge} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <AlertTriangle size={12} /> Belum Upload Bukti
+                          <AlertTriangle size={12} /> Belum Ada Link Drive
                         </span>
                         <button
                           type="button"
@@ -4595,16 +4595,21 @@ function TabRekapHarian({ entries, onEdit, onDelete, deleteDocument, updateDocum
                           disabled={creatingFolderId === entry.id}
                           className={styles.miniBtn}
                           title="Buat folder kosong di Google Drive"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', fontSize: '11px' }}
                         >
                           {creatingFolderId === entry.id ? (
                             <div className={styles.spinnerTiny} />
                           ) : (
                             <>
-                              <FolderOpen size={12} />
-                              Buat Folder GDrive
+                              <FolderOpen size={12} /> Buat Folder GDrive
                             </>
                           )}
                         </button>
+                        {entry.buktiDukung && !entry.buktiDukung.startsWith('http') && (
+                          <span style={{ fontSize: '11px', color: '#94a3b8' }} title={entry.buktiDukung}>
+                            (Lokal: {entry.buktiDukung})
+                          </span>
+                        )}
                       </div>
                     )}
 
@@ -6373,7 +6378,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
                       </div>
                     </td>
                     <td>
-                      {row.buktiDukung ? (
+                      {row.buktiDukung && row.buktiDukung.startsWith('http') ? (
                         row.buktiDukungStatus === 'kosong' ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <a href={row.buktiDukung} target="_blank" rel="noopener noreferrer" className={styles.buktiLinkKosongTable}>
@@ -6387,23 +6392,32 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
                           </a>
                         )
                       ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span className={styles.warningBadgeTable} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                            <AlertTriangle size={11} /> Belum Upload
-                          </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                           <button
                             type="button"
                             onClick={() => onCreateEmptyFolder(row.id, row.tanggal, row.rincian)}
                             disabled={creatingFolderId === row.id}
                             className={styles.miniBtnTable}
                             title="Buat folder kosong di Google Drive"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', fontSize: '11px' }}
                           >
                             {creatingFolderId === row.id ? (
                               <div className={styles.spinnerTiny} />
                             ) : (
-                              <FolderOpen size={12} />
+                              <>
+                                <FolderOpen size={12} /> Buat Folder GDrive
+                              </>
                             )}
                           </button>
+                          {row.buktiDukung && !row.buktiDukung.startsWith('http') ? (
+                            <span style={{ fontSize: '10px', color: '#94a3b8' }} title={row.buktiDukung}>
+                              (Lokal)
+                            </span>
+                          ) : (
+                            <span className={styles.warningBadgeTable} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <AlertTriangle size={11} /> Belum Ada
+                            </span>
+                          )}
                         </div>
                       )}
                     </td>
@@ -6846,31 +6860,34 @@ function CKPPageInner() {
   const [creatingFolderId, setCreatingFolderId] = useState(null);
 
   const handleCreateEmptyFolder = async (entryId, tanggal, rincian) => {
-    if (!accessToken) {
+    let currentToken = accessToken;
+    if (!currentToken) {
       showAlert('Silakan hubungkan Google Drive Anda terlebih dahulu.');
       try {
-        await loginWithGoogle();
+        currentToken = await loginWithGoogle();
       } catch (loginErr) {
         console.error("Login failed:", loginErr);
+        return;
       }
-      return;
     }
+    if (!currentToken) return;
     
     setCreatingFolderId(entryId);
     try {
-      const cleanKegiatan = (rincian || 'Kegiatan').substring(0, 30).replace(/[^a-zA-Z0-9 -]/g, '').trim();
-      const parentFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
-      const mainFolderId = await getOrCreateFolder(accessToken, 'Bukti Dukung CKP', parentFolderId);
+      const cleanKegiatan = (rincian || 'Kegiatan').substring(0, 40).replace(/[^a-zA-Z0-9 -]/g, '').trim();
+      const parentFolderId = await getOrCreateFolder(currentToken, 'SuperBrain BPS');
+      const mainFolderId = await getOrCreateFolder(currentToken, 'Bukti Dukung CKP', parentFolderId);
       
       const subfolderName = `${tanggal} - ${cleanKegiatan}`;
-      const subfolderId = await getOrCreateFolder(accessToken, subfolderName, mainFolderId);
-      await makeFileOrFolderPublic(subfolderId, accessToken);
+      const subfolderId = await getOrCreateFolder(currentToken, subfolderName, mainFolderId);
+      await makeFileOrFolderPublic(subfolderId, currentToken);
       
       const driveUrl = `https://drive.google.com/drive/folders/${subfolderId}`;
       
       // Update Firestore
       await updateDocument(entryId, {
-        buktiDukung: driveUrl
+        buktiDukung: driveUrl,
+        buktiDukungStatus: 'kosong'
       });
       
       showAlert('Berhasil membuat folder bukti dukung kosong di Google Drive!', 'success');
@@ -6881,7 +6898,7 @@ function CKPPageInner() {
         try {
           const newToken = await loginWithGoogle();
           if (newToken) {
-            const cleanKegiatan = (rincian || 'Kegiatan').substring(0, 30).replace(/[^a-zA-Z0-9 -]/g, '').trim();
+            const cleanKegiatan = (rincian || 'Kegiatan').substring(0, 40).replace(/[^a-zA-Z0-9 -]/g, '').trim();
             const parentFolderId = await getOrCreateFolder(newToken, 'SuperBrain BPS');
             const mainFolderId = await getOrCreateFolder(newToken, 'Bukti Dukung CKP', parentFolderId);
             
@@ -6890,7 +6907,7 @@ function CKPPageInner() {
             await makeFileOrFolderPublic(subfolderId, newToken);
             
             const driveUrl = `https://drive.google.com/drive/folders/${subfolderId}`;
-            await updateDocument(entryId, { buktiDukung: driveUrl });
+            await updateDocument(entryId, { buktiDukung: driveUrl, buktiDukungStatus: 'kosong' });
             showAlert('Sesi berhasil diperbarui dan folder bukti dukung telah dibuat!', 'success');
           }
         } catch (reloginErr) {
@@ -7015,6 +7032,95 @@ function CKPPageInner() {
 
   const [isImportingOktober, setIsImportingOktober] = useState(false);
   const [showImportOktoberConfirm, setShowImportOktoberConfirm] = useState(false);
+  const [isGeneratingDriveFolders, setIsGeneratingDriveFolders] = useState(false);
+  const [folderProgress, setFolderProgress] = useState(null);
+
+  // Batch generator: membuat folder Google Drive kosong untuk semua kegiatan di bulan aktif
+  const handleBatchGenerateDriveFolders = useCallback(async () => {
+    let currentToken = accessToken;
+    if (!currentToken) {
+      showAlert('Silakan hubungkan Google Drive Anda terlebih dahulu.');
+      try {
+        currentToken = await loginWithGoogle();
+      } catch (loginErr) {
+        console.error("Login failed:", loginErr);
+        return;
+      }
+    }
+    if (!currentToken) return;
+
+    const targetMonth = sharedSelectedDate ? sharedSelectedDate.substring(0, 7) : '2026-10';
+    const targetEntries = entries.filter(e => {
+      const inMonth = e.tanggal && e.tanggal.startsWith(targetMonth);
+      const needsDrive = !e.buktiDukung || !e.buktiDukung.startsWith('https://drive.google.com');
+      return inMonth && needsDrive;
+    });
+
+    if (targetEntries.length === 0) {
+      showAlert(`Semua kegiatan bulan ${targetMonth} sudah memiliki link folder Google Drive!`, 'info');
+      return;
+    }
+
+    setIsGeneratingDriveFolders(true);
+    let successCount = 0;
+    try {
+      const parentFolderId = await getOrCreateFolder(currentToken, 'SuperBrain BPS');
+      const mainFolderId = await getOrCreateFolder(currentToken, 'Bukti Dukung CKP', parentFolderId);
+
+      for (let i = 0; i < targetEntries.length; i++) {
+        const item = targetEntries[i];
+        setFolderProgress({ current: i + 1, total: targetEntries.length });
+
+        const cleanKegiatan = (item.rincian || 'Kegiatan')
+          .substring(0, 40)
+          .replace(/[^a-zA-Z0-9 -]/g, '')
+          .trim();
+        const subfolderName = `${item.tanggal} - ${cleanKegiatan}`;
+
+        try {
+          const subfolderId = await getOrCreateFolder(currentToken, subfolderName, mainFolderId);
+          await makeFileOrFolderPublic(subfolderId, currentToken);
+          const driveUrl = `https://drive.google.com/drive/folders/${subfolderId}`;
+
+          await updateDocument(item.id, {
+            buktiDukung: driveUrl,
+            buktiDukungStatus: 'kosong',
+            localFileBukti: item.buktiDukung && !item.buktiDukung.startsWith('http') ? item.buktiDukung : (item.localFileBukti || null)
+          });
+          successCount++;
+        } catch (itemErr) {
+          console.error(`Gagal membuat folder untuk ${item.tanggal}:`, itemErr);
+          if (itemErr.message && itemErr.message.includes('401')) {
+            const refreshedToken = await loginWithGoogle();
+            if (refreshedToken) {
+              currentToken = refreshedToken;
+              const subfolderId = await getOrCreateFolder(currentToken, subfolderName, mainFolderId);
+              await makeFileOrFolderPublic(subfolderId, currentToken);
+              const driveUrl = `https://drive.google.com/drive/folders/${subfolderId}`;
+              await updateDocument(item.id, {
+                buktiDukung: driveUrl,
+                buktiDukungStatus: 'kosong',
+                localFileBukti: item.buktiDukung && !item.buktiDukung.startsWith('http') ? item.buktiDukung : (item.localFileBukti || null)
+              });
+              successCount++;
+            }
+          }
+        }
+      }
+
+      if (successCount > 0) {
+        showAlert(`Berhasil membentuk ${successCount} link folder Google Drive untuk kegiatan bulan ${targetMonth}!`, 'success');
+      }
+    } catch (err) {
+      console.error('Batch generate drive folders error:', err);
+      showAlert(`Proses selesai ${successCount}/${targetEntries.length}. Kendala: ${err.message}`, 'error');
+    } finally {
+      setIsGeneratingDriveFolders(false);
+      setFolderProgress(null);
+    }
+  }, [accessToken, loginWithGoogle, sharedSelectedDate, entries, updateDocument, showAlert]);
+
+  useChatAction('GENERATE_DRIVE_FOLDERS', handleBatchGenerateDriveFolders);
 
   const handleImportOktober = useCallback(async () => {
     if (!user || !user.uid) {
@@ -7023,23 +7129,82 @@ function CKPPageInner() {
     }
     setIsImportingOktober(true);
     try {
-      const existingKeys = new Set(
-        entries.map(e => `${e.tanggal}_${(e.waktuMulai || '').trim()}`)
-      );
-      let importedCount = 0;
-      for (const item of ckpOktoberEntries) {
-        const key = `${item.tanggal}_${(item.waktuMulai || '').trim()}`;
-        if (!existingKeys.has(key)) {
-          const toSave = { ...item };
-          delete toSave.id;
-          await addDocument(toSave);
-          importedCount++;
+      let currentToken = accessToken;
+      if (!currentToken) {
+        try {
+          currentToken = await loginWithGoogle();
+        } catch (e) {
+          console.warn("User did not log into Google Drive at import prompt:", e);
         }
       }
-      if (importedCount > 0) {
+
+      let mainFolderId = null;
+      if (currentToken) {
+        try {
+          const parentFolderId = await getOrCreateFolder(currentToken, 'SuperBrain BPS');
+          mainFolderId = await getOrCreateFolder(currentToken, 'Bukti Dukung CKP', parentFolderId);
+        } catch (fErr) {
+          console.warn('Google Drive root folder check failed, continuing without immediate folders:', fErr);
+        }
+      }
+
+      let importedCount = 0;
+      let updatedDriveCount = 0;
+
+      for (const item of ckpOktoberEntries) {
+        const key = `${item.tanggal}_${(item.waktuMulai || '').trim()}`;
+        const existingEntry = entries.find(e => `${e.tanggal}_${(e.waktuMulai || '').trim()}` === key);
+
+        if (!existingEntry) {
+          const toSave = { ...item };
+          delete toSave.id;
+
+          // If drive token available, create drive folder immediately
+          if (currentToken && mainFolderId) {
+            try {
+              const cleanKegiatan = (item.rincian || 'Kegiatan').substring(0, 40).replace(/[^a-zA-Z0-9 -]/g, '').trim();
+              const subfolderName = `${item.tanggal} - ${cleanKegiatan}`;
+              const subfolderId = await getOrCreateFolder(currentToken, subfolderName, mainFolderId);
+              await makeFileOrFolderPublic(subfolderId, currentToken);
+              toSave.buktiDukung = `https://drive.google.com/drive/folders/${subfolderId}`;
+              toSave.buktiDukungStatus = 'kosong';
+              toSave.localFileBukti = item.buktiDukung;
+              updatedDriveCount++;
+            } catch (dErr) {
+              console.warn('Drive folder creation for entry skipped:', dErr);
+            }
+          }
+
+          await addDocument(toSave);
+          importedCount++;
+        } else if (currentToken && mainFolderId && (!existingEntry.buktiDukung || !existingEntry.buktiDukung.startsWith('https://drive.google.com'))) {
+          // Entry already in Firestore (imported before), but missing Google Drive folder link!
+          try {
+            const cleanKegiatan = (existingEntry.rincian || item.rincian || 'Kegiatan').substring(0, 40).replace(/[^a-zA-Z0-9 -]/g, '').trim();
+            const subfolderName = `${item.tanggal} - ${cleanKegiatan}`;
+            const subfolderId = await getOrCreateFolder(currentToken, subfolderName, mainFolderId);
+            await makeFileOrFolderPublic(subfolderId, currentToken);
+            const driveUrl = `https://drive.google.com/drive/folders/${subfolderId}`;
+            await updateDocument(existingEntry.id, {
+              buktiDukung: driveUrl,
+              buktiDukungStatus: 'kosong',
+              localFileBukti: existingEntry.buktiDukung || item.buktiDukung
+            });
+            updatedDriveCount++;
+          } catch (dErr) {
+            console.warn('Drive folder update skipped:', dErr);
+          }
+        }
+      }
+
+      if (importedCount > 0 && updatedDriveCount > 0) {
+        showAlert(`Berhasil mengimpor ${importedCount} kegiatan dan membentuk ${updatedDriveCount} link Google Drive!`, 'success');
+      } else if (importedCount > 0) {
         showAlert(`Berhasil mengimpor ${importedCount} kegiatan CKP bulan Oktober 2026!`, 'success');
+      } else if (updatedDriveCount > 0) {
+        showAlert(`Berhasil membentuk ${updatedDriveCount} link Google Drive untuk kegiatan CKP Oktober yang sudah terdata!`, 'success');
       } else {
-        showAlert('Semua 44 kegiatan CKP bulan Oktober 2026 sudah terdata di sistem.', 'info');
+        showAlert('Semua 44 kegiatan CKP bulan Oktober 2026 sudah terdata dan memiliki link Google Drive.', 'info');
       }
       setSharedSelectedDate('2026-10-01');
       setActiveTab(2);
@@ -7050,7 +7215,7 @@ function CKPPageInner() {
       setIsImportingOktober(false);
       setShowImportOktoberConfirm(false);
     }
-  }, [user, entries, addDocument, showAlert]);
+  }, [user, entries, accessToken, loginWithGoogle, addDocument, updateDocument, showAlert]);
 
   useChatAction('IMPORT_CKP_OKTOBER', handleImportOktober);
 
@@ -7592,6 +7757,27 @@ function CKPPageInner() {
               <Sparkles size={16} />
               {isImportingOktober ? 'Mengimpor...' : 'Impor CKP Oktober 2026'}
             </button>
+            <button
+              onClick={handleBatchGenerateDriveFolders}
+              disabled={isGeneratingDriveFolders}
+              className={styles.headerDriveBtn}
+              title="Generate link folder Google Drive untuk seluruh kegiatan CKP bulan ini yang belum memiliki folder"
+              style={{
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(59, 130, 246, 0.15))',
+                border: '1px solid rgba(16, 185, 129, 0.35)',
+                color: '#34d399',
+              }}
+            >
+              <FolderPlus size={16} />
+              {isGeneratingDriveFolders ? (
+                <>
+                  <div className={styles.spinnerSmall} style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#34d399', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                  {folderProgress ? `${folderProgress.current}/${folderProgress.total}` : 'Membuat Folder...'}
+                </>
+              ) : (
+                'Generate Folder GDrive'
+              )}
+            </button>
             {accessToken ? (
               <button
                 onClick={handleOpenDriveFolder}
@@ -7794,8 +7980,8 @@ function CKPPageInner() {
         onConfirm={handleImportOktober} 
         onCancel={() => setShowImportOktoberConfirm(false)} 
         title="Impor Kegiatan CKP Oktober 2026" 
-        message="Apakah Anda yakin ingin mengimpor 44 kegiatan CKP lengkap untuk bulan Oktober 2026 (22 hari kerja, bebas overlap, sesuai PermenPAN-RB No. 6/2022) langsung ke akun SuperBrain Anda?" 
-        confirmText={isImportingOktober ? "Mengimpor..." : "Ya, Impor Sekarang"} 
+        message="Apakah Anda yakin ingin mengimpor 44 kegiatan CKP lengkap untuk bulan Oktober 2026? Jika Google Drive terhubung, sistem juga akan otomatis membuatkan folder bukti dukung Google Drive kosong untuk setiap kegiatan." 
+        confirmText={isImportingOktober ? "Mengimpor..." : "Ya, Impor & Buat Folder Drive"} 
         variant="primary" 
       />
 
