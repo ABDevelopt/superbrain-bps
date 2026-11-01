@@ -9,8 +9,9 @@
  * 2. Pelatihan Petugas SPDT-NTP 2026 (7 & 8 Oktober 2026) dan Lapangan (20, 26, 27 Oktober 2026)
  * 3. Penyusunan RKBMN TA 2028 (9 Oktober 2026) SKP Pengelolaan BMN
  * 4. Ekstraksi 11.282 Record NIK & NIB dari Website OSS RBA untuk SBR BPS
- * 5. Pemeriksaan Peta Wilkerstat SLS PPU (29 Oktober 2026)
- * 6. Beban kerja harian fleksibel dan realistis (>= 450 menit / 7,5 jam per hari kerja)
+ * 5. Data Cleaning Terpadu: Verifikasi 2 (KBLI/Profesi), Verifikasi 3 (Two-Way Linking), Verifikasi 8 (NTB), BKU, Sosek Kematian, BANR
+ * 6. Pemeriksaan Peta Wilkerstat SLS PPU (29 Oktober 2026)
+ * 7. Beban kerja harian fleksibel dan realistis (>= 450 menit / 7,5 jam per hari kerja)
  */
 
 export const ckpOktoberEntries = [
@@ -508,7 +509,7 @@ export const ckpOktoberEntries = [
     "targetKualitas": 100,
     "capaian": "1 Dokumen",
     "progres": 100,
-    "rincian": "Penyusunan diagram alir (Flowchart) komprehensif penanganan Verifikasi 8 (Ketidakwajaran Nilai Tambah Bruto/NTB) SE2026",
+    "rincian": "[Data Cleaning Verifikasi 8] Penyusunan diagram alir (Flowchart) komprehensif penanganan Verifikasi 8 (Ketidakwajaran Nilai Tambah Bruto/NTB) SE2026",
     "kuantitas": 1,
     "satuan": "Dokumen",
     "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
@@ -536,7 +537,7 @@ export const ckpOktoberEntries = [
     "targetKualitas": 100,
     "capaian": "1 Dokumen",
     "progres": 100,
-    "rincian": "[Data Cleaning NTB] Audit ketidakwajaran data verifikasi 8 per petugas lapangan sensus di BPS Kabupaten Penajam Paser Utara",
+    "rincian": "[Data Cleaning Verifikasi 8] Audit ketidakwajaran data verifikasi 8 per petugas lapangan sensus di BPS Kabupaten Penajam Paser Utara",
     "kuantitas": 1,
     "satuan": "Dokumen",
     "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
@@ -564,7 +565,7 @@ export const ckpOktoberEntries = [
     "targetKualitas": 100,
     "capaian": "14 Dokumen",
     "progres": 100,
-    "rincian": "[Data Cleaning NTB] Penanganan kasus penugasan kosong dan penyesuaian rasio NTB wajar 0,28 - 0,81 pada 14 kuesioner usaha keluarga",
+    "rincian": "[Data Cleaning Verifikasi 8] Penanganan kasus penugasan kosong dan penyesuaian rasio NTB wajar 0,28 - 0,81 pada 14 kuesioner usaha keluarga",
     "kuantitas": 14,
     "satuan": "Dokumen",
     "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
@@ -592,7 +593,7 @@ export const ckpOktoberEntries = [
     "targetKualitas": 100,
     "capaian": "6455 Dokumen",
     "progres": 100,
-    "rincian": "[Data Cleaning NTB] Eksekusi kalibrasi rasio NTB terhadap output pada 6.455 unit usaha se-Kabupaten Penajam Paser Utara secara terotomasi",
+    "rincian": "[Data Cleaning Verifikasi 8] Eksekusi kalibrasi rasio NTB terhadap output pada 6.455 unit usaha se-Kabupaten Penajam Paser Utara secara terotomasi",
     "kuantitas": 6455,
     "satuan": "Dokumen",
     "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
@@ -620,7 +621,7 @@ export const ckpOktoberEntries = [
     "targetKualitas": 100,
     "capaian": "132 Dokumen",
     "progres": 100,
-    "rincian": "[Data Cleaning NTB] Verifikasi hasil perbaikan variabel omzet, biaya antara, dan pelabelan kode remark cleaning data Deputi NAS (#1 s.d. #4)",
+    "rincian": "[Data Cleaning Verifikasi 8] Verifikasi hasil perbaikan variabel omzet, biaya antara, dan pelabelan kode remark cleaning data Deputi NAS (#1 s.d. #4)",
     "kuantitas": 132,
     "satuan": "Dokumen",
     "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
@@ -732,7 +733,7 @@ export const ckpOktoberEntries = [
     "targetKualitas": 100,
     "capaian": "100 Dokumen",
     "progres": 100,
-    "rincian": "[Data Cleaning Microdata] Penautan dua arah (Two-Way Linking Tier 1) batch 100 unit penugasan prelist OSS Perorangan ke kuesioner keluarga",
+    "rincian": "[Data Cleaning Verifikasi 3] Penautan dua arah (Two-Way Linking Tier 1) batch 100 unit penugasan prelist OSS Perorangan ke kuesioner keluarga",
     "kuantitas": 100,
     "satuan": "Dokumen",
     "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
@@ -928,7 +929,7 @@ export const ckpOktoberEntries = [
     "targetKualitas": 100,
     "capaian": "1 Dokumen",
     "progres": 100,
-    "rincian": "[Data Cleaning Microdata] Remediasi anomali klasifikasi KBLI unit usaha keluarga pada basis data microdata SE2026 Kab. PPU",
+    "rincian": "[Data Cleaning Verifikasi 2 & KBLI] Remediasi anomali klasifikasi KBLI dan verifikasi 2 profesi nelayan/petani false negatif pada basis data microdata SE2026 Kab. PPU",
     "kuantitas": 1,
     "satuan": "Dokumen",
     "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
@@ -1096,7 +1097,7 @@ export const ckpOktoberEntries = [
     "targetKualitas": 100,
     "capaian": "1 Dokumen",
     "progres": 100,
-    "rincian": "[Data Cleaning Microdata] Audit dan remediasi anomali Bangunan Khusus Usaha (BKU) dalam keluarga pada microdata SE2026 Kab. PPU",
+    "rincian": "[Data Cleaning BKU] Audit dan remediasi anomali Bangunan Khusus Usaha (BKU) dalam keluarga pada microdata SE2026 Kab. PPU",
     "kuantitas": 1,
     "satuan": "Dokumen",
     "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
