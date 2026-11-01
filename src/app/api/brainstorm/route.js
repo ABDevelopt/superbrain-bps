@@ -41,7 +41,7 @@ Anda memiliki beberapa FUNGSI (TOOLS) utama. Panggil fungsi yang paling tepat se
 
 1. 'create_task', 'update_task', 'delete_task': Untuk manipulasi tugas (Papan Kanban).
 2. 'create_schedule', 'update_schedule', 'delete_schedule': Untuk manipulasi agenda/kalender.
-3. 'create_ckp', 'update_ckp', 'delete_ckp': Untuk manipulasi laporan harian (CKP).
+3. 'create_ckp', 'update_ckp', 'delete_ckp', 'import_ckp_oktober': Untuk manipulasi atau impor otomatis laporan harian (CKP) bulan Oktober 2026.
 4. 'create_dinas_lapangan': Untuk mencatat penugasan Perjalanan Dinas / Surat Tugas (DL) BPS.
 
 Ketika mengedit (update) atau menghapus (delete) sesuatu, WAJIB merujuk pada 'id' record yang sesuai dengan "data yang saat ini ada di halaman pengguna" (jika tersedia).
@@ -224,6 +224,14 @@ Jika pengguna melampirkan file (gambar/PDF), bacalah isi file tersebut untuk men
                     id: { type: "STRING", description: "ID CKP yang akan dihapus." }
                   },
                   required: ["id"]
+                }
+              },
+              {
+                name: "import_ckp_oktober",
+                description: "Mengimpor atau menginput seluruh 44 kegiatan CKP terstruktur bulan Oktober 2026 secara otomatis ke basis data SuperBrain.",
+                parameters: {
+                  type: "OBJECT",
+                  properties: {}
                 }
               },
               {

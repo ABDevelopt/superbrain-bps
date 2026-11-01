@@ -7052,6 +7052,8 @@ function CKPPageInner() {
     }
   }, [user, entries, addDocument, showAlert]);
 
+  useChatAction('IMPORT_CKP_OKTOBER', handleImportOktober);
+
   // Handle auto-sync of telegram files to Google Drive
   useEffect(() => {
     if (loading || !entries || !accessToken) return;

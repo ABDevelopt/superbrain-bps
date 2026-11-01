@@ -121,6 +121,13 @@ export default function AIChatbot() {
         await updateCkpDoc(args.id, updates);
       } else if (functionName === 'delete_ckp' && args.id) {
         await deleteCkpDoc(args.id);
+      } else if (functionName === 'import_ckp_oktober') {
+        const { ckpOktoberEntries } = await import('@/data/ckpOktober2026');
+        for (const item of ckpOktoberEntries) {
+          const toSave = { ...item, userId: user?.uid || null };
+          delete toSave.id;
+          await addCkpDoc(toSave);
+        }
       } else if (functionName === 'create_dinas_lapangan') {
         const tMulai = args.tanggalMulai || new Date().toISOString().split('T')[0];
         const tSelesai = args.tanggalSelesai || tMulai;
@@ -288,6 +295,7 @@ export default function AIChatbot() {
         else if (functionName === 'create_ckp') actionHandled = dispatchAction('CREATE_CKP', args);
         else if (functionName === 'update_ckp') actionHandled = dispatchAction('UPDATE_CKP', args);
         else if (functionName === 'delete_ckp') actionHandled = dispatchAction('DELETE_CKP', args);
+        else if (functionName === 'import_ckp_oktober') actionHandled = dispatchAction('IMPORT_CKP_OKTOBER', args);
         else if (functionName === 'create_dinas_lapangan') actionHandled = dispatchAction('CREATE_DINAS_LAPANGAN', args);
 
         // If no page listener is currently active (e.g. user is on Dashboard or another page), execute directly via Firestore
