@@ -1,7 +1,7 @@
 /**
  * Daftar Kegiatan CKP Bulan Oktober 2026 (22 Hari Kerja / 44 Kegiatan)
- * Disusun berdasarkan inventarisasi riwayat pekerjaan komputer, repositori Git,
- * penugasan kedinasan BPS PPU, dan pemenuhan PermenPAN-RB No. 6/2022.
+ * Disusun lengkap bersama Bukti Dukung fisik / dokumen / tautan untuk setiap kegiatan
+ * Sesuai PermenPAN-RB No. 6/2022 dan standar kinerja BPS.
  */
 
 export const ckpOktoberEntries = [
@@ -20,6 +20,9 @@ export const ckpOktoberEntries = [
     satuan: 'Sistem',
     timKerja: 'Subbagian Umum',
     isFullday: false,
+    buktiDukung: 'Bukti_01_Monitoring_VPS_Tencent_FASIH.pdf',
+    buktiDukungKet: 'Tangkapan layar konfigurasi & monitoring filter hierarkis 6-level FASIH-SM',
+    buktiDukungStatus: 'file',
   },
   {
     id: 'ckp_20261001_2',
@@ -34,6 +37,9 @@ export const ckpOktoberEntries = [
     satuan: 'Dokumen',
     timKerja: 'Tim IPJKD & DLS',
     isFullday: false,
+    buktiDukung: 'Bukti_02_Sinkronisasi_SLS_16Digit.xlsx',
+    buktiDukungKet: 'Laporan tabel rekapitulasi penyesuaian dropdown SLS 16 digit',
+    buktiDukungStatus: 'file',
   },
 
   // 2. Jumat, 2 Okt 2026
@@ -50,6 +56,9 @@ export const ckpOktoberEntries = [
     satuan: 'Kegiatan',
     timKerja: 'Subbagian Umum',
     isFullday: false,
+    buktiDukung: 'Bukti_03_Undangan_Sosialisasi_Latsar_CPNS.pdf',
+    buktiDukungKet: 'Surat Undangan & tangkapan layar kehadiran sosialisasi daring Latsar CPNS',
+    buktiDukungStatus: 'file',
   },
   {
     id: 'ckp_20261002_2',
@@ -64,6 +73,9 @@ export const ckpOktoberEntries = [
     satuan: 'Fitur',
     timKerja: 'Subbagian Umum',
     isFullday: false,
+    buktiDukung: 'Bukti_04_Visualizer_CKP_SuperBrain.png',
+    buktiDukungKet: 'Tangkapan layar implementasi fitur visual drag-and-drop alokasi waktu CKP',
+    buktiDukungStatus: 'file',
   },
 
   // ===== MINGGU 2 =====
@@ -81,6 +93,9 @@ export const ckpOktoberEntries = [
     satuan: 'Modul',
     timKerja: 'Subbagian Umum',
     isFullday: false,
+    buktiDukung: 'Bukti_05_Kamera_Geotag_SuperBrain.png',
+    buktiDukungKet: 'Dokumentasi antarmuka kamera dan hasil foto watermark geotag koordinat GPS & WITA',
+    buktiDukungStatus: 'file',
   },
   {
     id: 'ckp_20261005_2',
@@ -95,6 +110,9 @@ export const ckpOktoberEntries = [
     satuan: 'Sistem',
     timKerja: 'Subbagian Umum',
     isFullday: false,
+    buktiDukung: 'Bukti_06_Schema_Firestore_MultiTenant.pdf',
+    buktiDukungKet: 'Dokumen arsitektur Firestore multi-tenant dan galeri offline IndexedDB',
+    buktiDukungStatus: 'file',
   },
 
   // 4. Selasa, 6 Okt 2026
@@ -111,6 +129,9 @@ export const ckpOktoberEntries = [
     satuan: 'Modul',
     timKerja: 'Tim Statistik Sosial',
     isFullday: false,
+    buktiDukung: 'Bukti_07_Bahan_Ajar_SPDT_NTP_Metodologi.pdf',
+    buktiDukungKet: 'Buku Bahan Ajar SPDT NTP 2026 Modul Metodologi & Pemeriksaan',
+    buktiDukungStatus: 'file',
   },
   {
     id: 'ckp_20261006_2',
@@ -125,6 +146,9 @@ export const ckpOktoberEntries = [
     satuan: 'Bahan Ajar',
     timKerja: 'Tim Statistik Sosial',
     isFullday: false,
+    buktiDukung: 'Bukti_08_Bahan_Ajar_SPDT_NTP_Hortikultura.pptx',
+    buktiDukungKet: 'Slide presentasi pelatihan SPDT NTP sub-sektor Hortikultura & Perkebunan',
+    buktiDukungStatus: 'file',
   },
 
   // 5. Rabu, 7 Okt 2026
@@ -141,6 +165,9 @@ export const ckpOktoberEntries = [
     satuan: 'Bahan Ajar',
     timKerja: 'Tim Statistik Sosial',
     isFullday: false,
+    buktiDukung: 'Bukti_09_Bahan_Ajar_SPDT_NTP_Fasih.pptx',
+    buktiDukungKet: 'Slide paparan pengisian aplikasi FASIH dan modul konsumsi rumahtangga',
+    buktiDukungStatus: 'file',
   },
   {
     id: 'ckp_20261007_2',
@@ -155,6 +182,9 @@ export const ckpOktoberEntries = [
     satuan: 'Dokumen',
     timKerja: 'Tim Statistik Sosial',
     isFullday: false,
+    buktiDukung: 'Bukti_10_Bahan_Ajar_SPDT_NTP_Kehutanan.pptx',
+    buktiDukungKet: 'Slide paparan pelatihan SPDT NTP sub-sektor Kehutanan dan Peternakan',
+    buktiDukungStatus: 'file',
   },
 
   // 6. Kamis, 8 Okt 2026
@@ -171,6 +201,9 @@ export const ckpOktoberEntries = [
     satuan: 'Skrip',
     timKerja: 'Subbagian Umum',
     isFullday: false,
+    buktiDukung: 'Bukti_11_Harvester_Lokal_Langsung.bat',
+    buktiDukungKet: 'Skrip otomatisasi pemanenan data mikro survei anti-rate limit',
+    buktiDukungStatus: 'file',
   },
   {
     id: 'ckp_20261008_2',
@@ -185,6 +218,9 @@ export const ckpOktoberEntries = [
     satuan: 'Dataset',
     timKerja: 'Tim IPJKD & DLS',
     isFullday: false,
+    buktiDukung: 'Bukti_12_Dataset_Microdata_Tunnel_SSH.xlsx',
+    buktiDukungKet: 'Tabel ekstraksi data mikro via secure SSH SOCKS5 tunnel',
+    buktiDukungStatus: 'file',
   },
 
   // 7. Jumat, 9 Okt 2026
@@ -201,6 +237,9 @@ export const ckpOktoberEntries = [
     satuan: 'Laporan',
     timKerja: 'Subbagian Umum',
     isFullday: false,
+    buktiDukung: 'Bukti_13_Pantau_Harvester_Lokal.bat',
+    buktiDukungKet: 'Log laporan hasil eksekusi stabil harvester lokal',
+    buktiDukungStatus: 'file',
   },
   {
     id: 'ckp_20261009_2',
@@ -215,6 +254,9 @@ export const ckpOktoberEntries = [
     satuan: 'Berkas',
     timKerja: 'Subbagian Umum',
     isFullday: false,
+    buktiDukung: 'Bukti_14_Pemberkasan_Kepegawaian_CPNS.pdf',
+    buktiDukungKet: 'Daftar rekapitulasi verifikasi berkas administrasi CPNS BPS PPU',
+    buktiDukungStatus: 'file',
   },
 
   // ===== MINGGU 3 =====
@@ -232,6 +274,9 @@ export const ckpOktoberEntries = [
     satuan: 'Kegiatan',
     timKerja: 'Subbagian Umum',
     isFullday: false,
+    buktiDukung: 'Bukti_15_Foto_Dinas_Kantor_Desa_Bukit_Raya.jpg',
+    buktiDukungKet: 'Foto koordinasi lapangan di Kantor Desa Bukit Raya dan Desa Giri Mukti Sepaku',
+    buktiDukungStatus: 'file',
   },
   {
     id: 'ckp_20261012_2',
@@ -246,6 +291,9 @@ export const ckpOktoberEntries = [
     satuan: 'Kegiatan',
     timKerja: 'Subbagian Umum',
     isFullday: false,
+    buktiDukung: 'Bukti_16_Foto_Wawancara_Responden_Giri_Mukti.jpg',
+    buktiDukungKet: 'Foto pendampingan pencacahan dan verifikasi batas wilayah SLS Giri Mukti',
+    buktiDukungStatus: 'file',
   },
 
   // 9. Selasa, 13 Okt 2026
@@ -262,6 +310,9 @@ export const ckpOktoberEntries = [
     satuan: 'Sistem',
     timKerja: 'Subbagian Umum',
     isFullday: false,
+    buktiDukung: 'Bukti_17_Arsitektur_SSO_Keycloak_OIDC.pdf',
+    buktiDukungKet: 'Dokumen teknis penguatan keamanan SSO Keycloak & mitigasi WAF',
+    buktiDukungStatus: 'file',
   },
   {
     id: 'ckp_20261013_2',
@@ -276,6 +327,9 @@ export const ckpOktoberEntries = [
     satuan: 'Fitur',
     timKerja: 'Subbagian Umum',
     isFullday: false,
+    buktiDukung: 'Bukti_18_Antarmuka_Login_MultiMode_OTP.png',
+    buktiDukungKet: 'Tangkapan layar fitur login multi-mode OTP (TOTP Base32 & manual OTP)',
+    buktiDukungStatus: 'file',
   },
 
   // 10. Rabu, 14 Okt 2026
@@ -292,6 +346,9 @@ export const ckpOktoberEntries = [
     satuan: 'Dokumen',
     timKerja: 'Tim Statistik Harga & Sensus Ekonomi',
     isFullday: false,
+    buktiDukung: 'Bukti_19_Audit_Anomali_SE2026_PPU.csv',
+    buktiDukungKet: 'Tabel audit kompilasi data anomali survei usaha Kab. PPU (6409)',
+    buktiDukungStatus: 'file',
   },
   {
     id: 'ckp_20261014_2',
@@ -306,6 +363,9 @@ export const ckpOktoberEntries = [
     satuan: 'Laporan',
     timKerja: 'Tim Statistik Harga & Sensus Ekonomi',
     isFullday: false,
+    buktiDukung: 'Bukti_20_Pohon_Keputusan_Koreksi_Verifikasi.pdf',
+    buktiDukungKet: 'Dokumen SOP pohon keputusan verifikasi rasio output dan nilai tambah',
+    buktiDukungStatus: 'file',
   },
 
   // 11. Kamis, 15 Okt 2026
@@ -322,6 +382,9 @@ export const ckpOktoberEntries = [
     satuan: 'Kuesioner',
     timKerja: 'Tim Statistik Harga & Sensus Ekonomi',
     isFullday: false,
+    buktiDukung: 'Bukti_21_Perbaikan_Verif8_NTB_SE2026.xlsx',
+    buktiDukungKet: 'Tabel rekapitulasi koreksi Verifikasi 8 NTB 25 kuesioner usaha SE2026',
+    buktiDukungStatus: 'file',
   },
   {
     id: 'ckp_20261015_2',
@@ -336,6 +399,9 @@ export const ckpOktoberEntries = [
     satuan: 'Kuesioner',
     timKerja: 'Tim Statistik Harga & Sensus Ekonomi',
     isFullday: false,
+    buktiDukung: 'Bukti_22_Log_Remark_Data_Cleaning_SE2026.xlsx',
+    buktiDukungKet: 'Log verifikasi dan pembubuhan kode remark data cleaning (#1 s.d. #4)',
+    buktiDukungStatus: 'file',
   },
 
   // 12. Jumat, 16 Okt 2026
@@ -352,6 +418,9 @@ export const ckpOktoberEntries = [
     satuan: 'Laporan',
     timKerja: 'Subbagian Umum',
     isFullday: false,
+    buktiDukung: 'Bukti_23_Laporan_Perjadin_BukitRaya_GiriMukti.docx',
+    buktiDukungKet: 'Dokumen resmi Laporan Perjalanan Dinas Supervisi Lapangan Sepaku',
+    buktiDukungStatus: 'file',
   },
   {
     id: 'ckp_20261016_2',
@@ -366,6 +435,9 @@ export const ckpOktoberEntries = [
     satuan: 'Modul',
     timKerja: 'Subbagian Umum',
     isFullday: false,
+    buktiDukung: 'Bukti_24_Modul_Dinas_Lapangan_SuperBrain.png',
+    buktiDukungKet: 'Tangkapan layar antarmuka modul Dinas Lapangan dan ekspor Word BPS',
+    buktiDukungStatus: 'file',
   },
 
   // ===== MINGGU 4 =====
@@ -383,6 +455,9 @@ export const ckpOktoberEntries = [
     satuan: 'Modul',
     timKerja: 'Tim IPJKD & DLS',
     isFullday: false,
+    buktiDukung: 'Bukti_25_Framework_Taka_UI_CSS.css',
+    buktiDukungKet: 'Source code framework desain antarmuka Taka UI CSS BPS PPU',
+    buktiDukungStatus: 'file',
   },
   {
     id: 'ckp_20261019_2',
@@ -397,6 +472,9 @@ export const ckpOktoberEntries = [
     satuan: 'Fitur',
     timKerja: 'Tim IPJKD & DLS',
     isFullday: false,
+    buktiDukung: 'Bukti_26_Komponen_HighDensity_Table.png',
+    buktiDukungKet: 'Tangkapan layar implementasi tabel data monitoring statistik densitas tinggi',
+    buktiDukungStatus: 'file',
   },
 
   // 14. Selasa, 20 Okt 2026
@@ -413,6 +491,9 @@ export const ckpOktoberEntries = [
     satuan: 'Paket',
     timKerja: 'Tim IPJKD & DLS',
     isFullday: false,
+    buktiDukung: 'Bukti_27_Identitas_Visual_Logo_Taka_UI.svg',
+    buktiDukungKet: 'Berkas master logo SVG dan panduan identitas visual Taka UI',
+    buktiDukungStatus: 'file',
   },
   {
     id: 'ckp_20261020_2',
@@ -427,6 +508,9 @@ export const ckpOktoberEntries = [
     satuan: 'Dokumen',
     timKerja: 'Tim IPJKD & DLS',
     isFullday: false,
+    buktiDukung: 'Bukti_28_Dokumentasi_Interaktif_Taka_UI.pdf',
+    buktiDukungKet: 'Buku dokumentasi spesifikasi komponen dan uji responsivitas multi-layar',
+    buktiDukungStatus: 'file',
   },
 
   // 15. Rabu, 21 Okt 2026
@@ -443,6 +527,9 @@ export const ckpOktoberEntries = [
     satuan: 'Modul',
     timKerja: 'Tim Statistik Sosial',
     isFullday: false,
+    buktiDukung: 'Bukti_29_Rules_Engine_Susenas_SiPeriksa.py',
+    buktiDukungKet: 'Modul python backend validasi kuesioner Susenas Kor dan KP',
+    buktiDukungStatus: 'file',
   },
   {
     id: 'ckp_20261021_2',
@@ -457,6 +544,9 @@ export const ckpOktoberEntries = [
     satuan: 'Database',
     timKerja: 'Tim Statistik Sosial',
     isFullday: false,
+    buktiDukung: 'Bukti_30_Susenas_Official_Rules.py',
+    buktiDukungKet: 'Master data kewilayahan Gasik dan acuan ambang batas konsumsi',
+    buktiDukungStatus: 'file',
   },
 
   // 16. Kamis, 22 Okt 2026
@@ -473,6 +563,9 @@ export const ckpOktoberEntries = [
     satuan: 'Dokumen',
     timKerja: 'Tim Statistik Sosial',
     isFullday: false,
+    buktiDukung: 'Bukti_31_Scan_OCR_Susenas_Sepaku.pdf',
+    buktiDukungKet: 'Hasil pemindaian dan deteksi OCR lembar kuesioner Susenas Kecamatan Sepaku',
+    buktiDukungStatus: 'file',
   },
   {
     id: 'ckp_20261022_2',
@@ -487,6 +580,9 @@ export const ckpOktoberEntries = [
     satuan: 'Dokumen',
     timKerja: 'Tim Statistik Sosial',
     isFullday: false,
+    buktiDukung: 'Bukti_32_Laporan_Validasi_Kalori_Protein.pdf',
+    buktiDukungKet: 'Laporan pemeriksaan konsistensi konsumsi kalori dan protein rumahtangga',
+    buktiDukungStatus: 'file',
   },
 
   // 17. Jumat, 23 Okt 2026
@@ -503,6 +599,9 @@ export const ckpOktoberEntries = [
     satuan: 'Sistem',
     timKerja: 'Subbagian Umum',
     isFullday: false,
+    buktiDukung: 'Bukti_33_Token_Autentikasi_HMAC_ZeroTrust.py',
+    buktiDukungKet: 'Skrip modul generator token autentikasi sesi HMAC zero-trust',
+    buktiDukungStatus: 'file',
   },
   {
     id: 'ckp_20261023_2',
@@ -517,6 +616,9 @@ export const ckpOktoberEntries = [
     satuan: 'Fitur',
     timKerja: 'Tim Statistik Harga & Sensus Ekonomi',
     isFullday: false,
+    buktiDukung: 'Bukti_34_Optimasi_Navbar_Mobile_SE2026.png',
+    buktiDukungKet: 'Tangkapan layar perbaikan tampilan responsif navbar mobile monitoring SE2026',
+    buktiDukungStatus: 'file',
   },
 
   // ===== MINGGU 5 =====
@@ -534,6 +636,9 @@ export const ckpOktoberEntries = [
     satuan: 'Dokumen',
     timKerja: 'Tim Statistik Harga & Sensus Ekonomi',
     isFullday: false,
+    buktiDukung: 'Bukti_35_Verifikasi_18_19_SE2026_PPU.xlsx',
+    buktiDukungKet: 'Daftar penanganan verifikasi anomali 18 & 19 pada kuesioner SE2026 PPU',
+    buktiDukungStatus: 'file',
   },
   {
     id: 'ckp_20261026_2',
@@ -548,6 +653,9 @@ export const ckpOktoberEntries = [
     satuan: 'Database',
     timKerja: 'Tim Statistik Harga & Sensus Ekonomi',
     isFullday: false,
+    buktiDukung: 'Bukti_36_Backup_Database_6409_PPU.xlsx',
+    buktiDukungKet: 'Salinan basis data final kuesioner paska verifikasi anomali',
+    buktiDukungStatus: 'file',
   },
 
   // 19. Selasa, 27 Okt 2026
@@ -564,6 +672,9 @@ export const ckpOktoberEntries = [
     satuan: 'Modul',
     timKerja: 'Tim IPJKD & DLS',
     isFullday: false,
+    buktiDukung: 'Bukti_37_Modul_SE2026_Name_Standardizer.py',
+    buktiDukungKet: 'Source code algoritma standardisasi penamaan unit usaha dan ART BPS',
+    buktiDukungStatus: 'file',
   },
   {
     id: 'ckp_20261027_2',
@@ -578,6 +689,9 @@ export const ckpOktoberEntries = [
     satuan: 'Dokumen',
     timKerja: 'Tim IPJKD & DLS',
     isFullday: false,
+    buktiDukung: 'Bukti_38_Uji_Sampel_100_Dokumen_Penajam.xlsx',
+    buktiDukungKet: 'Hasil evaluasi pembersihan nama pada 100 dokumen usaha Kecamatan Penajam',
+    buktiDukungStatus: 'file',
   },
 
   // 20. Rabu, 28 Okt 2026
@@ -594,6 +708,9 @@ export const ckpOktoberEntries = [
     satuan: 'Dokumen',
     timKerja: 'Tim IPJKD & DLS',
     isFullday: false,
+    buktiDukung: 'Bukti_39_Hasil_Scan_1000_SLS_Kab_PPU.xlsx',
+    buktiDukungKet: 'Laporan pengujian skala penuh Name Standardizer pada 1.000 dokumen SLS PPU',
+    buktiDukungStatus: 'file',
   },
   {
     id: 'ckp_20261028_2',
@@ -608,6 +725,9 @@ export const ckpOktoberEntries = [
     satuan: 'Laporan',
     timKerja: 'Tim IPJKD & DLS',
     isFullday: false,
+    buktiDukung: 'Bukti_40_Laporan_Akurasi_Sepaku_Babulu.pdf',
+    buktiDukungKet: 'Dokumen analisis evaluasi akurasi standarisasi Kecamatan Sepaku dan Babulu',
+    buktiDukungStatus: 'file',
   },
 
   // 21. Kamis, 29 Okt 2026
@@ -624,6 +744,9 @@ export const ckpOktoberEntries = [
     satuan: 'Ekstensi',
     timKerja: 'Subbagian Umum',
     isFullday: false,
+    buktiDukung: 'Bukti_41_Ekstensi_Chrome_FASIH_Suite.zip',
+    buktiDukungKet: 'Paket ekstensi Google Chrome fasih-extension untuk pengolahan kuesioner',
+    buktiDukungStatus: 'file',
   },
   {
     id: 'ckp_20261029_2',
@@ -638,6 +761,9 @@ export const ckpOktoberEntries = [
     satuan: 'Skrip',
     timKerja: 'Tim IPJKD & DLS',
     isFullday: false,
+    buktiDukung: 'Bukti_42_Skrip_Reallokasi_Penugasan_SLS.py',
+    buktiDukungKet: 'Skrip reallokasi wilayah dan perpindahan penugasan kuesioner draft FASIH',
+    buktiDukungStatus: 'file',
   },
 
   // 22. Jumat, 30 Okt 2026
@@ -654,6 +780,9 @@ export const ckpOktoberEntries = [
     satuan: 'Laporan',
     timKerja: 'Subbagian Umum',
     isFullday: false,
+    buktiDukung: 'Bukti_43_Log_Submit_FormGear_MinIO_S3.pdf',
+    buktiDukungKet: 'Laporan pengiriman SCM-EDIT FormGear via S3 MinIO Presigned URL dengan 0 galat',
+    buktiDukungStatus: 'file',
   },
   {
     id: 'ckp_20261030_2',
@@ -668,5 +797,8 @@ export const ckpOktoberEntries = [
     satuan: 'Laporan',
     timKerja: 'Subbagian Umum',
     isFullday: false,
+    buktiDukung: 'Bukti_44_Laporan_Capaian_CKP_Oktober_2026.pdf',
+    buktiDukungKet: 'Dokumen rekapitulasi resmi CKP-R & CKP-T bulan Oktober 2026 BPS PPU',
+    buktiDukungStatus: 'file',
   },
 ];
