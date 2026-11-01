@@ -45,3 +45,17 @@ next-env.d.ts
 /peraturan/
 *.xls
 *.xlsx
+*.csv
+
+# Credentials & Session Vault
+credentials.json
+token.json
+session.json
+sessions/
+*.key
+
+# Local SQLite databases & Microdata
+*.db
+*.sqlite
+*.sqlite3
+
