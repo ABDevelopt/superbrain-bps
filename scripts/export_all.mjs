@@ -131,32 +131,35 @@ let md = `# DAFTAR BUKTI DUKUNG CKP BULAN OKTOBER 2026
 **Satuan Kerja:** BPS Kabupaten Penajam Paser Utara (Kab. 6409)  
 **Periode:** 1 Oktober 2026 – 31 Oktober 2026  
 **Total Hari Kerja:** 22 Hari Kerja (Senin–Jumat)  
-**Total Beban Kerja:** 165 Jam (450 menit / 7,5 jam per hari, Bebas Overlap Waktu)  
+**Total Beban Kerja:** 173 Jam (10.380 menit, rata-rata \ge 7,5 jam / 450 menit per hari kerja, mendukung jam kerja fleksibel & dinas luar)  
 **Total Kegiatan:** 44 Kegiatan (2 Kegiatan Terstruktur per Hari)  
 **Regulasi:** Perpres No. 21/2023 & PermenPAN-RB No. 6/2022  
 
 ---
 
 ## Ringkasan Integrasi Kegiatan Substantif:
-1. **Dinas Lapangan (Supervisi & Pemeriksaan):**
+1. **Pelatihan Petugas Survei SPDT-NTP 2026:**
+   - 7 Okt (Hari ke-1): Pembukaan, metodologi survei, konsep definisi rumahtangga pertanian, serta pendalaman modul kuesioner tanaman pangan, hortikultura, dan perkebunan.
+   - 8 Okt (Hari ke-2): Pendalaman kuesioner subsektor peternakan, perikanan, kehutanan, tata cara pemeriksaan dokumen PML, simulasi wawancara, dan praktik CAPI FASIH-SM.
+2. **Dinas Lapangan (Supervisi & Pemeriksaan):**
    - 12 Okt: Supervisi & koordinasi dinas luar ke Kantor Desa Bukit Raya dan Desa Giri Mukti (Kec. Sepaku).
    - 20 Okt: Pengawasan lapangan & pemeriksaan survei SPDT-NTP di Kelurahan Sepan dan Riko (Kec. Penajam).
    - 26 Okt: Pengawasan lapangan & supervisi wawancara survei SPDT-NTP di Kelurahan Sotek (Kec. Penajam).
    - 27 Okt: Pengawasan lapangan & validasi entri kuesioner survei SPDT-NTP di Kelurahan Gersik (Kec. Penajam).
-2. **Data Cleaning Otomasi FASIH-SM (\`fasih-sm-bot\`):**
+3. **Data Cleaning Otomasi FASIH-SM (\`fasih-sm-bot\`):**
    - Verifikasi 8 Nilai Tambah Bruto (NTB): Kalibrasi 6.455 unit usaha (6.193 auto-calibrate ratio median, 94 koreksi skala, 79 korporasi besar, 36 typo digit ekstrem, 132 konfirmasi keterangan lapangan wajar).
    - Data Cleaning Sosek & Bansos: Rekonsiliasi 586 bansos coklit, 492 realign bansos master, audit 183 NIK duplikat nasional, dan penegakan invariant kematian (8 kasus).
    - Data Cleaning BANR: Pengiriman batch 28 penugasan draft BANR via FormGear MinIO S3 dengan hasil 0 galat.
    - Reallokasi Penugasan: Pemetaan 1.259 prelist SE2026 ke SLS aktif dan reallokasi 123 draft assignment via API \`survey-user\`.
    - Kode Remark Deputi NAS: Standardisasi kode remark data cleaning #0 sampai dengan #4.
-3. **Data Cleaning & Rekonsiliasi Prelist (\`data_microdata_se2026\`):**
+4. **Data Cleaning & Rekonsiliasi Prelist (\`data_microdata_se2026\`):**
    - Analisis coverage usaha dan keluarga per desa/kecamatan (54 desa/kelurahan di Kab. PPU).
    - Two-Way Linking Tier 1 Prelist OSS ke kuesioner keluarga (100 unit usaha prelist administratif).
    - Rencana remediasi anomali KBLI unit usaha keluarga SE2026.
    - Audit kesalahan petugas BKU (Bangunan Khusus Usaha) dalam kuesioner keluarga.
-4. **Ekstraksi Data Perizinan Usaha OSS RBA:**
+5. **Ekstraksi Data Perizinan Usaha OSS RBA:**
    - Ekstraksi dan tabulasi komprehensif data izin usaha (NIB, NIK, dan identitas legalitas) dari Web Portal OSS RBA sebanyak 11.282 record untuk pengayaan direktori SBR dan SE2026 PPU.
-5. **Keterkaitan Rencana Kinerja (RK) & IKI KIPAPP BPS:**
+6. **Keterkaitan Rencana Kinerja (RK) & IKI KIPAPP BPS:**
    - Seluruh 44 kegiatan telah dipetakan secara terstruktur ke 11 butir SKP aktif dengan rujukan langsung ke Rencana Kinerja KIPAPP (rkId, rkNama, IKI kuantitas, IKI kualitas, dan nilai BerAKHLAK).
 
 ---
