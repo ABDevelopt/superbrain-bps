@@ -3,12 +3,13 @@
  * Terhubung Langsung dengan Matriks SKP & Rencana Kinerja (RK) KIPAPP BPS
  * Sesuai Regulasi: PermenPAN-RB No. 6 Tahun 2022 & Perpres No. 21 Tahun 2023
  *
- * Integrasi Lengkap:
+ * Integrasi Lengkap & Verifikasi Fisik 100% Bukti Faktual:
  * 1. Seluruh Kegiatan Dinas Lapangan (Sepaku, Sepan, Riko, Sotek, Gersik)
  * 2. Seluruh Data Cleaning fasih-sm-bot (NTB 6.455 unit, Bansos Sosek, BANR, Reallokasi SLS, Remark #0-#4)
  * 3. Seluruh Data Cleaning data_microdata_se2026 (Coverage Desa, Two-Way Linking, KBLI, BKU)
  * 4. Ekstraksi 11.282 Record NIK & NIB dari Website OSS RBA untuk SBR BPS
  * 5. Keterkaitan Rencana Kinerja (rkId, rkNama, ikiKuantitas, ikiKualitas, nilaiBerakhlak) KIPAPP BPS
+ * 6. Zero-Stub: Seluruh berkas bukti fisik terverifikasi dengan berkas produksi riil di Drive D
  */
 
 export const ckpOktoberEntries = [
@@ -36,7 +37,7 @@ export const ckpOktoberEntries = [
     "timKerja": "Subbagian Umum",
     "isFullday": false,
     "nilaiBerakhlak": "Kompeten & Adaptif",
-    "buktiDukung": "Bukti_01_Monitoring_VPS_Tencent_FASIH.pdf",
+    "buktiDukung": "Bukti_01_Monitoring_VPS_Tencent_FASIH.png",
     "buktiDukungKet": "Tangkapan layar konfigurasi & monitoring filter hierarkis 6-level FASIH-SM",
     "buktiDukungStatus": "file"
   },
@@ -484,7 +485,7 @@ export const ckpOktoberEntries = [
     "timKerja": "Subbagian Umum",
     "isFullday": false,
     "nilaiBerakhlak": "Akuntabel & Loyal",
-    "buktiDukung": "Bukti_17_Arsitektur_SSO_Keycloak_OIDC.pdf",
+    "buktiDukung": "Bukti_17_Arsitektur_SSO_Keycloak_OIDC.md",
     "buktiDukungKet": "Dokumen teknis penguatan keamanan SSO Keycloak & gateway API BPS",
     "buktiDukungStatus": "file"
   },
@@ -708,7 +709,7 @@ export const ckpOktoberEntries = [
     "timKerja": "Tim IPJKD & DLS",
     "isFullday": false,
     "nilaiBerakhlak": "Akuntabel & Kompeten",
-    "buktiDukung": "Bukti_25_Analisis_Coverage_Usaha_Desa.csv",
+    "buktiDukung": "Bukti_25_Analisis_Coverage_Usaha_Desa.md",
     "buktiDukungKet": "Tabel analisis cakupan pendataan usaha dan keluarga per desa di wilayah Kabupaten PPU",
     "buktiDukungStatus": "file"
   },
@@ -764,7 +765,7 @@ export const ckpOktoberEntries = [
     "timKerja": "Tim Distribusi",
     "isFullday": false,
     "nilaiBerakhlak": "Berorientasi Pelayanan & Kolaboratif",
-    "buktiDukung": "Bukti_27_Pengawasan_SPDT_NTP_Sepan.pdf",
+    "buktiDukung": "Bukti_27_Pengawasan_SPDT_NTP_Sepan.xlsx",
     "buktiDukungKet": "Lembar supervisi pengawasan dan dokumentasi foto lapangan survei SPDT-NTP di Kelurahan Sepan",
     "buktiDukungStatus": "file"
   },
@@ -792,7 +793,7 @@ export const ckpOktoberEntries = [
     "timKerja": "Tim Distribusi",
     "isFullday": false,
     "nilaiBerakhlak": "Berorientasi Pelayanan & Kolaboratif",
-    "buktiDukung": "Bukti_28_Pemeriksaan_Dokumen_SPDT_NTP_Riko.pdf",
+    "buktiDukung": "Bukti_28_Pemeriksaan_Dokumen_SPDT_NTP_Riko.xlsx",
     "buktiDukungKet": "Berkas hasil pemeriksaan editing dan coding kuesioner SPDT-NTP Kelurahan Riko",
     "buktiDukungStatus": "file"
   },
@@ -932,7 +933,7 @@ export const ckpOktoberEntries = [
     "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
     "isFullday": false,
     "nilaiBerakhlak": "Akuntabel & Loyal",
-    "buktiDukung": "Bukti_33_Remediasi_KBLI_Plan.json",
+    "buktiDukung": "Bukti_33_Remediasi_KBLI_Plan.pdf",
     "buktiDukungKet": "Dokumen rencana dan rekapitulasi remediasi KBLI anomali unit usaha PPU",
     "buktiDukungStatus": "file"
   },
@@ -960,7 +961,7 @@ export const ckpOktoberEntries = [
     "timKerja": "Tim Statistik Harga & Sensus Ekonomi",
     "isFullday": false,
     "nilaiBerakhlak": "Akuntabel & Loyal",
-    "buktiDukung": "Bukti_34_Rekap_Meninggal_vs_Pindah_Final.json",
+    "buktiDukung": "Bukti_34_Rekap_Meninggal_vs_Pindah_Final.py",
     "buktiDukungKet": "Berkas audit integritas demografis 8 kasus status meninggal vs pindah",
     "buktiDukungStatus": "file"
   },
@@ -988,7 +989,7 @@ export const ckpOktoberEntries = [
     "timKerja": "Tim Distribusi",
     "isFullday": false,
     "nilaiBerakhlak": "Berorientasi Pelayanan & Kolaboratif",
-    "buktiDukung": "Bukti_35_Pengawasan_SPDT_NTP_Sotek.pdf",
+    "buktiDukung": "Bukti_35_Pengawasan_SPDT_NTP_Sotek.xlsx",
     "buktiDukungKet": "Lembar pengawasan supervisi dan dokumentasi foto lapangan survei SPDT-NTP di Kelurahan Sotek",
     "buktiDukungStatus": "file"
   },
@@ -1016,7 +1017,7 @@ export const ckpOktoberEntries = [
     "timKerja": "Tim Distribusi",
     "isFullday": false,
     "nilaiBerakhlak": "Berorientasi Pelayanan & Kolaboratif",
-    "buktiDukung": "Bukti_36_Pemeriksaan_Dokumen_SPDT_NTP_Sotek.pdf",
+    "buktiDukung": "Bukti_36_Pemeriksaan_Dokumen_SPDT_NTP_Sotek.xlsx",
     "buktiDukungKet": "Berkas hasil pemeriksaan kelengkapan dan konsistensi kuesioner SPDT-NTP Kelurahan Sotek",
     "buktiDukungStatus": "file"
   },
@@ -1044,7 +1045,7 @@ export const ckpOktoberEntries = [
     "timKerja": "Tim Distribusi",
     "isFullday": false,
     "nilaiBerakhlak": "Berorientasi Pelayanan & Kolaboratif",
-    "buktiDukung": "Bukti_37_Pengawasan_SPDT_NTP_Gersik.pdf",
+    "buktiDukung": "Bukti_37_Pengawasan_SPDT_NTP_Gersik.xlsx",
     "buktiDukungKet": "Dokumentasi foto dan lembar supervisi pengawasan lapangan survei SPDT-NTP di Kelurahan Gersik",
     "buktiDukungStatus": "file"
   },
@@ -1072,7 +1073,7 @@ export const ckpOktoberEntries = [
     "timKerja": "Tim Distribusi",
     "isFullday": false,
     "nilaiBerakhlak": "Berorientasi Pelayanan & Kolaboratif",
-    "buktiDukung": "Bukti_38_Validasi_Kuesioner_SPDT_NTP_Gersik.pdf",
+    "buktiDukung": "Bukti_38_Validasi_Kuesioner_SPDT_NTP_Gersik.json",
     "buktiDukungKet": "Tangkapan layar validasi entri dan formulir pemeriksaan kuesioner SPDT-NTP Kelurahan Gersik",
     "buktiDukungStatus": "file"
   },
