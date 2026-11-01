@@ -150,7 +150,7 @@ let md = `# DAFTAR BUKTI DUKUNG CKP BULAN OKTOBER 2026
    - Verifikasi 8 Nilai Tambah Bruto (NTB): Kalibrasi 6.455 unit usaha (6.193 auto-calibrate ratio median, 94 koreksi skala, 79 korporasi besar, 36 typo digit ekstrem, 132 konfirmasi keterangan lapangan wajar).
    - Data Cleaning Sosek & Bansos: Rekonsiliasi 586 bansos coklit, 492 realign bansos master, audit 183 NIK duplikat nasional, dan penegakan invariant kematian (8 kasus).
    - Data Cleaning BANR: Pengiriman batch 28 penugasan draft BANR via FormGear MinIO S3 dengan hasil 0 galat.
-   - Reallokasi Penugasan: Pemetaan 1.259 prelist SE2026 ke SLS aktif dan reallokasi 123 draft assignment via API \`survey-user\`.
+   - Pemutakhiran Peta Wilkerstat: Pemeriksaan, validasi georeferencing, dan kompilasi peta digital Wilkerstat Satuan Lingkungan Setempat (SLS) Kabupaten Penajam Paser Utara.
    - Kode Remark Deputi NAS: Standardisasi kode remark data cleaning #0 sampai dengan #4.
 4. **Data Cleaning & Rekonsiliasi Prelist (\`data_microdata_se2026\`):**
    - Analisis coverage usaha dan keluarga per desa/kecamatan (54 desa/kelurahan di Kab. PPU).
