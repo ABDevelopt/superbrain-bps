@@ -59,3 +59,8 @@ sessions/
 *.sqlite
 *.sqlite3
 
+# AI Agent Local Config & Skills
+.agents/
+.agents
+
+
