@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build",
+    "test": "node scripts/run_full_tests.mjs",
     "start": "next start",
     "lint": "eslint"
   },

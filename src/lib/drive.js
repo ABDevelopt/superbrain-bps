@@ -1,4 +1,4 @@
-import { handleGoogleTokenExpired } from '@/lib/gcal';
+import { handleGoogleTokenExpired } from './gcal.js';
 
 /**
  * Validates whether the given Google OAuth access token is active and valid.
