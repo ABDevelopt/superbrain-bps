@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-01T16:47:40.465Z",
+  "timestamp": "2026-11-01T16:53:36.443Z",
   "version": "1.0",
   "totalActivities": 44,
   "bulan": "Oktober 2026",
@@ -755,15 +755,17 @@
         "durasi": 180,
         "skpId": 2,
         "skpIds": [
-          2
+          2,
+          10,
+          17
         ],
-        "rincian": "[Data Cleaning Microdata] Live scan pemadanan unit usaha keluarga yang belum terhubung dengan data prelist administratif BPS",
-        "kuantitas": 1,
-        "satuan": "Dataset",
-        "timKerja": "Tim IPJKD & DLS",
+        "rincian": "[Ekstraksi Data OSS & SBR] Otomasi ekstraksi data NIK dan NIB (Nomor Induk Berusaha) dari Website OSS sebanyak 11.282 record perizinan berusaha untuk pengayaan direktori SBR & SE2026 Kab. PPU",
+        "kuantitas": 11282,
+        "satuan": "Record",
+        "timKerja": "Tim Statistik Distribusi & SBR",
         "isFullday": false,
-        "buktiDukung": "Bukti_40_Live_Scan_Unlinked_Family_Businesses.xlsx",
-        "buktiDukungKet": "Hasil pemadanan dan penyelarasan usaha keluarga unlinked pada basis data SE2026",
+        "buktiDukung": "Bukti_40_Tabulasi_OSS_11K_NIB_NIK.xlsx",
+        "buktiDukungKet": "Tabel tabulasi komprehensif hasil ekstraksi 11.282 record NIB dan NIK usaha dari Web Tracking OSS RBA untuk direktori SBR & SE2026 BPS PPU",
         "buktiDukungStatus": "file"
       },
       {
