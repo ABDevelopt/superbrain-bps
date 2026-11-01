@@ -72,6 +72,8 @@ async function handleTelegramWebhook(token, body) {
       let parsedData;
       let fileId = null;
 
+      const contextData = await fetchAllContextData(userId);
+
       if (document || photo) {
         let mimeType;
 
@@ -108,13 +110,10 @@ async function handleTelegramWebhook(token, body) {
         const downloadRes = await fetch(downloadUrl);
         if (!downloadRes.ok) throw new Error('Gagal mengunduh berkas dari server Telegram.');
 
-        const fileBuffer = Buffer.from(await downloadRes.arrayBuffer());
-
         // Fetch context
-        const contextData = await fetchAllContextData(userId);
+        const fileBuffer = Buffer.from(await downloadRes.arrayBuffer());
         parsedData = await parseInvitation(fileBuffer, mimeType, contextData);
       } else {
-        const contextData = await fetchAllContextData(userId);
         parsedData = await parseInvitationText(messageText, contextData);
       }
 

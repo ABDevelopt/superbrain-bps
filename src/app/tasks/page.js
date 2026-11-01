@@ -44,6 +44,7 @@ function getLocalDateStr(dateObj = new Date()) {
 
 function getTaskCompletionDate(task) {
   if (task.completedAt) {
+    if (typeof task.completedAt.toDate === 'function') return task.completedAt.toDate();
     const d = new Date(task.completedAt);
     if (!isNaN(d.getTime())) return d;
   }

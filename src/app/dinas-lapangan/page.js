@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   MapPin,
@@ -35,8 +35,8 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { useSkps } from '@/hooks/useSkps';
 import { useFirestore } from '@/hooks/useFirestore';
 import { useAlert } from '@/contexts/AlertContext';
-import { uploadFileToDrive, getOrCreateFolder, makeFileOrFolderPublic } from '@/lib/drive';
-import { savePendingUpload, getPendingUploads } from '@/lib/localdb';
+import { uploadFileToDrive, getOrCreateFolder, makeFileOrFolderPublic, isGoogleTokenValid } from '@/lib/drive';
+import { savePendingUpload, getPendingUploads, removePendingUpload } from '@/lib/localdb';
 
 import PrintLaporanView from './PrintLaporanView';
 import PrintDokumentasiView from './PrintDokumentasiView';
@@ -117,6 +117,24 @@ export default function DinasLapanganPage() {
   const [stFiles, setStFiles] = useState([]);
   const [existingStFiles, setExistingStFiles] = useState([]);
   const [isUploadingST, setIsUploadingST] = useState(false);
+
+  // Offline pending uploads state
+  const [pendingUploads, setPendingUploads] = useState([]);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const fetchPendingUploads = useCallback(async () => {
+    try {
+      const list = await getPendingUploads(user?.uid);
+      const dlList = list.filter(item => item.type === 'dinas_lapangan');
+      setPendingUploads(dlList || []);
+    } catch (e) {
+      console.warn("Failed to fetch pending uploads for dinas lapangan:", e);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchPendingUploads();
+  }, [fetchPendingUploads]);
 
   // Form State: Laporan Hasil DL
   const [formLaporan, setFormLaporan] = useState({
@@ -257,6 +275,14 @@ export default function DinasLapanganPage() {
     setExistingStFiles(trip.suratTugasFiles || []);
     setStFiles([]);
     setActiveTab(1);
+  };
+
+  // Open Print Preview Mode
+  const handleOpenPrint = (trip, viewType = 'laporan') => {
+    if (!trip) return;
+    setSelectedTrip(trip);
+    setPrintSubView(viewType);
+    setActiveTab(3);
   };
 
   // Open Report Editor
@@ -441,35 +467,49 @@ export default function DinasLapanganPage() {
     setIsUploadingST(true);
     try {
       let uploadedFiles = [...existingStFiles];
+      const offlineQueue = [];
 
-      // Upload ST files to GDrive if any
+      let currentToken = accessToken;
+      let tokenOk = await isGoogleTokenValid(currentToken);
+      if (!tokenOk && stFiles.length > 0) {
+        try {
+          currentToken = await loginWithGoogle();
+          tokenOk = await isGoogleTokenValid(currentToken);
+        } catch (loginErr) {
+          console.warn("Login Google Drive dibatalkan/gagal:", loginErr);
+        }
+      }
+
+      // Upload ST files to GDrive if valid token exists
       if (stFiles.length > 0) {
-        if (accessToken) {
-          const cleanNomor = formST.nomorSuratTugas.replace(/[^a-zA-Z0-9 -]/g, '_');
-          const parentFolderId = await getOrCreateFolder(accessToken, 'SuperBrain BPS');
-          const dlFolderId = await getOrCreateFolder(accessToken, 'Surat Tugas & Perjalanan Dinas', parentFolderId);
-          const subfolderName = `${formST.tanggalMulai} - ${cleanNomor}`;
-          const subfolderId = await getOrCreateFolder(accessToken, subfolderName, dlFolderId);
-          await makeFileOrFolderPublic(subfolderId, accessToken);
+        if (currentToken && tokenOk) {
+          try {
+            const cleanNomor = formST.nomorSuratTugas.replace(/[^a-zA-Z0-9 -]/g, '_');
+            const parentFolderId = await getOrCreateFolder(currentToken, 'SuperBrain BPS');
+            const dlFolderId = await getOrCreateFolder(currentToken, 'Surat Tugas & Perjalanan Dinas', parentFolderId);
+            const subfolderName = `${formST.tanggalMulai} - ${cleanNomor}`;
+            const subfolderId = await getOrCreateFolder(currentToken, subfolderName, dlFolderId);
+            await makeFileOrFolderPublic(subfolderId, currentToken);
 
-          for (let i = 0; i < stFiles.length; i++) {
-            const file = stFiles[i];
-            const fileName = `ST_${formST.tanggalMulai}_${cleanNomor}_${file.name}`;
-            const fileUrl = await uploadFileToDrive(file, accessToken, subfolderId, fileName);
-            uploadedFiles.push({
-              name: file.name,
-              url: fileUrl,
-              uploadDate: getLocalDateStr(),
-              size: file.size
-            });
+            for (let i = 0; i < stFiles.length; i++) {
+              const file = stFiles[i];
+              const fileName = `ST_${formST.tanggalMulai}_${cleanNomor}_${file.name}`;
+              const fileUrl = await uploadFileToDrive(file, currentToken, subfolderId, fileName);
+              uploadedFiles.push({
+                name: file.name,
+                url: fileUrl,
+                uploadDate: getLocalDateStr(),
+                size: file.size
+              });
+            }
+          } catch (uploadErr) {
+            console.error("Gagal mengunggah ke Google Drive:", uploadErr);
+            showAlert('Gagal mengunggah ke Google Drive: ' + uploadErr.message + '. Berkas akan disimpan offline.', 'warning');
+            offlineQueue.push(...stFiles);
           }
         } else {
-          // Offline save warning
-          for (let i = 0; i < stFiles.length; i++) {
-            const file = stFiles[i];
-            await savePendingUpload(`st_${Date.now()}_${i}`, file, file.name, 'dinas_lapangan', null, null, user?.uid);
-          }
-          showAlert('Koneksi Google Drive belum aktif. Berkas disimpan sementara secara lokal di perangkat.', 'info');
+          // Offline mode
+          offlineQueue.push(...stFiles);
         }
       }
 
@@ -508,6 +548,17 @@ export default function DinasLapanganPage() {
         }
       }
 
+      // If there are files queued for offline sync, save with tripId
+      if (offlineQueue.length > 0 && tripId) {
+        for (let i = 0; i < offlineQueue.length; i++) {
+          const file = offlineQueue[i];
+          const offlineId = `st_${tripId}_${Date.now()}_${i}`;
+          await savePendingUpload(offlineId, file, file.name, 'dinas_lapangan', null, null, user?.uid);
+        }
+        await fetchPendingUploads();
+        showAlert('Koneksi Google Drive belum aktif. Berkas disimpan offline di perangkat dan dapat disinkronkan nanti.', 'info');
+      }
+
       // Automatically sync DL dates to CKP dinas_lapangan collection
       try {
         const curr = new Date(formST.tanggalMulai + 'T00:00:00');
@@ -531,6 +582,90 @@ export default function DinasLapanganPage() {
       showAlert('Gagal menyimpan perjalanan dinas: ' + err.message, 'error');
     } finally {
       setIsUploadingST(false);
+    }
+  };
+
+  // Synchronize Offline ST Files to Google Drive
+  const handleSyncOfflineFiles = async () => {
+    if (isSyncing) return;
+    setIsSyncing(true);
+
+    let currentToken = accessToken;
+    try {
+      const isValid = await isGoogleTokenValid(currentToken);
+      if (!currentToken || !isValid) {
+        currentToken = await loginWithGoogle();
+        if (!currentToken) {
+          showAlert('Koneksi Google Drive dibatalkan.', 'info');
+          setIsSyncing(false);
+          return;
+        }
+      }
+
+      const list = await getPendingUploads(user?.uid);
+      const dlList = list.filter(item => item.type === 'dinas_lapangan');
+      if (dlList.length === 0) {
+        showAlert('Tidak ada berkas Surat Tugas yang menunggu sinkronisasi.', 'info');
+        setIsSyncing(false);
+        return;
+      }
+
+      const parentFolderId = await getOrCreateFolder(currentToken, 'SuperBrain BPS');
+      const dlFolderId = await getOrCreateFolder(currentToken, 'Surat Tugas & Perjalanan Dinas', parentFolderId);
+
+      let successCount = 0;
+
+      for (const item of dlList) {
+        try {
+          if (!item.file) {
+            await removePendingUpload(item.id);
+            continue;
+          }
+
+          // Format offlineId: st_${tripId}_${timestamp}_${i}
+          const parts = item.id.split('_');
+          const tripId = parts.length >= 2 ? parts[1] : null;
+          const targetTrip = trips.find(t => t.id === tripId);
+
+          const cleanNomor = (targetTrip?.nomorSuratTugas || '').replace(/[^a-zA-Z0-9 -]/g, '_');
+          const folderName = targetTrip 
+            ? `${targetTrip.tanggalMulai} - ${cleanNomor}`
+            : 'Lampiran ST Offline';
+          const subfolderId = await getOrCreateFolder(currentToken, folderName, dlFolderId);
+          await makeFileOrFolderPublic(subfolderId, currentToken);
+
+          const fileName = `ST_${item.customFileName || item.file?.name || 'surat_tugas'}`;
+          const fileUrl = await uploadFileToDrive(item.file, currentToken, subfolderId, fileName);
+
+          if (targetTrip && tripId) {
+            const existingFiles = targetTrip.suratTugasFiles || [];
+            const newFiles = [...existingFiles, {
+              name: item.customFileName || item.file?.name || 'Surat Tugas',
+              url: fileUrl,
+              uploadDate: getLocalDateStr(),
+              size: item.file?.size || 0
+            }];
+            await updateTrip(tripId, { suratTugasFiles: newFiles });
+          }
+
+          await removePendingUpload(item.id);
+          successCount++;
+        } catch (itemErr) {
+          console.error("Gagal menyinkronkan item ST:", item.id, itemErr);
+        }
+      }
+
+      await fetchPendingUploads();
+      if (successCount > 0) {
+        showAlert(`Berhasil menyinkronkan ${successCount} berkas Surat Tugas ke Google Drive!`, 'success');
+      } else {
+        showAlert('Gagal menyinkronkan beberapa berkas. Coba lagi nanti.', 'error');
+      }
+    } catch (err) {
+      console.error("Sinkronisasi gagal:", err);
+      showAlert('Gagal menyinkronkan: ' + err.message, 'error');
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -713,6 +848,38 @@ export default function DinasLapanganPage() {
               </div>
             </div>
           </div>
+
+          {/* Offline Pending Uploads Banner */}
+          {pendingUploads.length > 0 && (
+            <div style={{
+              background: 'rgba(234, 179, 8, 0.12)',
+              border: '1px solid rgba(234, 179, 8, 0.3)',
+              borderRadius: '12px',
+              padding: '12px 16px',
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '12px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <UploadCloud size={20} color="#eab308" />
+                <span style={{ fontSize: '13px', color: '#fef08a' }}>
+                  Terdapat <strong>{pendingUploads.length}</strong> berkas Surat Tugas menunggu diunggah ke Google Drive (Mode Offline).
+                </span>
+              </div>
+              <button
+                type="button"
+                className={styles.primaryBtn}
+                onClick={handleSyncOfflineFiles}
+                disabled={isSyncing}
+                style={{ fontSize: '12px', padding: '6px 14px' }}
+              >
+                {isSyncing ? 'Mengunggah...' : 'Unggah Sekarang'}
+              </button>
+            </div>
+          )}
 
           {/* Navigation Tabs */}
           <div className={styles.tabNav}>
