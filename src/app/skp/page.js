@@ -653,9 +653,9 @@ export default function SKPPage() {
     }
   };
 
-  // Seed default 29 items into Firestore
+  // Seed default 30 items into Firestore
   const handleLoadDefaults = async () => {
-    if (!confirm('Apakah Anda yakin ingin me-reset data dan memuat 29 SKP bawaan BPS beserta struktur tim kerjanya ke database?')) {
+    if (!confirm('Apakah Anda yakin ingin me-reset data dan memuat 30 SKP bawaan BPS beserta struktur tim kerjanya ke database?')) {
       return;
     }
     setIsSaving(true);

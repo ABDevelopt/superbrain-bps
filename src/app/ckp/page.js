@@ -6824,7 +6824,7 @@ function CKPPageInner() {
   const { accessToken, user, loginWithGoogle } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const [openingFolder, setOpeningFolder] = useState(false);
-  const { skpData } = useSkps();
+  const { skpData, addDocument: addSkpDoc, dbSkps } = useSkps();
   const { docs: entries, loading, addDocument, updateDocument, deleteDocument } = useFirestore('ckp');
   const { docs: holidaysData, addDocument: addHoliday, deleteDocument: deleteHoliday } = useFirestore('holidays');
   const { docs: dlData, addDocument: addDl, deleteDocument: deleteDl } = useFirestore('dinas_lapangan');
@@ -7280,6 +7280,19 @@ function CKPPageInner() {
       let updatedCount = 0;
       let updatedDriveCount = 0;
 
+      // Pastikan butir SKP bawaan yang belum ada di database pengguna (seperti SKP #30 SPDT-NTP) otomatis tersimpan ke Firestore
+      if (addSkpDoc && dbSkps && dbSkps.length > 0) {
+        const existingSkpIds = new Set(dbSkps.map(s => Number(s.id || 0)));
+        const missingSkps = skpData.filter(d => !existingSkpIds.has(Number(d.id)));
+        for (const mSkp of missingSkps) {
+          try {
+            await addSkpDoc(mSkp);
+          } catch (skpErr) {
+            console.warn('Auto-seed missing SKP to Firestore skipped:', skpErr);
+          }
+        }
+      }
+
       for (const item of ckpOktoberEntries) {
         const key = `${item.tanggal}_${(item.waktuMulai || '').trim()}`;
         const existingEntry = entries.find(e => `${e.tanggal}_${(e.waktuMulai || '').trim()}` === key);
@@ -7360,7 +7373,7 @@ function CKPPageInner() {
       setIsImportingOktober(false);
       setShowImportOktoberConfirm(false);
     }
-  }, [user, entries, accessToken, loginWithGoogle, addDocument, updateDocument, showAlert]);
+  }, [user, entries, accessToken, loginWithGoogle, addDocument, updateDocument, showAlert, addSkpDoc, dbSkps, skpData]);
 
   useChatAction('IMPORT_CKP_OKTOBER', handleImportOktober);
 
