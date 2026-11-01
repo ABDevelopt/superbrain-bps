@@ -7149,6 +7149,7 @@ function CKPPageInner() {
       }
 
       let importedCount = 0;
+      let updatedCount = 0;
       let updatedDriveCount = 0;
 
       for (const item of ckpOktoberEntries) {
@@ -7177,23 +7178,39 @@ function CKPPageInner() {
 
           await addDocument(toSave);
           importedCount++;
-        } else if (currentToken && mainFolderId && (!existingEntry.buktiDukung || !existingEntry.buktiDukung.startsWith('https://drive.google.com'))) {
-          // Entry already in Firestore (imported before), but missing Google Drive folder link!
-          try {
-            const cleanKegiatan = (existingEntry.rincian || item.rincian || 'Kegiatan').substring(0, 40).replace(/[^a-zA-Z0-9 -]/g, '').trim();
-            const subfolderName = `${item.tanggal} - ${cleanKegiatan}`;
-            const subfolderId = await getOrCreateFolder(currentToken, subfolderName, mainFolderId);
-            await makeFileOrFolderPublic(subfolderId, currentToken);
-            const driveUrl = `https://drive.google.com/drive/folders/${subfolderId}`;
-            await updateDocument(existingEntry.id, {
-              buktiDukung: driveUrl,
-              buktiDukungStatus: 'kosong',
-              localFileBukti: existingEntry.buktiDukung || item.buktiDukung
-            });
-            updatedDriveCount++;
-          } catch (dErr) {
-            console.warn('Drive folder update skipped:', dErr);
+        } else {
+          // Entry already in Firestore: sync fields to latest standardized CKP definition
+          const updatePayload = {
+            rincian: item.rincian,
+            satuan: item.satuan,
+            kuantitas: item.kuantitas,
+            capaian: item.capaian,
+            skpId: item.skpId,
+            skpIds: item.skpIds,
+            rkId: item.rkId,
+            rkNama: item.rkNama,
+            buktiDukungKet: item.buktiDukungKet,
+            nilaiBerakhlak: item.nilaiBerakhlak,
+            timKerja: item.timKerja
+          };
+
+          if (currentToken && mainFolderId && (!existingEntry.buktiDukung || !existingEntry.buktiDukung.startsWith('https://drive.google.com'))) {
+            try {
+              const cleanKegiatan = (item.rincian || 'Kegiatan').substring(0, 40).replace(/[^a-zA-Z0-9 -]/g, '').trim();
+              const subfolderName = `${item.tanggal} - ${cleanKegiatan}`;
+              const subfolderId = await getOrCreateFolder(currentToken, subfolderName, mainFolderId);
+              await makeFileOrFolderPublic(subfolderId, currentToken);
+              updatePayload.buktiDukung = `https://drive.google.com/drive/folders/${subfolderId}`;
+              updatePayload.buktiDukungStatus = 'kosong';
+              updatePayload.localFileBukti = item.buktiDukung;
+              updatedDriveCount++;
+            } catch (dErr) {
+              console.warn('Drive folder update skipped:', dErr);
+            }
           }
+
+          await updateDocument(existingEntry.id, updatePayload);
+          updatedCount++;
         }
       }
 
@@ -7201,10 +7218,10 @@ function CKPPageInner() {
         showAlert(`Berhasil mengimpor ${importedCount} kegiatan dan membentuk ${updatedDriveCount} link Google Drive!`, 'success');
       } else if (importedCount > 0) {
         showAlert(`Berhasil mengimpor ${importedCount} kegiatan CKP bulan Oktober 2026!`, 'success');
-      } else if (updatedDriveCount > 0) {
-        showAlert(`Berhasil membentuk ${updatedDriveCount} link Google Drive untuk kegiatan CKP Oktober yang sudah terdata!`, 'success');
+      } else if (updatedCount > 0) {
+        showAlert(`Berhasil menyinkronkan ${updatedCount} kegiatan CKP Oktober dengan satuan terstandarisasi${updatedDriveCount > 0 ? ` dan membentuk ${updatedDriveCount} link Drive` : ''}!`, 'success');
       } else {
-        showAlert('Semua 44 kegiatan CKP bulan Oktober 2026 sudah terdata dan memiliki link Google Drive.', 'info');
+        showAlert('Semua 44 kegiatan CKP bulan Oktober 2026 sudah terdata dan termutakhirkan.', 'info');
       }
       setSharedSelectedDate('2026-10-01');
       setActiveTab(2);
