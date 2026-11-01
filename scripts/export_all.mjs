@@ -157,10 +157,12 @@ let md = `# DAFTAR BUKTI DUKUNG CKP BULAN OKTOBER 2026
    - Two-Way Linking Tier 1 Prelist OSS ke kuesioner keluarga (100 unit usaha prelist administratif).
    - Rencana remediasi anomali KBLI unit usaha keluarga SE2026.
    - Audit kesalahan petugas BKU (Bangunan Khusus Usaha) dalam kuesioner keluarga.
-5. **Ekstraksi Data Perizinan Usaha OSS RBA:**
+5. **Pengelolaan BMN (SKP #18):**
+   - 9 Okt: Penyusunan Rencana Kebutuhan Barang Milik Negara (RKBMN) Tahun Anggaran 2028 untuk pengadaan dan pemeliharaan aset BMN BPS Kabupaten Penajam Paser Utara melalui aplikasi SIMAN v2.
+6. **Ekstraksi Data Perizinan Usaha OSS RBA:**
    - Ekstraksi dan tabulasi komprehensif data izin usaha (NIB, NIK, dan identitas legalitas) dari Web Portal OSS RBA sebanyak 11.282 record untuk pengayaan direktori SBR dan SE2026 PPU.
-6. **Keterkaitan Rencana Kinerja (RK) & IKI KIPAPP BPS:**
-   - Seluruh 44 kegiatan telah dipetakan secara terstruktur ke 11 butir SKP aktif dengan rujukan langsung ke Rencana Kinerja KIPAPP (rkId, rkNama, IKI kuantitas, IKI kualitas, dan nilai BerAKHLAK).
+7. **Keterkaitan Rencana Kinerja (RK) & IKI KIPAPP BPS:**
+   - Seluruh 44 kegiatan telah dipetakan secara terstruktur ke 12 butir SKP aktif dengan rujukan langsung ke Rencana Kinerja KIPAPP (rkId, rkNama, IKI kuantitas, IKI kualitas, dan nilai BerAKHLAK).
 
 ---
 

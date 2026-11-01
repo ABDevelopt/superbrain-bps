@@ -6,7 +6,7 @@
     "regulasi": "PermenPAN-RB No. 6 Tahun 2022",
     "totalKegiatanFisik": 44,
     "totalEntriKipappPaired": 88,
-    "exportedAt": "2026-11-01T17:50:33.988Z"
+    "exportedAt": "2026-11-01T18:19:17.515Z"
   },
   "kegiatanStandard": [
     {
@@ -178,16 +178,16 @@
       "iscapaianskp": true
     },
     {
-      "skpid": 17,
-      "rkid": 17,
-      "kegiatan": "Penyusunan SOP dan skrip inspeksi penanganan anomali Verifikasi 2 (Profesi Nelayan/Petani False Negatif) untuk re-aktivasi usaha keluarga",
+      "skpid": 18,
+      "rkid": 18,
+      "kegiatan": "Penyusunan Rencana Kebutuhan Barang Milik Negara (RKBMN) Tahun Anggaran 2028 untuk pengadaan dan pemeliharaan aset BMN BPS Kabupaten Penajam Paser Utara melalui aplikasi SIMAN v2",
       "tanggal": "2026-10-09",
       "tanggalselesai": "2026-10-09",
       "progres": 100,
-      "capaian": "1 Dokumen",
-      "datadukung": "Bukti_13_SOP_Inspeksi_Verifikasi_2.py",
-      "datadukungketerangan": "SOP dan skrip inspeksi verifikasi 2 re-aktivasi usaha keluarga",
-      "timkerja": "Tim Statistik Harga & Sensus Ekonomi",
+      "capaian": "1 Dokumen RKBMN",
+      "datadukung": "Bukti_13_Dokumen_RKBMN_TA_2028_BPS_PPU.pdf",
+      "datadukungketerangan": "Formulir usulan dan rekapitulasi Rencana Kebutuhan Barang Milik Negara (RKBMN) TA 2028 satker BPS Kabupaten Penajam Paser Utara (SIMAN v2)",
+      "timkerja": "Subbagian Umum",
       "nilaiberakhlak": "Akuntabel & Loyal",
       "iscapaianskp": true
     },
@@ -940,28 +940,28 @@
       "iscapaianskp": true
     },
     {
-      "skpid": 17,
-      "rkid": 17,
+      "skpid": 18,
+      "rkid": 18,
       "aspek": "Kuantitas",
-      "kegiatan": "[Kuantitas] Penyusunan SOP dan skrip inspeksi penanganan anomali Verifikasi 2 (Profesi Nelayan/Petani False Negatif) untuk re-aktivasi usaha keluarga",
+      "kegiatan": "[Kuantitas] Penyusunan Rencana Kebutuhan Barang Milik Negara (RKBMN) Tahun Anggaran 2028 untuk pengadaan dan pemeliharaan aset BMN BPS Kabupaten Penajam Paser Utara melalui aplikasi SIMAN v2",
       "tanggal": "2026-10-09",
       "tanggalselesai": "2026-10-09",
       "progres": 100,
       "capaian": "Tingkat kuantitas terlaksana 100% (1 Dokumen)",
-      "datadukung": "Bukti_13_SOP_Inspeksi_Verifikasi_2.py",
+      "datadukung": "Bukti_13_Dokumen_RKBMN_TA_2028_BPS_PPU.pdf",
       "nilaiberakhlak": "Akuntabel & Loyal",
       "iscapaianskp": true
     },
     {
-      "skpid": 17,
-      "rkid": 17,
+      "skpid": 18,
+      "rkid": 18,
       "aspek": "Kualitas",
-      "kegiatan": "[Kualitas] Penyusunan SOP dan skrip inspeksi penanganan anomali Verifikasi 2 (Profesi Nelayan/Petani False Negatif) untuk re-aktivasi usaha keluarga",
+      "kegiatan": "[Kualitas] Penyusunan Rencana Kebutuhan Barang Milik Negara (RKBMN) Tahun Anggaran 2028 untuk pengadaan dan pemeliharaan aset BMN BPS Kabupaten Penajam Paser Utara melalui aplikasi SIMAN v2",
       "tanggal": "2026-10-09",
       "tanggalselesai": "2026-10-09",
       "progres": 100,
       "capaian": "Tingkat kualitas hasil kerja sesuai standar SOP BPS (100%)",
-      "datadukung": "Bukti_13_SOP_Inspeksi_Verifikasi_2.py",
+      "datadukung": "Bukti_13_Dokumen_RKBMN_TA_2028_BPS_PPU.pdf",
       "nilaiberakhlak": "Akuntabel & Loyal",
       "iscapaianskp": true
     },
