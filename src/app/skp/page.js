@@ -713,7 +713,7 @@ export default function SKPPage() {
       });
 
       await batch.commit();
-      setToastMsg('Berhasil memuat 29 SKP bawaan BPS.');
+      setToastMsg('Berhasil memuat 30 SKP bawaan BPS.');
       setActiveStepTab(2); // Jump to list
     } catch (err) {
       console.error('Error seeding defaults:', err);
@@ -910,9 +910,9 @@ export default function SKPPage() {
               className={styles.resetBtn}
               onClick={handleLoadDefaults}
               disabled={isSaving}
-              title="Muat 29 SKP bawaan BPS ke database Anda"
+              title="Muat 30 SKP bawaan BPS ke database Anda"
             >
-              <RotateCcw size={16} /> Gunakan 29 SKP Bawaan
+              <RotateCcw size={16} /> Gunakan 30 SKP Bawaan
             </button>
             {isCustom && (
               <button 
@@ -999,7 +999,7 @@ export default function SKPPage() {
             {teamsLoading ? (
               <div style={{ textAlign: 'center', padding: '20px 0', color: '#94a3b8' }}>Memuat data tim...</div>
             ) : teams.length === 0 ? (
-              <div className={styles.setupEmptyState}>Belum ada Tim Kerja. Silakan tambah di atas atau klik "Gunakan 29 SKP Bawaan".</div>
+              <div className={styles.setupEmptyState}>Belum ada Tim Kerja. Silakan tambah di atas atau klik "Gunakan 30 SKP Bawaan".</div>
             ) : (
               <table className={styles.setupTable}>
                 <thead>
