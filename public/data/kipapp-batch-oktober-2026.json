@@ -6,7 +6,7 @@
     "regulasi": "PermenPAN-RB No. 6 Tahun 2022",
     "totalKegiatanFisik": 44,
     "totalEntriKipappPaired": 88,
-    "exportedAt": "2026-11-01T22:21:00.934Z"
+    "exportedAt": "2026-11-01T22:23:13.768Z"
   },
   "kegiatanStandard": [
     {
@@ -558,11 +558,11 @@
     {
       "skpid": 2,
       "rkid": 2,
-      "kegiatan": "[Ekstraksi Data OSS & SBR] Penyusunan dokumen tabulasi hasil ekstraksi data NIK dan NIB dari Website OSS sebanyak 11.282 record perizinan berusaha untuk pengayaan direktori SBR & SE2026 Kab. PPU",
+      "kegiatan": "[Ekstraksi Data OSS & SBR] Otomasi ekstraksi data NIK dan NIB (Nomor Induk Berusaha) dari Website OSS sebanyak 11.282 record perizinan berusaha untuk pengayaan direktori SBR & SE2026 Kab. PPU",
       "tanggal": "2026-10-28",
       "tanggalselesai": "2026-10-28",
       "progres": 100,
-      "capaian": "1 Dokumen (11.282 Record OSS)",
+      "capaian": "11282 Record",
       "datadukung": "Bukti_40_Tabulasi_OSS_11K_NIB_NIK.xlsx",
       "datadukungketerangan": "Tabel tabulasi komprehensif hasil ekstraksi 11.282 record NIB dan NIK usaha dari Web Tracking OSS RBA untuk direktori SBR & SE2026 BPS PPU",
       "timkerja": "Tim Statistik Distribusi & SBR",
@@ -1645,11 +1645,11 @@
       "skpid": 2,
       "rkid": 2,
       "aspek": "Kuantitas",
-      "kegiatan": "[Kuantitas] [Ekstraksi Data OSS & SBR] Penyusunan dokumen tabulasi hasil ekstraksi data NIK dan NIB dari Website OSS sebanyak 11.282 record perizinan berusaha untuk pengayaan direktori SBR & SE2026 Kab. PPU",
+      "kegiatan": "[Kuantitas] [Ekstraksi Data OSS & SBR] Otomasi ekstraksi data NIK dan NIB (Nomor Induk Berusaha) dari Website OSS sebanyak 11.282 record perizinan berusaha untuk pengayaan direktori SBR & SE2026 Kab. PPU",
       "tanggal": "2026-10-28",
       "tanggalselesai": "2026-10-28",
       "progres": 100,
-      "capaian": "Tingkat kuantitas terlaksana 100% (1 Dokumen)",
+      "capaian": "Tingkat kuantitas terlaksana 100% (11282 Record)",
       "datadukung": "Bukti_40_Tabulasi_OSS_11K_NIB_NIK.xlsx",
       "nilaiberakhlak": "Kompeten & Adaptif",
       "iscapaianskp": true
@@ -1658,7 +1658,7 @@
       "skpid": 2,
       "rkid": 2,
       "aspek": "Kualitas",
-      "kegiatan": "[Kualitas] [Ekstraksi Data OSS & SBR] Penyusunan dokumen tabulasi hasil ekstraksi data NIK dan NIB dari Website OSS sebanyak 11.282 record perizinan berusaha untuk pengayaan direktori SBR & SE2026 Kab. PPU",
+      "kegiatan": "[Kualitas] [Ekstraksi Data OSS & SBR] Otomasi ekstraksi data NIK dan NIB (Nomor Induk Berusaha) dari Website OSS sebanyak 11.282 record perizinan berusaha untuk pengayaan direktori SBR & SE2026 Kab. PPU",
       "tanggal": "2026-10-28",
       "tanggalselesai": "2026-10-28",
       "progres": 100,

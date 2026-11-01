@@ -29,9 +29,10 @@ updated.forEach(item => {
       item.capaian = '1 Dokumen';
       item.rincian = 'Penyusunan dokumen algoritma standarisasi ejaan nama usaha dan nama kepala keluarga direktori SBR & SE2026';
     } else if (item.id === 'ckp_20261028_2') {
-      item.kuantitas = 1;
-      item.capaian = '1 Dokumen (11.282 Record OSS)';
-      item.rincian = '[Ekstraksi Data OSS & SBR] Penyusunan dokumen tabulasi hasil ekstraksi data NIK dan NIB dari Website OSS sebanyak 11.282 record perizinan berusaha untuk pengayaan direktori SBR & SE2026 Kab. PPU';
+      item.kuantitas = 11282;
+      item.satuan = 'Record';
+      item.capaian = '11282 Record';
+      item.rincian = '[Ekstraksi Data OSS & SBR] Otomasi ekstraksi data NIK dan NIB (Nomor Induk Berusaha) dari Website OSS sebanyak 11.282 record perizinan berusaha untuk pengayaan direktori SBR & SE2026 Kab. PPU';
     }
   } else if (item.skpId === 3) {
     item.satuan = 'Dokumen';
