@@ -15,8 +15,10 @@ export function ChatActionProvider({ children }) {
     const handlers = listenersRef.current[type];
     if (handlers && handlers.length > 0) {
       handlers.forEach(callback => callback(payload));
+      return true;
     } else {
       console.warn(`[ChatAction] No listeners found for action type: ${type}`);
+      return false;
     }
   }, []);
 

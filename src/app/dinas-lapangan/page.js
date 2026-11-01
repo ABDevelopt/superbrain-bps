@@ -35,6 +35,7 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { useSkps } from '@/hooks/useSkps';
 import { useFirestore } from '@/hooks/useFirestore';
 import { useAlert } from '@/contexts/AlertContext';
+import { useChatAction } from '@/contexts/ChatActionContext';
 import { uploadFileToDrive, getOrCreateFolder, makeFileOrFolderPublic, isGoogleTokenValid } from '@/lib/drive';
 import { savePendingUpload, getPendingUploads, removePendingUpload } from '@/lib/localdb';
 
@@ -276,6 +277,37 @@ export default function DinasLapanganPage() {
     setStFiles([]);
     setActiveTab(1);
   };
+
+  // AI Chat Action Handler
+  const handleAICreateDL = useCallback(async (args) => {
+    try {
+      const tMulai = args.tanggalMulai || getLocalDateStr();
+      const tSelesai = args.tanggalSelesai || tMulai;
+      const autoST = args.nomorSuratTugas || `B-${Math.floor(1000 + Math.random()*9000)}/BPS/64090/DL/${new Date().getFullYear()}`;
+
+      await addTrip({
+        userId: user?.uid || null,
+        nomorSuratTugas: autoST,
+        tanggalSuratTugas: tMulai,
+        pejabatPemberiTugas: 'Kepala BPS Kabupaten Penajam Paser Utara',
+        maksudTujuan: args.maksudTujuan || 'Tugas Lapangan BPS',
+        daerahTujuan: args.daerahTujuan || 'Penajam Paser Utara',
+        tanggalMulai: tMulai,
+        tanggalSelesai: tSelesai,
+        lamaHari: Number(args.lamaHari) || 1,
+        skpId: args.skpId ? Number(args.skpId) : null,
+        kendaraan: args.kendaraan || 'Kendaraan Operasional / Dinas',
+        status: 'rencana',
+        pelaksana: [{ nama: userProfile?.displayName || 'Yahya Abdurrohman, S.Tr.Stat.', peran: 'Utama' }]
+      });
+
+      showAlert(`Perjalanan Dinas "${args.maksudTujuan}" berhasil dicatat oleh AI!`, 'success');
+    } catch (e) {
+      console.error("AI Create DL Error:", e);
+    }
+  }, [addTrip, user, userProfile, showAlert]);
+
+  useChatAction('CREATE_DINAS_LAPANGAN', handleAICreateDL);
 
   // Open Print Preview Mode
   const handleOpenPrint = (trip, viewType = 'laporan') => {

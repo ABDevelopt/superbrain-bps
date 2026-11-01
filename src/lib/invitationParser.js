@@ -103,7 +103,13 @@ async function callGemini(contents) {
     throw new Error('Kunci API Gemini tidak dikonfigurasi di server.');
   }
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+  const modelsToTry = [
+    'gemini-2.0-flash',
+    'gemini-2.0-flash-lite',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro'
+  ];
+
   const requestBody = {
     contents,
     generationConfig: {
@@ -112,45 +118,61 @@ async function callGemini(contents) {
     },
   };
 
-  let response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(requestBody),
-  });
+  let lastError = null;
 
-  if (response.status === 503) {
-    console.warn('Gemini API returned 503 (overloaded). Retrying in 3 seconds...');
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
-    });
-  }
+  for (const model of modelsToTry) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-  if (!response.ok) {
-    if (response.status === 503) {
-      throw new Error('Server AI Gemini sedang sibuk (overloaded). Silakan coba lagi dalam beberapa saat.');
+    try {
+      let response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (response.status === 503) {
+        console.warn(`[Gemini] Model ${model} returned 503 (overloaded). Retrying once...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+        });
+      }
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.warn(`[Gemini] Model ${model} failed with ${response.status}:`, errText);
+        lastError = new Error(`Gagal menghubungi model ${model}: ${response.status}`);
+        continue;
+      }
+
+      const responseData = await response.json();
+      const rawText = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!rawText) {
+        lastError = new Error('Respon Gemini API kosong.');
+        continue;
+      }
+
+      let cleanText = rawText.trim();
+      const firstBrace = cleanText.indexOf('{');
+      const lastBrace = cleanText.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        cleanText = cleanText.substring(firstBrace, lastBrace + 1);
+      }
+
+      try {
+        return JSON.parse(cleanText);
+      } catch (err) {
+        throw new Error('Gagal memproses keluaran AI menjadi JSON yang valid.');
+      }
+    } catch (err) {
+      console.warn(`[Gemini] Exception with model ${model}:`, err.message);
+      lastError = err;
     }
-    throw new Error(`Gagal menghubungi Gemini API: ${response.status} ${response.statusText}`);
   }
 
-  const responseData = await response.json();
-  const rawText = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!rawText) throw new Error('Respon Gemini API kosong.');
-
-  let cleanText = rawText.trim();
-  const firstBrace = cleanText.indexOf('{');
-  const lastBrace = cleanText.lastIndexOf('}');
-  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-    cleanText = cleanText.substring(firstBrace, lastBrace + 1);
-  }
-
-  try {
-    return JSON.parse(cleanText);
-  } catch (err) {
-    throw new Error('Gagal memproses keluaran AI menjadi JSON yang valid.');
-  }
+  throw lastError || new Error('Gagal menghubungi seluruh model Gemini API.');
 }
 
 export async function parseInvitation(fileBuffer, mimeType, contextData = null) {

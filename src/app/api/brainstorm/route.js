@@ -42,6 +42,7 @@ Anda memiliki beberapa FUNGSI (TOOLS) utama. Panggil fungsi yang paling tepat se
 1. 'create_task', 'update_task', 'delete_task': Untuk manipulasi tugas (Papan Kanban).
 2. 'create_schedule', 'update_schedule', 'delete_schedule': Untuk manipulasi agenda/kalender.
 3. 'create_ckp', 'update_ckp', 'delete_ckp': Untuk manipulasi laporan harian (CKP).
+4. 'create_dinas_lapangan': Untuk mencatat penugasan Perjalanan Dinas / Surat Tugas (DL) BPS.
 
 Ketika mengedit (update) atau menghapus (delete) sesuatu, WAJIB merujuk pada 'id' record yang sesuai dengan "data yang saat ini ada di halaman pengguna" (jika tersedia).
 Jika pengguna melampirkan file (gambar/PDF), bacalah isi file tersebut untuk mengekstrak detail (misal: baca undangan rapat dari gambar PDF lalu buat jadwalnya). Selalu ekstrak detail seperti judul, waktu (jam & tanggal), deskripsi, dan tingkat urgensi (Tinggi/Sedang/Rendah) dengan saksama.
@@ -72,10 +73,10 @@ Jika pengguna melampirkan file (gambar/PDF), bacalah isi file tersebut untuk men
     });
 
     const modelsToTry = [
-      'gemini-2.5-flash',
-      'gemini-2.5-pro',
       'gemini-2.0-flash',
-      'gemini-3.5-flash'
+      'gemini-2.0-flash-lite',
+      'gemini-1.5-flash',
+      'gemini-1.5-pro'
     ];
 
     let lastError = null;
@@ -222,6 +223,24 @@ Jika pengguna melampirkan file (gambar/PDF), bacalah isi file tersebut untuk men
                   },
                   required: ["id"]
                 }
+              },
+              {
+                name: "create_dinas_lapangan",
+                description: "Mencatat atau membuat agenda penugasan Perjalanan Dinas / Dinas Lapangan (DL / Surat Tugas) BPS.",
+                parameters: {
+                  type: "OBJECT",
+                  properties: {
+                    nomorSuratTugas: { type: "STRING", description: "Nomor Surat Tugas resmi BPS (opsional jika belum ada)." },
+                    maksudTujuan: { type: "STRING", description: "Maksud atau perihal tugas dinas lapangan (contoh: Pengawasan Lapangan Susenas)." },
+                    daerahTujuan: { type: "STRING", description: "Lokasi / kecamatan tujuan (contoh: Nipah-nipah, Sepaku, Babulu, Waru)." },
+                    tanggalMulai: { type: "STRING", description: "Tanggal mulai perjalanan (YYYY-MM-DD)." },
+                    tanggalSelesai: { type: "STRING", description: "Tanggal selesai perjalanan (YYYY-MM-DD)." },
+                    lamaHari: { type: "INTEGER", description: "Durasi perjalanan dinas dalam hari (default 1)." },
+                    skpId: { type: "INTEGER", description: "ID butir SKP yang cocok (1-29)." },
+                    kendaraan: { type: "STRING", description: "Jenis kendaraan operasional." }
+                  },
+                  required: ["maksudTujuan", "daerahTujuan", "tanggalMulai"]
+                }
               }
             ]
           }
@@ -269,6 +288,7 @@ Jika pengguna melampirkan file (gambar/PDF), bacalah isi file tersebut untuk men
           else if (functionCall.name === 'create_ckp') messageSuffix = 'Laporan kegiatan telah dicatat.';
           else if (functionCall.name === 'update_ckp') messageSuffix = 'Laporan CKP telah diperbarui.';
           else if (functionCall.name === 'delete_ckp') messageSuffix = 'Laporan CKP telah dihapus.';
+          else if (functionCall.name === 'create_dinas_lapangan') messageSuffix = 'Perjalanan dinas dan surat tugas telah dicatat.';
 
           return NextResponse.json({
             type: 'function_call',

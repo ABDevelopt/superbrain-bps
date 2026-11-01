@@ -43,7 +43,13 @@ Berikan tingkat kepercayaan (confidence) dari 0.0 hingga 1.0, serta alasan singk
       required: ['skpId', 'confidence', 'reason']
     };
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const modelsToTry = [
+      'gemini-2.0-flash',
+      'gemini-2.0-flash-lite',
+      'gemini-1.5-flash',
+      'gemini-1.5-pro'
+    ];
+
     const requestBody = {
       contents: [{ parts: [{ text: systemPrompt }] }],
       generationConfig: {
@@ -52,35 +58,61 @@ Berikan tingkat kepercayaan (confidence) dari 0.0 hingga 1.0, serta alasan singk
       },
     };
 
-    let response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
-    });
+    let lastError = null;
+    let parsedData = null;
 
-    if (response.status === 503) {
-      console.warn('Gemini API returned 503 (overloaded) for SKP suggestions. Retrying in 3 seconds...');
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
-    }
+    for (const model of modelsToTry) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-    if (!response.ok) {
-      let extMsg = '';
       try {
-        extMsg = ' - ' + await response.text();
-      } catch (_) {}
-      throw new Error(`Gemini API Error: ${response.status} ${response.statusText}${extMsg}`);
+        let response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+        });
+
+        if (response.status === 503) {
+          console.warn(`[Gemini] Model ${model} returned 503. Retrying once...`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody),
+          });
+        }
+
+        if (!response.ok) {
+          const extMsg = await response.text();
+          console.warn(`[Gemini] Model ${model} failed: ${response.status}`, extMsg);
+          lastError = new Error(`Model ${model} error: ${response.status}`);
+          continue;
+        }
+
+        const responseData = await response.json();
+        const rawText = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!rawText) {
+          lastError = new Error('Respon Gemini API kosong.');
+          continue;
+        }
+
+        let cleanText = rawText.trim();
+        const firstBrace = cleanText.indexOf('{');
+        const lastBrace = cleanText.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+          cleanText = cleanText.substring(firstBrace, lastBrace + 1);
+        }
+
+        parsedData = JSON.parse(cleanText);
+        break;
+      } catch (err) {
+        console.warn(`[Gemini] Exception on model ${model}:`, err.message);
+        lastError = err;
+      }
     }
 
-    const responseData = await response.json();
-    const rawText = responseData.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!rawText) throw new Error('Respon Gemini API kosong.');
-
-    const parsedData = JSON.parse(rawText.trim());
+    if (!parsedData) {
+      throw lastError || new Error('Gagal mendapatkan rekomendasi SKP dari seluruh model AI.');
+    }
 
     return NextResponse.json({
       success: true,
