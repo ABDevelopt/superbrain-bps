@@ -71,7 +71,7 @@ export const aggregateCkpBySkpAndSatuan = (monthEntries = [], skpData = []) => {
         aggregated[groupKey] = {
           skpKey,
           skpId: skpKey,
-          nama: skpItem ? skpItem.nama : defaultName,
+          nama: (Number(skpKey) === 30) ? defaultName : (skpItem ? skpItem.nama : defaultName),
           satuan: satuan,
           kategori: kategori,
           kuantitas: 0
