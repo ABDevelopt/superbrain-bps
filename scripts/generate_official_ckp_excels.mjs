@@ -134,6 +134,7 @@ async function main() {
   const ckptFiles = [
     path.join(downloadDir, 'CKP-T_Oktober_2026_Yahya_Abdurrohman (3).xlsx'),
     path.join(downloadDir, 'CKP-T_Oktober_2026_Yahya_Abdurrohman (4).xlsx'),
+    path.join(downloadDir, 'CKP-T_Oktober_2026_Yahya_Abdurrohman (5).xlsx'),
     path.join(downloadDir, 'CKP-T_Oktober_2026_Yahya_Abdurrohman.xlsx'),
     path.join(kedinasanDir, 'CKP-T_Oktober_2026_Yahya_Abdurrohman.xlsx'),
   ];
@@ -141,6 +142,7 @@ async function main() {
   const ckprFiles = [
     path.join(downloadDir, 'CKP-R_Oktober_2026_Yahya_Abdurrohman (3).xlsx'),
     path.join(downloadDir, 'CKP-R_Oktober_2026_Yahya_Abdurrohman (4).xlsx'),
+    path.join(downloadDir, 'CKP-R_Oktober_2026_Yahya_Abdurrohman (5).xlsx'),
     path.join(downloadDir, 'CKP-R_Oktober_2026_Yahya_Abdurrohman.xlsx'),
     path.join(kedinasanDir, 'CKP-R_Oktober_2026_Yahya_Abdurrohman.xlsx'),
   ];

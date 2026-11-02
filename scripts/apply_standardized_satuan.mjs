@@ -28,11 +28,6 @@ updated.forEach(item => {
       item.kuantitas = 1;
       item.capaian = '1 Dokumen';
       item.rincian = 'Penyusunan dokumen algoritma standarisasi ejaan nama usaha dan nama kepala keluarga direktori SBR & SE2026';
-    } else if (item.id === 'ckp_20261028_2') {
-      item.kuantitas = 11282;
-      item.satuan = 'Record';
-      item.capaian = '11282 Record';
-      item.rincian = '[Ekstraksi Data OSS & SBR] Otomasi ekstraksi data NIK dan NIB (Nomor Induk Berusaha) dari Website OSS sebanyak 11.282 record perizinan berusaha untuk pengayaan direktori SBR & SE2026 Kab. PPU';
     }
   } else if (item.skpId === 3) {
     item.satuan = 'Dokumen';
@@ -44,8 +39,15 @@ updated.forEach(item => {
       item.rincian = 'Penyusunan laporan dan pemeriksaan kelengkapan berkas administrasi dan kepegawaian CPNS BPS Kabupaten Penajam Paser Utara';
     }
   } else if (item.skpId === 10) {
-    item.satuan = 'Laporan';
-    item.capaian = item.kuantitas + ' Laporan';
+    if (item.id === 'ckp_20261028_2') {
+      item.kuantitas = 11282;
+      item.satuan = 'Record';
+      item.capaian = '11282 Record';
+      item.rincian = '[Ekstraksi Data OSS & SBR] Otomasi ekstraksi data NIK dan NIB (Nomor Induk Berusaha) dari Website OSS sebanyak 11.282 record perizinan berusaha untuk pengayaan direktori SBR & SE2026 Kab. PPU';
+    } else {
+      item.satuan = 'Laporan';
+      item.capaian = item.kuantitas + ' Laporan';
+    }
   } else if (item.skpId === 11) {
     item.satuan = 'Kegiatan';
     item.capaian = item.kuantitas + ' Kegiatan';

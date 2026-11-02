@@ -20,7 +20,7 @@ import { useAIContext } from '@/contexts/AIContext';
 import * as XLSX from 'xlsx';
 import { doc, updateDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import DailyTimeVisualizer, { getEntrySkpIds, getBackgroundForSkps, isSpdtEntry } from './DailyTimeVisualizer';
+import DailyTimeVisualizer, { getEntrySkpIds, getBackgroundForSkps, isSpdtEntry, isOss11kEntry } from './DailyTimeVisualizer';
 import MonthlyTimeVisualizer from './MonthlyTimeVisualizer';
 import KipappSyncModal from './KipappSyncModal';
 import { ckpOktoberEntries } from '@/data/ckpOktober2026';
@@ -7395,6 +7395,27 @@ function CKPPageInner() {
       }
     }
 
+    const ossEntries = (entries || []).filter(e => isOss11kEntry(e));
+    for (const entry of ossEntries) {
+      try {
+        await updateDocument(entry.id, {
+          skpId: 10,
+          skpIds: [10],
+          rkId: 10,
+          rkNama: 'Tersedianya kompilasi data administratif yang lengkap dan up to date',
+          ikiKuantitas: 'Tingkat kuantitas pemenuhan tersedianya kompilasi data administratif yang lengkap dan up to date',
+          ikiKualitas: 'Tingkat kualitas pemenuhan tersedianya kompilasi data administratif yang lengkap dan up to date',
+          satuan: 'Record',
+          kuantitas: 11282,
+          capaian: '11282 Record',
+          timKerja: 'Tim IPJKD & DLS'
+        });
+        updatedCount++;
+      } catch (e) {
+        console.error('Error syncing OSS entry:', e);
+      }
+    }
+
     if (addSkpDoc && dbSkps) {
       const hasSkp30 = dbSkps.some(s => Number(s.id) === 30);
       if (!hasSkp30) {
@@ -7447,6 +7468,36 @@ function CKPPageInner() {
           });
         } catch (err) {
           console.warn('[SuperBrain AutoHeal] Error updating entry:', entry.id, err);
+        }
+      });
+    }
+
+    // Auto-heal OSS 11.282 record entry to SKP #10 (Kompilasi Data Administratif) and remove from SKP #2
+    const ossEntries = entries.filter(e => isOss11kEntry(e));
+    const ossNeedsUpdate = ossEntries.filter(e => {
+      const rawSkpId = Number(e.skpId);
+      const rawSkpIds = Array.isArray(e.skpIds) ? e.skpIds.map(Number) : [];
+      return rawSkpId === 2 || rawSkpIds.includes(2) || rawSkpId !== 10;
+    });
+
+    if (ossNeedsUpdate.length > 0) {
+      console.log(`[SuperBrain AutoHeal] Updating ${ossNeedsUpdate.length} OSS entries to SKP #10 in Firestore...`);
+      ossNeedsUpdate.forEach(async (entry) => {
+        try {
+          await updateDocument(entry.id, {
+            skpId: 10,
+            skpIds: [10],
+            rkId: 10,
+            rkNama: 'Tersedianya kompilasi data administratif yang lengkap dan up to date',
+            ikiKuantitas: 'Tingkat kuantitas pemenuhan tersedianya kompilasi data administratif yang lengkap dan up to date',
+            ikiKualitas: 'Tingkat kualitas pemenuhan tersedianya kompilasi data administratif yang lengkap dan up to date',
+            satuan: 'Record',
+            kuantitas: 11282,
+            capaian: '11282 Record',
+            timKerja: 'Tim IPJKD & DLS'
+          });
+        } catch (err) {
+          console.warn('[SuperBrain AutoHeal] Error updating OSS entry:', entry.id, err);
         }
       });
     }

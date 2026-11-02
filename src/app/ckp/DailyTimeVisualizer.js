@@ -9,6 +9,7 @@ const DEFAULT_END_HOUR = 21;
 
 import {
   isSpdtEntry,
+  isOss11kEntry,
   getEntrySkpIds,
   getColorForSkp,
   getBackgroundForSkps,
@@ -17,6 +18,7 @@ import {
 
 export {
   isSpdtEntry,
+  isOss11kEntry,
   getEntrySkpIds,
   getColorForSkp,
   getBackgroundForSkps,

@@ -10,11 +10,30 @@ export const isSpdtEntry = (entry) => {
   return /SPDT[-_ ]?NTP|\bSPDT\b/i.test(text);
 };
 
+export const isOss11kEntry = (entry) => {
+  if (!entry) return false;
+  if (entry.id === 'ckp_20261028_2') return true;
+  const qty = Number(entry.kuantitas);
+  if (qty === 11282) return true;
+  const text = `${entry.rincian || ''} ${entry.buktiDukung || ''} ${entry.buktiDukungKet || ''}`;
+  return /11\.?282/i.test(text) && /OSS/i.test(text);
+};
+
 export const getEntrySkpIds = (entry) => {
   if (!entry) return [];
   // Aturan Mutlak: Seluruh kegiatan SPDT / SPDT NTP otomatis diarahkan ke SKP #30
   if (isSpdtEntry(entry)) {
     return [30];
+  }
+  // Aturan Khusus: Data OSS 11.282 record TIDAK ditambahkan ke SKP #2 (SBR), melainkan ke SKP #10 (Kompilasi Data Administratif)
+  if (isOss11kEntry(entry)) {
+    if (Array.isArray(entry.skpIds) && entry.skpIds.length > 0) {
+      const filtered = entry.skpIds.map(Number).filter((n) => !isNaN(n) && n > 0 && n !== 2);
+      return filtered.length > 0 ? filtered : [10];
+    }
+    const num = Number(entry.skpId);
+    if (!isNaN(num) && num > 0 && num !== 2) return [num];
+    return [10];
   }
   if (Array.isArray(entry.skpIds) && entry.skpIds.length > 0) {
     return entry.skpIds.map(Number).filter((n) => !isNaN(n) && n > 0);

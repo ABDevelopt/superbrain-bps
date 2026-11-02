@@ -320,6 +320,45 @@ if (spdtAggKey) {
 }
 
 // ========================================================
+// SUITE 9: OSS 11.282 RECORD SKP #10 vs SKP #2 EXCLUSION
+// ========================================================
+console.log('\n--- SUITE 9: OSS 11.282 Record SKP #10 vs SKP #2 Exclusion ---');
+
+const { isOss11kEntry } = await import('../src/utils/ckpAggregation.js');
+const ossEntry = ckpOktoberEntries.find(e => e.id === 'ckp_20261028_2');
+
+assert(Boolean(ossEntry), 'Found OSS 11.282 record activity (ckp_20261028_2)');
+assert(isOss11kEntry(ossEntry), 'isOss11kEntry correctly identifies the 11.282 record activity');
+const ossSkpIds = getEntrySkpIds(ossEntry);
+assert(!ossSkpIds.includes(2), 'OSS 11.282 record is NOT attached to SKP #2 (Terkelolanya data SBR)');
+assert(ossSkpIds.includes(10), 'OSS 11.282 record is attached to SKP #10 (Kompilasi Data Administratif)');
+
+// Verify legacy fallback: old entry with [2, 10, 17] excludes 2
+const mockOldOssEntry = {
+  id: 'ckp_20261028_2',
+  rincian: 'Otomasi ekstraksi data NIK dan NIB dari Website OSS sebanyak 11.282 record perizinan berusaha',
+  skpId: 2,
+  skpIds: [2, 10, 17],
+  kuantitas: 11282,
+  satuan: 'Record'
+};
+const cleanedOssIds = getEntrySkpIds(mockOldOssEntry);
+assert(!cleanedOssIds.includes(2), 'Legacy OSS entry with skpIds [2, 10, 17] auto-strips SKP #2');
+
+// Verify that SKP #2 in aggregated report only has 1 Dokumen
+const skp2DokumenKey = '2:::dokumen';
+const skp2RecordKey = '2:::record';
+assert(Boolean(aggregated[skp2DokumenKey]), 'SKP #2 has Dokumen entry in aggregated report');
+assert(aggregated[skp2DokumenKey]?.kuantitas === 1, 'SKP #2 Dokumen quantity is exactly 1 (actual: ' + aggregated[skp2DokumenKey]?.kuantitas + ')');
+assert(!aggregated[skp2RecordKey], 'SKP #2 Record entry does NOT exist in aggregated report');
+
+// Verify SKP #10 has both 1 Laporan and 11282 Record
+const skp10LaporanKey = '10:::laporan';
+const skp10RecordKey = '10:::record';
+assert(aggregated[skp10LaporanKey]?.kuantitas === 1, 'SKP #10 Laporan quantity is exactly 1');
+assert(aggregated[skp10RecordKey]?.kuantitas === 11282, 'SKP #10 Record quantity is exactly 11.282');
+
+// ========================================================
 // FINAL SUMMARY
 // ========================================================
 console.log('\n====================================================');
