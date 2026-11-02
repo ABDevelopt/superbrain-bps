@@ -38,17 +38,17 @@
       "iscapaianskp": true
     },
     {
-      "skpid": 11,
-      "rkid": 11,
-      "kegiatan": "Mengikuti sosialisasi daring Pelatihan Dasar (LATSAR) CPNS dan koordinasi administrasi kepegawaian",
+      "skpid": 1,
+      "rkid": 1,
+      "kegiatan": "Perancangan arsitektur antarmuka dan visualisasi timeline alokasi waktu kegiatan harian SuperBrain BPS",
       "tanggal": "2026-10-02",
       "tanggalselesai": "2026-10-02",
       "progres": 100,
-      "capaian": "1 Kegiatan",
-      "datadukung": "Bukti_03_Undangan_Sosialisasi_Latsar_CPNS.pdf",
-      "datadukungketerangan": "Surat Undangan & tangkapan layar kehadiran sosialisasi daring Latsar CPNS",
+      "capaian": "1 Modul",
+      "datadukung": "Bukti_04_Visualizer_CKP_SuperBrain.png",
+      "datadukungketerangan": "Tangkapan layar antarmuka perancangan visualizer alokasi waktu kegiatan harian SuperBrain",
       "timkerja": "Subbagian Umum",
-      "nilaiberakhlak": "Kompeten & Harmonis",
+      "nilaiberakhlak": "Kompeten & Adaptif",
       "iscapaianskp": true
     },
     {
@@ -444,6 +444,20 @@
       "iscapaianskp": true
     },
     {
+      "skpid": 11,
+      "rkid": 11,
+      "kegiatan": "Mengikuti acara Penutupan Pelatihan Dasar (Latsar) CPNS Golongan II dan III BPS Tahun 2026 dan pengumuman evaluasi kelulusan secara daring via Zoom",
+      "tanggal": "2026-10-22",
+      "tanggalselesai": "2026-10-22",
+      "progres": 100,
+      "capaian": "1 Kegiatan",
+      "datadukung": "Bukti_31B_Undangan_Penutupan_Latsar_CPNS.pdf",
+      "datadukungketerangan": "Surat Undangan No. B-1659/02600/DL.210/2026 dan tangkapan layar kehadiran penutupan daring Latsar CPNS BPS",
+      "timkerja": "Subbagian Umum",
+      "nilaiberakhlak": "Kompeten & Akuntabel",
+      "iscapaianskp": true
+    },
+    {
       "skpid": 17,
       "rkid": 17,
       "kegiatan": "Pengembangan modul Field Notes FormGear untuk penyematan catatan verifikasi tanpa menimpa catatan asli PCL",
@@ -680,29 +694,29 @@
       "iscapaianskp": true
     },
     {
-      "skpid": 11,
-      "rkid": 11,
+      "skpid": 1,
+      "rkid": 1,
       "aspek": "Kuantitas",
-      "kegiatan": "[Kuantitas] Mengikuti sosialisasi daring Pelatihan Dasar (LATSAR) CPNS dan koordinasi administrasi kepegawaian",
+      "kegiatan": "[Kuantitas] Perancangan arsitektur antarmuka dan visualisasi timeline alokasi waktu kegiatan harian SuperBrain BPS",
       "tanggal": "2026-10-02",
       "tanggalselesai": "2026-10-02",
       "progres": 100,
-      "capaian": "Tingkat kuantitas terlaksana 100% (1 Kegiatan)",
-      "datadukung": "Bukti_03_Undangan_Sosialisasi_Latsar_CPNS.pdf",
-      "nilaiberakhlak": "Kompeten & Harmonis",
+      "capaian": "Tingkat kuantitas terlaksana 100% (1 Modul)",
+      "datadukung": "Bukti_04_Visualizer_CKP_SuperBrain.png",
+      "nilaiberakhlak": "Kompeten & Adaptif",
       "iscapaianskp": true
     },
     {
-      "skpid": 11,
-      "rkid": 11,
+      "skpid": 1,
+      "rkid": 1,
       "aspek": "Kualitas",
-      "kegiatan": "[Kualitas] Mengikuti sosialisasi daring Pelatihan Dasar (LATSAR) CPNS dan koordinasi administrasi kepegawaian",
+      "kegiatan": "[Kualitas] Perancangan arsitektur antarmuka dan visualisasi timeline alokasi waktu kegiatan harian SuperBrain BPS",
       "tanggal": "2026-10-02",
       "tanggalselesai": "2026-10-02",
       "progres": 100,
       "capaian": "Tingkat kualitas hasil kerja sesuai standar SOP BPS (100%)",
-      "datadukung": "Bukti_03_Undangan_Sosialisasi_Latsar_CPNS.pdf",
-      "nilaiberakhlak": "Kompeten & Harmonis",
+      "datadukung": "Bukti_04_Visualizer_CKP_SuperBrain.png",
+      "nilaiberakhlak": "Kompeten & Adaptif",
       "iscapaianskp": true
     },
     {
@@ -1431,6 +1445,32 @@
       "capaian": "Tingkat kualitas hasil kerja sesuai standar SOP BPS (100%)",
       "datadukung": "Bukti_31_Scan_OCR_Susenas_Sepaku.pdf",
       "nilaiberakhlak": "Akuntabel & Kompeten",
+      "iscapaianskp": true
+    },
+    {
+      "skpid": 11,
+      "rkid": 11,
+      "aspek": "Kuantitas",
+      "kegiatan": "[Kuantitas] Mengikuti acara Penutupan Pelatihan Dasar (Latsar) CPNS Golongan II dan III BPS Tahun 2026 dan pengumuman evaluasi kelulusan secara daring via Zoom",
+      "tanggal": "2026-10-22",
+      "tanggalselesai": "2026-10-22",
+      "progres": 100,
+      "capaian": "Tingkat kuantitas terlaksana 100% (1 Kegiatan)",
+      "datadukung": "Bukti_31B_Undangan_Penutupan_Latsar_CPNS.pdf",
+      "nilaiberakhlak": "Kompeten & Akuntabel",
+      "iscapaianskp": true
+    },
+    {
+      "skpid": 11,
+      "rkid": 11,
+      "aspek": "Kualitas",
+      "kegiatan": "[Kualitas] Mengikuti acara Penutupan Pelatihan Dasar (Latsar) CPNS Golongan II dan III BPS Tahun 2026 dan pengumuman evaluasi kelulusan secara daring via Zoom",
+      "tanggal": "2026-10-22",
+      "tanggalselesai": "2026-10-22",
+      "progres": 100,
+      "capaian": "Tingkat kualitas hasil kerja sesuai standar SOP BPS (100%)",
+      "datadukung": "Bukti_31B_Undangan_Penutupan_Latsar_CPNS.pdf",
+      "nilaiberakhlak": "Kompeten & Akuntabel",
       "iscapaianskp": true
     },
     {

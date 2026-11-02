@@ -24,13 +24,13 @@ function buildCkptHtml() {
   // UTAMA Section
   rowsList.push(`
     <tr style="font-weight: bold; background-color: #f3f4f6;">
-      <td class="center" style="font-size: 8.5pt;"></td>
-      <td style="text-align: left; padding-left: 6px; font-size: 8.5pt;">UTAMA</td>
-      <td class="center" style="font-size: 8.5pt;"></td>
-      <td class="center" style="font-size: 8.5pt;"></td>
-      <td class="center" style="font-size: 8.5pt;"></td>
-      <td class="center" style="font-size: 8.5pt;"></td>
-      <td style="font-size: 8.5pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td style="text-align: left; padding-left: 5px; font-size: 7.2pt;">UTAMA</td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td style="font-size: 7.2pt;"></td>
     </tr>
   `);
 
@@ -39,13 +39,13 @@ function buildCkptHtml() {
     sumTarget += item.kuantitas;
     rowsList.push(`
       <tr>
-        <td class="center" style="font-size: 8.5pt;">${idx + 1}</td>
-        <td style="font-size: 8.5pt; text-align: left;">${item.nama}</td>
-        <td class="center" style="font-size: 8.5pt;">${item.satuan}</td>
-        <td class="center" style="font-size: 8.5pt;">${item.kuantitas}</td>
-        <td class="center" style="font-size: 8.5pt;"></td>
-        <td class="center" style="font-size: 8.5pt;"></td>
-        <td style="font-size: 8.5pt;"></td>
+        <td class="center" style="font-size: 7.2pt;">${idx + 1}</td>
+        <td style="font-size: 7.2pt; text-align: left;">${item.nama}</td>
+        <td class="center" style="font-size: 7.2pt;">${item.satuan}</td>
+        <td class="center" style="font-size: 7.2pt;">${item.kuantitas}</td>
+        <td class="center" style="font-size: 7.2pt;"></td>
+        <td class="center" style="font-size: 7.2pt;"></td>
+        <td style="font-size: 7.2pt;"></td>
       </tr>
     `);
   });
@@ -53,13 +53,13 @@ function buildCkptHtml() {
   // TAMBAHAN Section
   rowsList.push(`
     <tr style="font-weight: bold; background-color: #f3f4f6;">
-      <td class="center" style="font-size: 8.5pt;"></td>
-      <td style="text-align: left; padding-left: 6px; font-size: 8.5pt;">TAMBAHAN</td>
-      <td class="center" style="font-size: 8.5pt;"></td>
-      <td class="center" style="font-size: 8.5pt;"></td>
-      <td class="center" style="font-size: 8.5pt;"></td>
-      <td class="center" style="font-size: 8.5pt;"></td>
-      <td style="font-size: 8.5pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td style="text-align: left; padding-left: 5px; font-size: 7.2pt;">TAMBAHAN</td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td style="font-size: 7.2pt;"></td>
     </tr>
   `);
 
@@ -69,35 +69,26 @@ function buildCkptHtml() {
       sumTarget += item.kuantitas;
       rowsList.push(`
         <tr>
-          <td class="center" style="font-size: 8.5pt;">${idx + 1}</td>
-          <td style="font-size: 8.5pt; text-align: left;">${item.nama}</td>
-          <td class="center" style="font-size: 8.5pt;">${item.satuan}</td>
-          <td class="center" style="font-size: 8.5pt;">${item.kuantitas}</td>
-          <td class="center" style="font-size: 8.5pt;"></td>
-          <td class="center" style="font-size: 8.5pt;"></td>
-          <td style="font-size: 8.5pt;"></td>
+          <td class="center" style="font-size: 7.2pt;">${idx + 1}</td>
+          <td style="font-size: 7.2pt; text-align: left;">${item.nama}</td>
+          <td class="center" style="font-size: 7.2pt;">${item.satuan}</td>
+          <td class="center" style="font-size: 7.2pt;">${item.kuantitas}</td>
+          <td class="center" style="font-size: 7.2pt;"></td>
+          <td class="center" style="font-size: 7.2pt;"></td>
+          <td style="font-size: 7.2pt;"></td>
         </tr>
       `);
     });
   } else {
     rowsList.push(`
       <tr>
-        <td class="center" style="font-size: 8.5pt;">1</td>
-        <td style="font-size: 8.5pt; text-align: left;">&nbsp;</td>
-        <td class="center" style="font-size: 8.5pt;">&nbsp;</td>
-        <td class="center" style="font-size: 8.5pt;">&nbsp;</td>
-        <td class="center" style="font-size: 8.5pt;">&nbsp;</td>
-        <td class="center" style="font-size: 8.5pt;">&nbsp;</td>
-        <td style="font-size: 8.5pt;">&nbsp;</td>
-      </tr>
-      <tr>
-        <td class="center" style="font-size: 8.5pt;">2</td>
-        <td style="font-size: 8.5pt; text-align: left;">&nbsp;</td>
-        <td class="center" style="font-size: 8.5pt;">&nbsp;</td>
-        <td class="center" style="font-size: 8.5pt;">&nbsp;</td>
-        <td class="center" style="font-size: 8.5pt;">&nbsp;</td>
-        <td class="center" style="font-size: 8.5pt;">&nbsp;</td>
-        <td style="font-size: 8.5pt;">&nbsp;</td>
+        <td class="center" style="font-size: 7.2pt;">1</td>
+        <td style="font-size: 7.2pt; text-align: left;">-</td>
+        <td class="center" style="font-size: 7.2pt;">-</td>
+        <td class="center" style="font-size: 7.2pt;">-</td>
+        <td class="center" style="font-size: 7.2pt;"></td>
+        <td class="center" style="font-size: 7.2pt;"></td>
+        <td style="font-size: 7.2pt;"></td>
       </tr>
     `);
   }
@@ -105,11 +96,11 @@ function buildCkptHtml() {
   // Summary, Average, and CKP score rows
   rowsList.push(`
     <tr class="summary-row" style="font-weight: bold; background-color: #f9fafb;">
-      <td colspan="3" class="center" style="font-size: 8.5pt;">JUMLAH</td>
-      <td class="center" style="font-size: 8.5pt;">${sumTarget}</td>
-      <td class="center" style="font-size: 8.5pt;"></td>
-      <td class="center" style="font-size: 8.5pt;"></td>
-      <td style="font-size: 8.5pt;"></td>
+      <td colspan="3" class="center" style="font-size: 7.2pt;">JUMLAH</td>
+      <td class="center" style="font-size: 7.2pt;">${sumTarget}</td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td style="font-size: 7.2pt;"></td>
     </tr>
   `);
 
@@ -124,7 +115,7 @@ function buildCkptHtml() {
     <style>
       @page {
         size: A4 landscape;
-        margin: 10mm 10mm 10mm 10mm;
+        margin: 6mm 10mm 6mm 10mm;
       }
       html, body {
         width: 100%;
@@ -133,49 +124,53 @@ function buildCkptHtml() {
         background: #fff;
         color: #000;
         font-family: 'Arial', sans-serif;
-        font-size: 9.5pt;
+        font-size: 8pt;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
       .print-card {
         width: 100%;
         box-sizing: border-box;
+        page-break-inside: avoid;
       }
       .info-table {
         width: 100%;
         border-collapse: collapse;
-        margin-bottom: 15px;
+        margin-bottom: 6px;
       }
       .info-table td {
         border: none;
-        padding: 2px 0;
-        font-size: 9pt;
+        padding: 1.2px 0;
+        font-size: 8pt;
       }
       .main-table {
         width: 100%;
         border-collapse: collapse;
-        margin-bottom: 25px;
+        margin-bottom: 8px;
       }
       .main-table th, .main-table td {
         border: 1px solid #000;
-        padding: 4px 6px;
+        padding: 2.2px 4px;
         text-align: left;
-        font-size: 8.5pt;
+        font-size: 7.2pt;
+        line-height: 1.15;
         word-break: break-word;
       }
       .main-table th {
         background-color: #e5e7eb;
         font-weight: bold;
         text-align: center;
+        font-size: 7.5pt;
+        padding: 3px 4px;
       }
       .main-table td.center {
         text-align: center;
       }
       .header-indices td {
         background-color: #f3f4f6;
-        font-size: 8pt;
+        font-size: 6.8pt;
         border: 1px solid #000;
-        padding: 3px;
+        padding: 1px;
         font-weight: bold;
       }
       .summary-row td {
@@ -184,28 +179,29 @@ function buildCkptHtml() {
       .signature-table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 15px;
+        margin-top: 6px;
+        page-break-inside: avoid;
       }
       .signature-table td {
         width: 50%;
         text-align: center;
         vertical-align: top;
-        font-size: 9pt;
-        padding: 2px 0;
+        font-size: 8pt;
+        padding: 1px 0;
       }
       .signature-space {
-        height: 50px;
+        height: 28px;
       }
     </style>
   </head>
   <body>
     <div class="print-card">
-      <div style="width: 100%; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+      <div style="width: 100%; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
         <div style="width: 20%"></div>
-        <div style="font-size: 11pt; font-weight: bold; text-transform: uppercase; text-align: center; margin-top: 15px; flex-grow: 1; letter-spacing: 0.5px;">
+        <div style="font-size: 10.5pt; font-weight: bold; text-transform: uppercase; text-align: center; margin-top: 4px; flex-grow: 1; letter-spacing: 0.5px;">
           TARGET KINERJA PEGAWAI TAHUN ${yearVal}
         </div>
-        <div style="border: 1px solid #000; padding: 4px 10px; font-size: 9pt; font-weight: bold; min-width: 60px; text-align: center;">CKP-T</div>
+        <div style="border: 1px solid #000; padding: 3px 8px; font-size: 8.5pt; font-weight: bold; min-width: 55px; text-align: center;">CKP-T</div>
       </div>
 
       <table class="info-table">
@@ -290,16 +286,16 @@ function buildCkprHtml() {
   // UTAMA Section
   rowsList.push(`
     <tr style="font-weight: bold; background-color: #f3f4f6;">
-      <td class="center" style="font-size: 8pt;"></td>
-      <td style="text-align: left; padding-left: 6px; font-size: 8pt;">UTAMA</td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td style="font-size: 8pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td style="text-align: left; padding-left: 5px; font-size: 7.2pt;">UTAMA</td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td style="font-size: 7.2pt;"></td>
     </tr>
   `);
 
@@ -310,16 +306,16 @@ function buildCkprHtml() {
     countItems++;
     rowsList.push(`
       <tr>
-        <td class="center" style="font-size: 8pt;">${idx + 1}</td>
-        <td style="font-size: 8pt; text-align: left;">${item.nama}</td>
-        <td class="center" style="font-size: 8pt;">${item.satuan}</td>
-        <td class="center" style="font-size: 8pt;">${item.kuantitas}</td>
-        <td class="center" style="font-size: 8pt;">${item.kuantitas}</td>
-        <td class="center" style="font-size: 8pt;">100</td>
-        <td class="center" style="font-size: 8pt;">100</td>
-        <td class="center" style="font-size: 8pt;"></td>
-        <td class="center" style="font-size: 8pt;"></td>
-        <td style="font-size: 8pt;"></td>
+        <td class="center" style="font-size: 7.2pt;">${idx + 1}</td>
+        <td style="font-size: 7.2pt; text-align: left;">${item.nama}</td>
+        <td class="center" style="font-size: 7.2pt;">${item.satuan}</td>
+        <td class="center" style="font-size: 7.2pt;">${item.kuantitas}</td>
+        <td class="center" style="font-size: 7.2pt;">${item.kuantitas}</td>
+        <td class="center" style="font-size: 7.2pt;">100</td>
+        <td class="center" style="font-size: 7.2pt;">100</td>
+        <td class="center" style="font-size: 7.2pt;"></td>
+        <td class="center" style="font-size: 7.2pt;"></td>
+        <td style="font-size: 7.2pt;"></td>
       </tr>
     `);
   });
@@ -327,16 +323,16 @@ function buildCkprHtml() {
   // TAMBAHAN Section
   rowsList.push(`
     <tr style="font-weight: bold; background-color: #f3f4f6;">
-      <td class="center" style="font-size: 8pt;"></td>
-      <td style="text-align: left; padding-left: 6px; font-size: 8pt;">TAMBAHAN</td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td style="font-size: 8pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td style="text-align: left; padding-left: 5px; font-size: 7.2pt;">TAMBAHAN</td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td style="font-size: 7.2pt;"></td>
     </tr>
   `);
 
@@ -348,32 +344,32 @@ function buildCkprHtml() {
       countItems++;
       rowsList.push(`
         <tr>
-          <td class="center" style="font-size: 8pt;">${idx + 1}</td>
-          <td style="font-size: 8pt; text-align: left;">${item.nama}</td>
-          <td class="center" style="font-size: 8pt;">${item.satuan}</td>
-          <td class="center" style="font-size: 8pt;">${item.kuantitas}</td>
-          <td class="center" style="font-size: 8pt;">${item.kuantitas}</td>
-          <td class="center" style="font-size: 8pt;">100</td>
-          <td class="center" style="font-size: 8pt;">100</td>
-          <td class="center" style="font-size: 8pt;"></td>
-          <td class="center" style="font-size: 8pt;"></td>
-          <td style="font-size: 8pt;"></td>
+          <td class="center" style="font-size: 7.2pt;">${idx + 1}</td>
+          <td style="font-size: 7.2pt; text-align: left;">${item.nama}</td>
+          <td class="center" style="font-size: 7.2pt;">${item.satuan}</td>
+          <td class="center" style="font-size: 7.2pt;">${item.kuantitas}</td>
+          <td class="center" style="font-size: 7.2pt;">${item.kuantitas}</td>
+          <td class="center" style="font-size: 7.2pt;">100</td>
+          <td class="center" style="font-size: 7.2pt;">100</td>
+          <td class="center" style="font-size: 7.2pt;"></td>
+          <td class="center" style="font-size: 7.2pt;"></td>
+          <td style="font-size: 7.2pt;"></td>
         </tr>
       `);
     });
   } else {
     rowsList.push(`
       <tr>
-        <td class="center" style="font-size: 8pt;">1</td>
-        <td style="font-size: 8pt; text-align: left;">&nbsp;</td>
-        <td class="center" style="font-size: 8pt;">&nbsp;</td>
-        <td class="center" style="font-size: 8pt;">&nbsp;</td>
-        <td class="center" style="font-size: 8pt;">&nbsp;</td>
-        <td class="center" style="font-size: 8pt;">&nbsp;</td>
-        <td class="center" style="font-size: 8pt;">&nbsp;</td>
-        <td class="center" style="font-size: 8pt;">&nbsp;</td>
-        <td class="center" style="font-size: 8pt;">&nbsp;</td>
-        <td style="font-size: 8pt;">&nbsp;</td>
+        <td class="center" style="font-size: 7.2pt;">1</td>
+        <td style="font-size: 7.2pt; text-align: left;">-</td>
+        <td class="center" style="font-size: 7.2pt;">-</td>
+        <td class="center" style="font-size: 7.2pt;">-</td>
+        <td class="center" style="font-size: 7.2pt;">-</td>
+        <td class="center" style="font-size: 7.2pt;"></td>
+        <td class="center" style="font-size: 7.2pt;"></td>
+        <td class="center" style="font-size: 7.2pt;"></td>
+        <td class="center" style="font-size: 7.2pt;"></td>
+        <td style="font-size: 7.2pt;"></td>
       </tr>
     `);
   }
@@ -381,31 +377,31 @@ function buildCkprHtml() {
   // Summary, Average, and CKP score rows
   rowsList.push(`
     <tr class="summary-row" style="font-weight: bold; background-color: #f9fafb;">
-      <td colspan="3" class="center" style="font-size: 8pt;">JUMLAH</td>
-      <td class="center" style="font-size: 8pt;">${sumTarget}</td>
-      <td class="center" style="font-size: 8pt;">${sumRealisasi}</td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td style="font-size: 8pt;"></td>
+      <td colspan="3" class="center" style="font-size: 7.2pt;">JUMLAH</td>
+      <td class="center" style="font-size: 7.2pt;">${sumTarget}</td>
+      <td class="center" style="font-size: 7.2pt;">${sumRealisasi}</td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td style="font-size: 7.2pt;"></td>
     </tr>
     <tr class="summary-row" style="font-weight: bold; background-color: #f9fafb;">
-      <td colspan="3" class="center" style="font-size: 8pt;">RATA-RATA</td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td class="center" style="font-size: 8pt;">100</td>
-      <td class="center" style="font-size: 8pt;">100</td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td style="font-size: 8pt;"></td>
+      <td colspan="3" class="center" style="font-size: 7.2pt;">RATA-RATA</td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;">100</td>
+      <td class="center" style="font-size: 7.2pt;">100</td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td style="font-size: 7.2pt;"></td>
     </tr>
     <tr class="summary-row" style="font-weight: bold; background-color: #f9fafb;">
-      <td colspan="5" class="center" style="font-size: 8pt;">CAPAIAN KINERJA PEGAWAI (CKP)</td>
-      <td colspan="2" class="center" style="font-size: 8pt;">100.00</td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td class="center" style="font-size: 8pt;"></td>
-      <td style="font-size: 8pt;"></td>
+      <td colspan="5" class="center" style="font-size: 7.2pt;">CAPAIAN KINERJA PEGAWAI (CKP)</td>
+      <td colspan="2" class="center" style="font-size: 7.2pt;">100.00</td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td class="center" style="font-size: 7.2pt;"></td>
+      <td style="font-size: 7.2pt;"></td>
     </tr>
   `);
 
@@ -420,7 +416,7 @@ function buildCkprHtml() {
     <style>
       @page {
         size: A4 landscape;
-        margin: 10mm 10mm 10mm 10mm;
+        margin: 6mm 10mm 6mm 10mm;
       }
       html, body {
         width: 100%;
@@ -429,49 +425,53 @@ function buildCkprHtml() {
         background: #fff;
         color: #000;
         font-family: 'Arial', sans-serif;
-        font-size: 9pt;
+        font-size: 8pt;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
       .print-card {
         width: 100%;
         box-sizing: border-box;
+        page-break-inside: avoid;
       }
       .info-table {
         width: 100%;
         border-collapse: collapse;
-        margin-bottom: 12px;
+        margin-bottom: 6px;
       }
       .info-table td {
         border: none;
-        padding: 2px 0;
-        font-size: 8.5pt;
+        padding: 1.2px 0;
+        font-size: 8pt;
       }
       .main-table {
         width: 100%;
         border-collapse: collapse;
-        margin-bottom: 20px;
+        margin-bottom: 6px;
       }
       .main-table th, .main-table td {
         border: 1px solid #000;
-        padding: 4px 5px;
+        padding: 1.8px 3px;
         text-align: left;
-        font-size: 8pt;
+        font-size: 7.2pt;
+        line-height: 1.15;
         word-break: break-word;
       }
       .main-table th {
         background-color: #e5e7eb;
         font-weight: bold;
         text-align: center;
+        font-size: 7.2pt;
+        padding: 2.5px 3px;
       }
       .main-table td.center {
         text-align: center;
       }
       .header-indices td {
         background-color: #f3f4f6;
-        font-size: 7.5pt;
+        font-size: 6.8pt;
         border: 1px solid #000;
-        padding: 2px;
+        padding: 1px;
         font-weight: bold;
       }
       .summary-row td {
@@ -480,28 +480,29 @@ function buildCkprHtml() {
       .signature-table {
         width: 100%;
         border-collapse: collapse;
-        margin-top: 10px;
+        margin-top: 5px;
+        page-break-inside: avoid;
       }
       .signature-table td {
         width: 50%;
         text-align: center;
         vertical-align: top;
-        font-size: 8.5pt;
-        padding: 2px 0;
+        font-size: 8pt;
+        padding: 1px 0;
       }
       .signature-space {
-        height: 45px;
+        height: 25px;
       }
     </style>
   </head>
   <body>
     <div class="print-card">
-      <div style="width: 100%; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+      <div style="width: 100%; display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px;">
         <div style="width: 20%"></div>
-        <div style="font-size: 11pt; font-weight: bold; text-transform: uppercase; text-align: center; margin-top: 10px; flex-grow: 1; letter-spacing: 0.5px;">
+        <div style="font-size: 10.5pt; font-weight: bold; text-transform: uppercase; text-align: center; margin-top: 4px; flex-grow: 1; letter-spacing: 0.5px;">
           CAPAIAN KINERJA PEGAWAI TAHUN ${yearVal}
         </div>
-        <div style="border: 1px solid #000; padding: 4px 10px; font-size: 9pt; font-weight: bold; min-width: 60px; text-align: center;">CKP-R</div>
+        <div style="border: 1px solid #000; padding: 3px 8px; font-size: 8.5pt; font-weight: bold; min-width: 55px; text-align: center;">CKP-R</div>
       </div>
 
       <table class="info-table">

@@ -359,6 +359,38 @@ assert(aggregated[skp10LaporanKey]?.kuantitas === 1, 'SKP #10 Laporan quantity i
 assert(aggregated[skp10RecordKey]?.kuantitas === 11282, 'SKP #10 Record quantity is exactly 11.282');
 
 // ========================================================
+// SUITE 10: PENUTUPAN LATSAR CPNS & 1-PAGE PDF INVARIANT
+// ========================================================
+console.log('\n--- SUITE 10: Penutupan Latsar CPNS & 1-Page PDF Invariant ---');
+
+// 1. Verify that old sosialisasi Latsar is completely gone
+const sosialisasiEntry = ckpOktoberEntries.find(e => /sosialisasi.*latsar/i.test(e.rincian || ''));
+assert(!sosialisasiEntry, 'Sosialisasi daring Latsar activity is completely removed from October 2026');
+
+// 2. Verify that Penutupan Latsar is present on 22 October 2026
+const penutupanEntry = ckpOktoberEntries.find(e => /penutupan.*latsar/i.test(e.rincian || ''));
+assert(Boolean(penutupanEntry), 'Found Penutupan Latsar CPNS activity in October 2026');
+assert(penutupanEntry?.tanggal === '2026-10-22', 'Penutupan Latsar CPNS is correctly scheduled on 2026-10-22');
+assert(penutupanEntry?.skpId === 11, 'Penutupan Latsar CPNS is linked to SKP #11 (Koordinasi & Sosialisasi)');
+assert(penutupanEntry?.satuan === 'Kegiatan', 'Penutupan Latsar CPNS has satuan Kegiatan');
+
+// 3. Verify total SKP #11 quantity remains 4 Kegiatan
+const skp11Key = '11:::kegiatan';
+assert(aggregated[skp11Key]?.kuantitas === 4, 'SKP #11 total quantity is exactly 4 Kegiatan (actual: ' + aggregated[skp11Key]?.kuantitas + ')');
+
+// 4. Verify 1-page PDF invariant for CKP-T and CKP-R
+import { execSync } from 'child_process';
+const pageCheckPy = "import pypdf; t = len(pypdf.PdfReader(r'C:\\Users\\ajian\\Downloads\\CKP-T_Oktober_2026_Yahya_Abdurrohman.pdf').pages); r = len(pypdf.PdfReader(r'C:\\Users\\ajian\\Downloads\\CKP-R_Oktober_2026_Yahya_Abdurrohman.pdf').pages); print(f'{t},{r}')";
+try {
+  const pageOutput = execSync(`python -c "${pageCheckPy}"`, { encoding: 'utf8' }).trim();
+  const [tPages, rPages] = pageOutput.split(',').map(Number);
+  assert(tPages === 1, 'CKP-T PDF is strictly 1 single page (actual: ' + tPages + ')');
+  assert(rPages === 1, 'CKP-R PDF is strictly 1 single page (actual: ' + rPages + ')');
+} catch (pdfErr) {
+  assert(false, 'Failed checking PDF page counts: ' + pdfErr.message);
+}
+
+// ========================================================
 // FINAL SUMMARY
 // ========================================================
 console.log('\n====================================================');
