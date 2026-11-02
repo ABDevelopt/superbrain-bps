@@ -276,6 +276,50 @@ const parsedFromIso = testGetTaskCompletionDate(isoTask);
 assert(parsedFromIso instanceof Date && !isNaN(parsedFromIso.getTime()), 'ISO string completedAt correctly parsed as Date');
 
 // ========================================================
+// SUITE 8: SPDT-NTP SKP #30 & CKP-T / CKP-R AGGREGATION
+// ========================================================
+console.log('\n--- SUITE 8: SPDT-NTP SKP #30 & CKP-T / CKP-R Aggregation ---');
+
+const { isSpdtEntry, getEntrySkpIds, aggregateCkpBySkpAndSatuan } = await import('../src/utils/ckpAggregation.js');
+const { ckpOktoberEntries } = await import('../src/data/ckpOktober2026.js');
+const { skpData: allSkps } = await import('../src/data/skpData.js');
+
+const spdtActivities = ckpOktoberEntries.filter(e => isSpdtEntry(e));
+assert(spdtActivities.length === 10, 'Found exactly 10 SPDT activities in October 2026 dataset (actual: ' + spdtActivities.length + ')');
+
+const allResolvedTo30 = spdtActivities.every(e => {
+  const ids = getEntrySkpIds(e);
+  return ids.length === 1 && ids[0] === 30;
+});
+assert(allResolvedTo30, 'All 10 SPDT activities resolve to SKP #30 via getEntrySkpIds');
+
+// Verify backward-compatibility: old entry in database with skpId: 16 still resolves to 30
+const mockOldDbEntry = {
+  rincian: 'Pelaksanaan hari ke-1 Pelatihan Petugas Survei SPDT NTP 2026: Pembukaan',
+  skpId: 16,
+  skpIds: [16],
+  satuan: 'Kegiatan',
+  kuantitas: 1
+};
+assert(isSpdtEntry(mockOldDbEntry), 'isSpdtEntry accurately flags legacy database entry');
+const oldResolvedIds = getEntrySkpIds(mockOldDbEntry);
+assert(oldResolvedIds.length === 1 && oldResolvedIds[0] === 30, 'Legacy entry with skpId: 16 auto-migrates to [30] dynamically');
+
+// Test full aggregation for CKP-T and CKP-R
+const { aggregated, utamaKeys } = aggregateCkpBySkpAndSatuan(ckpOktoberEntries, allSkps);
+const spdtAggKey = Object.keys(aggregated).find(k => k.startsWith('30:::'));
+
+assert(Boolean(spdtAggKey), 'Aggregated report contains SKP #30 entry key: ' + spdtAggKey);
+if (spdtAggKey) {
+  const aggItem = aggregated[spdtAggKey];
+  assert(aggItem.kuantitas === 10, 'SPDT-NTP total quantity is exactly 10 Kegiatan (actual: ' + aggItem.kuantitas + ')');
+  assert(aggItem.satuan === 'Kegiatan', 'SPDT-NTP satuan is standardized to Kegiatan (actual: ' + aggItem.satuan + ')');
+  assert(aggItem.kategori === 'utama', 'SPDT-NTP is categorized as utama');
+  assert(utamaKeys.includes(spdtAggKey), 'SPDT-NTP key is present in CKP-T and CKP-R utamaKeys list');
+  assert(aggItem.nama.includes('Pelaksanaan Survei Penyusunan Diagram Timbang Nilai Tukar Petani (SPDT-NTP)'), 'SPDT-NTP has correct official SKP descriptive title');
+}
+
+// ========================================================
 // FINAL SUMMARY
 // ========================================================
 console.log('\n====================================================');

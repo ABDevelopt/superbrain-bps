@@ -20,10 +20,11 @@ import { useAIContext } from '@/contexts/AIContext';
 import * as XLSX from 'xlsx';
 import { doc, updateDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import DailyTimeVisualizer, { getEntrySkpIds, getBackgroundForSkps } from './DailyTimeVisualizer';
+import DailyTimeVisualizer, { getEntrySkpIds, getBackgroundForSkps, isSpdtEntry } from './DailyTimeVisualizer';
 import MonthlyTimeVisualizer from './MonthlyTimeVisualizer';
 import KipappSyncModal from './KipappSyncModal';
 import { ckpOktoberEntries } from '@/data/ckpOktober2026';
+import { aggregateCkpBySkpAndSatuan } from '@/utils/ckpAggregation';
 
 const SATUAN_OPTIONS = ['Kegiatan', 'Lembar', 'File', 'Dokumen', 'Orang', 'Formulir', 'Lainnya'];
 const BPS_RECOMMENDED_SATUAN = [
@@ -4997,63 +4998,10 @@ function stretchMonthEntries(originalEntries, checkHoliday, checkDl) {
   return { hasGaps, hasApelOnly, newEntries };
 }
 
-export const aggregateCkpBySkpAndSatuan = (monthEntries = [], skpData = []) => {
-  const aggregated = {};
-  const sortedData = [...monthEntries].sort((a, b) => {
-    if (a.tanggal !== b.tanggal) return (a.tanggal || '').localeCompare(b.tanggal || '');
-    return (a.waktuMulai || '').localeCompare(b.waktuMulai || '');
-  });
-
-  sortedData.forEach(e => {
-    const entrySkps = getEntrySkpIds(e);
-    const keys = entrySkps.length > 0 ? entrySkps : [e.skpId || 'none'];
-    const rawSatuan = (e.satuan || 'Kegiatan').trim();
-    const satuan = rawSatuan ? (rawSatuan.charAt(0).toUpperCase() + rawSatuan.slice(1)) : 'Kegiatan';
-
-    keys.forEach(skpKey => {
-      const groupKey = `${skpKey}:::${satuan.toLowerCase()}`;
-      if (!aggregated[groupKey]) {
-        const skpItem = (skpData || []).find(s => String(s.id) === String(skpKey) || String(s.skpId) === String(skpKey));
-        const kategori = skpItem ? (skpItem.kategori || 'utama') : 'utama';
-        aggregated[groupKey] = {
-          skpKey,
-          skpId: skpKey,
-          nama: skpItem ? skpItem.nama : (skpKey === 'none' ? 'Kegiatan Tanpa SKP' : `SKP #${skpKey}`),
-          satuan: satuan,
-          kategori: kategori,
-          kuantitas: 0
-        };
-      }
-      const qty = (e.kuantitas !== undefined && e.kuantitas !== null && !isNaN(Number(e.kuantitas))) ? Number(e.kuantitas) : 1;
-      aggregated[groupKey].kuantitas += qty;
-    });
-  });
-
-  const sortKeys = (keys) => {
-    return [...keys].sort((a, b) => {
-      const itemA = aggregated[a];
-      const itemB = aggregated[b];
-      const idA = Number(itemA.skpKey) || 999999;
-      const idB = Number(itemB.skpKey) || 999999;
-      if (idA !== idB) return idA - idB;
-      return (itemA.satuan || '').localeCompare(itemB.satuan || '');
-    });
-  };
-
-  const utamaKeys = sortKeys(Object.keys(aggregated).filter(k => aggregated[k].kategori === 'utama'));
-  const tambahanKeys = sortKeys(Object.keys(aggregated).filter(k => aggregated[k].kategori === 'tambahan'));
-  const allSortedKeys = [...utamaKeys, ...tambahanKeys];
-
-  return {
-    aggregated,
-    utamaKeys,
-    tambahanKeys,
-    allSortedKeys
-  };
-};
+export { aggregateCkpBySkpAndSatuan } from '@/utils/ckpAggregation';
 
 // TAB 3: Rekap Bulanan
-function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday, checkDl, onToggleDl, onStretchClick, onEdit, onDelete, deleteDocument, updateDocument, onCreateEmptyFolder, creatingFolderId, accessToken, skpData }) {
+function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onToggleHoliday, checkDl, onToggleDl, onStretchClick, onEdit, onDelete, deleteDocument, updateDocument, onCreateEmptyFolder, creatingFolderId, accessToken, skpData, onSyncSpdt }) {
   const { showAlert } = useAlert();
   const { user } = useAuth();
   const [selectedMonth, setSelectedMonth] = useState(sharedDate ? sharedDate.substring(0, 7) : getCurrentMonthStr());
@@ -6178,6 +6126,20 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
             >
               <ChevronRight size={16} />
             </button>
+            {selectedMonth !== '2026-10' && (
+              <button 
+                type="button" 
+                className={styles.exportBtnMini} 
+                style={{ backgroundColor: '#f59e0b', color: '#fff', border: '1px solid #f59e0b', whiteSpace: 'nowrap' }} 
+                onClick={() => {
+                  setSelectedMonth('2026-10');
+                  if (setSharedDate) setSharedDate('2026-10-01');
+                }}
+                title="Beralih langsung ke Rekapan Bulan Oktober 2026"
+              >
+                Ke Oktober 2026
+              </button>
+            )}
           </div>
         </div>
         <div className={styles.rekapHeaderActions}>
@@ -6203,6 +6165,17 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
             >
               <Send size={14} style={{ marginRight: '6px' }} /> KIPAPP Sync
             </button>
+            {onSyncSpdt && (
+              <button 
+                type="button"
+                className={styles.exportBtnMiniPrimary} 
+                style={{ background: 'linear-gradient(135deg, #059669, #10b981)', borderColor: '#10b981', color: '#fff' }} 
+                onClick={onSyncSpdt} 
+                title="Sinkronkan 10 kegiatan SPDT-NTP ke butir SKP #30 secara instan"
+              >
+                <Sparkles size={14} style={{ marginRight: '6px' }} /> Sinkronkan SPDT (SKP #30)
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -6253,7 +6226,18 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
       {monthData.length === 0 ? (
         <div className={styles.emptyState}>
           <span className={styles.emptyIcon}><BarChart2 size={48} /></span>
-          <p>Belum ada rekapan untuk bulan ini.</p>
+          <p>Belum ada rekapan untuk bulan ini ({getMonthName(monthVal - 1)} {yearVal}).</p>
+          <button 
+            type="button" 
+            className={styles.exportBtnMiniPrimary} 
+            style={{ marginTop: '12px', padding: '8px 16px', fontSize: '13px', background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}
+            onClick={() => {
+              setSelectedMonth('2026-10');
+              if (setSharedDate) setSharedDate('2026-10-01');
+            }}
+          >
+            Buka Rekapan Bulan Oktober 2026 (44 Kegiatan)
+          </button>
         </div>
       ) : (
         <div className={styles.tableWrapper}>
@@ -7295,7 +7279,11 @@ function CKPPageInner() {
 
       for (const item of ckpOktoberEntries) {
         const key = `${item.tanggal}_${(item.waktuMulai || '').trim()}`;
-        const existingEntry = entries.find(e => `${e.tanggal}_${(e.waktuMulai || '').trim()}` === key);
+        const existingEntry = entries.find(e => 
+          `${e.tanggal}_${(e.waktuMulai || '').trim()}` === key ||
+          (e.tanggal === item.tanggal && isSpdtEntry(item) && isSpdtEntry(e)) ||
+          (e.tanggal === item.tanggal && e.rincian === item.rincian)
+        );
 
         if (!existingEntry) {
           const toSave = { ...item };
@@ -7376,6 +7364,103 @@ function CKPPageInner() {
   }, [user, entries, accessToken, loginWithGoogle, addDocument, updateDocument, showAlert, addSkpDoc, dbSkps, skpData]);
 
   useChatAction('IMPORT_CKP_OKTOBER', handleImportOktober);
+
+  // Dedicated instant sync function for SPDT-NTP activities to SKP #30
+  const handleSyncSPDTNTP = useCallback(async () => {
+    if (!user || !user.uid) {
+      showAlert('Silakan login terlebih dahulu untuk menyinkronkan kegiatan CKP.', 'warning');
+      return;
+    }
+    const spdtEntries = (entries || []).filter(e => isSpdtEntry(e));
+    if (spdtEntries.length === 0) {
+      showAlert('Tidak ditemukan kegiatan SPDT-NTP pada riwayat CKP saat ini.', 'info');
+      return;
+    }
+    let updatedCount = 0;
+    for (const entry of spdtEntries) {
+      try {
+        await updateDocument(entry.id, {
+          skpId: 30,
+          skpIds: [30],
+          rkId: 30,
+          rkNama: 'Terlaksananya Pelaksanaan Survei Penyusunan Diagram Timbang Nilai Tukar Petani (SPDT-NTP) Tahun 2026 sesuai SOP',
+          satuan: 'Kegiatan',
+          kuantitas: 1,
+          capaian: '1 Kegiatan',
+          timKerja: 'Tim Statistik Distribusi'
+        });
+        updatedCount++;
+      } catch (e) {
+        console.error('Error syncing SPDT entry:', e);
+      }
+    }
+
+    if (addSkpDoc && dbSkps) {
+      const hasSkp30 = dbSkps.some(s => Number(s.id) === 30);
+      if (!hasSkp30) {
+        const skp30 = skpData.find(s => Number(s.id) === 30);
+        if (skp30) {
+          try {
+            await addSkpDoc(skp30);
+          } catch (skpErr) {
+            console.warn('Gagal menyimpan SKP #30:', skpErr);
+          }
+        }
+      }
+    }
+
+    setSharedSelectedDate('2026-10-01');
+    setActiveTab(2);
+    showAlert(`Berhasil! ${updatedCount} kegiatan SPDT-NTP telah disinkronkan ke SKP #30 (Utama: 10 Kegiatan)!`, 'success');
+  }, [user, entries, updateDocument, addSkpDoc, dbSkps, skpData, showAlert]);
+
+  useChatAction('SYNC_SPDT_NTP', handleSyncSPDTNTP);
+
+  // Auto-heal SPDT-NTP entries in Firestore to SKP #30 upon loading
+  useEffect(() => {
+    if (!user || !user.uid || !entries || entries.length === 0) return;
+
+    const spdtEntries = entries.filter(e => isSpdtEntry(e));
+    const needsUpdate = spdtEntries.filter(e => {
+      const rawSkpId = Number(e.skpId);
+      const rawSkpIds = Array.isArray(e.skpIds) ? e.skpIds.map(Number) : [];
+      return rawSkpId !== 30 ||
+             rawSkpIds.length !== 1 ||
+             rawSkpIds[0] !== 30 ||
+             (e.satuan || '').toLowerCase() !== 'kegiatan' ||
+             Number(e.rkId) !== 30;
+    });
+
+    if (needsUpdate.length > 0) {
+      console.log(`[SuperBrain AutoHeal] Updating ${needsUpdate.length} SPDT entries to SKP #30 in Firestore...`);
+      needsUpdate.forEach(async (entry) => {
+        try {
+          await updateDocument(entry.id, {
+            skpId: 30,
+            skpIds: [30],
+            rkId: 30,
+            rkNama: 'Terlaksananya Pelaksanaan Survei Penyusunan Diagram Timbang Nilai Tukar Petani (SPDT-NTP) Tahun 2026 sesuai SOP',
+            satuan: 'Kegiatan',
+            kuantitas: 1,
+            capaian: '1 Kegiatan',
+            timKerja: 'Tim Statistik Distribusi'
+          });
+        } catch (err) {
+          console.warn('[SuperBrain AutoHeal] Error updating entry:', entry.id, err);
+        }
+      });
+    }
+
+    if (addSkpDoc && dbSkps) {
+      const hasSkp30 = dbSkps.some(s => Number(s.id) === 30);
+      if (!hasSkp30) {
+        const skp30 = skpData.find(s => Number(s.id) === 30);
+        if (skp30) {
+          addSkpDoc(skp30).catch(err => console.warn('[SuperBrain AutoHeal] Error seeding SKP #30:', err));
+        }
+      }
+    }
+  }, [user, entries, updateDocument, addSkpDoc, dbSkps, skpData]);
 
   // Handle auto-sync of telegram files to Google Drive
   useEffect(() => {
@@ -8111,6 +8196,7 @@ function CKPPageInner() {
                 creatingFolderId={creatingFolderId}
                 accessToken={accessToken}
                 skpData={skpData}
+                onSyncSpdt={handleSyncSPDTNTP}
               />
             )}
             {activeTab === 3 && <TabRekapTriwulanan entries={entries} />}

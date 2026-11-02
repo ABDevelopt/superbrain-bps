@@ -7,36 +7,20 @@ import styles from './DailyTimeVisualizer.module.css';
 const DEFAULT_START_HOUR = 6;
 const DEFAULT_END_HOUR = 21;
 
-export const getEntrySkpIds = (entry) => {
-  if (!entry) return [];
-  if (Array.isArray(entry.skpIds) && entry.skpIds.length > 0) {
-    return entry.skpIds.map(Number).filter((n) => !isNaN(n) && n > 0);
-  }
-  if (entry.skpId !== undefined && entry.skpId !== null && entry.skpId !== '' && entry.skpId !== 'none') {
-    const num = Number(entry.skpId);
-    if (!isNaN(num) && num > 0) return [num];
-  }
-  return [];
-};
+import {
+  isSpdtEntry,
+  getEntrySkpIds,
+  getColorForSkp,
+  getBackgroundForSkps,
+  timeStrToMinutes
+} from '@/utils/ckpAggregation';
 
-export const getColorForSkp = (skpId) => {
-  if (!skpId || isNaN(Number(skpId)) || Number(skpId) === 0) return 'rgba(148, 163, 184, 0.85)';
-  const hue = (Number(skpId) * 137.5) % 360;
-  return `hsla(${hue}, 75%, 52%, 0.88)`;
-};
-
-export const getBackgroundForSkps = (skpIds) => {
-  if (!skpIds || skpIds.length === 0) return 'rgba(148, 163, 184, 0.85)';
-  if (skpIds.length === 1) return getColorForSkp(skpIds[0]);
-  const c1 = getColorForSkp(skpIds[0]);
-  const c2 = getColorForSkp(skpIds[1]);
-  return `linear-gradient(135deg, ${c1}, ${c2})`;
-};
-
-export const timeStrToMinutes = (timeStr) => {
-  if (!timeStr) return 0;
-  const [h, m] = timeStr.split(':').map(Number);
-  return (h || 0) * 60 + (m || 0);
+export {
+  isSpdtEntry,
+  getEntrySkpIds,
+  getColorForSkp,
+  getBackgroundForSkps,
+  timeStrToMinutes
 };
 
 export const minutesToTimeStr = (mins) => {
