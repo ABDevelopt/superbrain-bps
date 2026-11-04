@@ -5996,6 +5996,36 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
     }
   };
 
+  const triggerExportCombined = async (sheets, exportFileName = 'CKP_Combined.xlsx') => {
+    try {
+      showAlert('Sedang memproses dokumen Excel (3-in-1)...');
+      const response = await fetch('/api/export/ckp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isCombined: true,
+          sheets,
+          exportFileName
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = exportFileName;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+      showAlert('Gagal mengekspor 3-in-1: ' + e.message);
+    }
+  };
+
   const getMonthEntries = () => {
     return entries.filter(e => e.tanggal && e.tanggal.startsWith(`${yearVal}-${String(monthVal).padStart(2,'0')}-`));
   };
@@ -6027,6 +6057,91 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
       });
       const fileName = `CKP-Daily_${getMonthName(monthVal - 1)}_${yearVal}_Yahya_Abdurrohman.xlsx`;
       triggerExport('template_ckp_daily.xlsx', 9, rows, { 'D6': `: ${getMonthName(monthVal - 1)} ${yearVal}` }, fileName);
+    } else if (type === 'combined') {
+      const dailyRows = sortedData.map((e, idx) => {
+        const eSkps = getEntrySkpIds(e);
+        const skpItems = eSkps.map(sid => skpData.find(s => s.id === sid)).filter(Boolean);
+        const kategoriStr = skpItems.length > 0 
+          ? [...new Set(skpItems.map(s => s.kategori === 'utama' ? 'Utama' : 'Tambahan'))].join(', ')
+          : ((skpData.find(s => s.id === e.skpId))?.kategori === 'utama' ? 'Utama' : '');
+        return [
+          '',
+          idx + 1,
+          e.tanggal,
+          `${e.waktuMulai} - ${e.waktuSelesai}`,
+          e.rincian || '',
+          e.kuantitas || 1,
+          e.satuan || 'kegiatan',
+          kategoriStr,
+          e.buktiDukung || '',
+          e.buktiPresensi || ''
+        ];
+      });
+
+      const { aggregated, allSortedKeys } = aggregateCkpBySkpAndSatuan(sortedData, skpData);
+      const ckptRows = allSortedKeys.map((key, idx) => {
+        const item = aggregated[key];
+        const displayNama = item.skpKey === 'none' ? 'Non-SKP' : item.nama;
+        return [
+          idx + 1,
+          displayNama,
+          item.satuan,
+          item.kuantitas,
+          '',
+          '',
+          ''
+        ];
+      });
+
+      const ckprRows = allSortedKeys.map((key, idx) => {
+        const item = aggregated[key];
+        const displayNama = item.skpKey === 'none' ? 'Non-SKP' : item.nama;
+        return [
+          idx + 1,
+          displayNama,
+          item.satuan,
+          item.kuantitas,
+          item.kuantitas,
+          100,
+          100,
+          '',
+          '',
+          ''
+        ];
+      });
+
+      const fileName = `CKP_${getMonthName(monthVal - 1)}_${yearVal}_Yahya_Abdurrohman.xlsx`;
+      const sheets = [
+        {
+          sheetName: 'CKP-Daily',
+          templateName: 'template_ckp_daily.xlsx',
+          startRow: 9,
+          placeholderCount: 1,
+          rows: dailyRows,
+          cellUpdates: { 'D6': `: ${getMonthName(monthVal - 1)} ${yearVal}` },
+          isCkpr: false
+        },
+        {
+          sheetName: 'CKP-T',
+          templateName: 'template_ckp_t.xlsx',
+          startRow: 12,
+          placeholderCount: 2,
+          rows: ckptRows,
+          cellUpdates: { 'C7': `: ${getMonthName(monthVal - 1)} ${yearVal}` },
+          isCkpr: false
+        },
+        {
+          sheetName: 'CKP-R',
+          templateName: 'template_ckp_r.xlsx',
+          startRow: 12,
+          placeholderCount: 2,
+          rows: ckprRows,
+          cellUpdates: { 'C7': `: ${getMonthName(monthVal - 1)} ${yearVal}` },
+          isCkpr: true
+        }
+      ];
+
+      triggerExportCombined(sheets, fileName);
     } else if (type === 'ckpt' || type === 'ckpr') {
       const { aggregated, allSortedKeys } = aggregateCkpBySkpAndSatuan(sortedData, skpData);
       const rows = allSortedKeys.map((key, idx) => {
@@ -6067,6 +6182,7 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
   const handleExportDaily = () => initiateExport('daily');
   const handleExportCKPT = () => initiateExport('ckpt');
   const handleExportCKPR = () => initiateExport('ckpr');
+  const handleExportCombined = () => initiateExport('combined');
   const handleExportAll = () => initiateExport('all');
 
   const initiateExport = (type) => {
@@ -6154,8 +6270,11 @@ function TabRekapBulanan({ entries, sharedDate, setSharedDate, checkHoliday, onT
             <button className={styles.exportBtnMini} onClick={handleExportDaily} title="Export Excel Daily">Daily</button>
             <button className={styles.exportBtnMini} onClick={handleExportCKPT} title="Export Excel CKP-T (Target)">CKP-T</button>
             <button className={styles.exportBtnMini} onClick={handleExportCKPR} title="Export Excel CKP-R (Realisasi)">CKP-R</button>
-            <button className={styles.exportBtnMiniPrimary} onClick={handleExportAll} title="Download 3 Laporan Sekaligus">
-              <Download size={14} style={{ marginRight: '6px' }} /> 1 Paket
+            <button className={styles.exportBtnMiniPrimary} onClick={handleExportCombined} title="Download 1 Berkas Excel Berisi 3 Sheet (Daily, CKP-T, CKP-R)">
+              <Download size={14} style={{ marginRight: '6px' }} /> 1 File (3-in-1)
+            </button>
+            <button className={styles.exportBtnMini} onClick={handleExportAll} title="Download 3 Berkas Terpisah Sekaligus">
+              3 File
             </button>
             <button 
               className={styles.exportBtnMiniPrimary} 

@@ -3,148 +3,217 @@ import ExcelJS from 'exceljs';
 import path from 'path';
 import fs from 'fs';
 
+function copySheet(srcWs, destWs) {
+  if (srcWs.pageSetup) destWs.pageSetup = JSON.parse(JSON.stringify(srcWs.pageSetup));
+  if (srcWs.views) destWs.views = JSON.parse(JSON.stringify(srcWs.views));
+  if (srcWs.properties) destWs.properties = JSON.parse(JSON.stringify(srcWs.properties));
+
+  if (srcWs.columns) {
+    destWs.columns = srcWs.columns.map(col => ({
+      header: col.header,
+      key: col.key,
+      width: col.width,
+      hidden: col.hidden,
+      style: col.style
+    }));
+  }
+
+  srcWs.eachRow({ includeEmpty: true }, (row, rowNumber) => {
+    const newRow = destWs.getRow(rowNumber);
+    if (row.height) newRow.height = row.height;
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      const newCell = newRow.getCell(colNumber);
+      if (cell.type === ExcelJS.ValueType.Formula) {
+        newCell.value = {
+          formula: cell.formula,
+          result: cell.result
+        };
+      } else {
+        newCell.value = cell.value;
+      }
+      if (cell.style) {
+        newCell.style = JSON.parse(JSON.stringify(cell.style));
+      }
+      if (cell.numFmt) newCell.numFmt = cell.numFmt;
+    });
+  });
+
+  for (const merge of Object.values(srcWs._merges)) {
+    try {
+      destWs.mergeCells(merge.model.top, merge.model.left, merge.model.bottom, merge.model.right);
+    } catch (e) {}
+  }
+}
+
+async function populateWorksheet(templateName, startRow = 10, placeholderCount = 1, rows = [], cellUpdates = {}, isCkpr = false, customSigDate = null) {
+  let templatePath = path.join(process.cwd(), 'public', 'export_templates', templateName);
+  if (!fs.existsSync(templatePath)) {
+    templatePath = path.join(process.cwd(), 'src', 'export_templates', templateName);
+  }
+
+  if (!fs.existsSync(templatePath)) {
+    throw new Error(`Template ${templateName} not found`);
+  }
+
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.readFile(templatePath);
+  const worksheet = workbook.worksheets[0];
+
+  Object.keys(cellUpdates).forEach(cellRef => {
+    const cell = worksheet.getCell(cellRef);
+    if (cell) cell.value = cellUpdates[cellRef];
+  });
+
+  const netShift = rows.length - placeholderCount;
+  const mergesToShift = [];
+
+  if (netShift !== 0) {
+    Object.keys(worksheet._merges).forEach(key => {
+      const merge = worksheet._merges[key];
+      if (merge.model.top > startRow) {
+        mergesToShift.push(merge.model);
+      }
+    });
+    mergesToShift.forEach(m => {
+      const tl = worksheet.getCell(m.top, m.left).address;
+      worksheet.unMergeCells(tl);
+    });
+  }
+
+  if (rows && rows.length > 0) {
+    const templateRow = worksheet.getRow(startRow);
+
+    rows.forEach((rowData, index) => {
+      const insertedRow = worksheet.insertRow(startRow + index, rowData);
+      insertedRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        const templateCell = templateRow.getCell(colNumber);
+        if (templateCell) {
+          cell.style = templateCell.style;
+        } else {
+          cell.style = {};
+        }
+        if (colNumber <= rowData.length) {
+          if (!(colNumber === 1 && rowData[0] === '')) {
+            cell.border = {
+              top: { style: 'thin' },
+              left: { style: 'thin' },
+              bottom: { style: 'thin' },
+              right: { style: 'thin' }
+            };
+          }
+        }
+      });
+      insertedRow.commit();
+    });
+
+    worksheet.spliceRows(startRow + rows.length, placeholderCount);
+  }
+
+  if (netShift !== 0) {
+    mergesToShift.forEach(m => {
+      const tl = worksheet.getCell(m.top + netShift, m.left).address;
+      const br = worksheet.getCell(m.bottom + netShift, m.right).address;
+      worksheet.mergeCells(`${tl}:${br}`);
+    });
+  }
+
+  worksheet.eachRow((row) => {
+    row.eachCell((cell) => {
+      if (cell.type === ExcelJS.ValueType.Formula && cell.formulaType === ExcelJS.FormulaType.Shared) {
+        try {
+          const formulaStr = cell.formula;
+          if (formulaStr) {
+            cell.value = { formula: formulaStr, result: cell.result };
+          } else {
+            cell.value = cell.result;
+          }
+        } catch (e) {
+          cell.value = cell.result;
+        }
+      }
+    });
+  });
+
+  const today = new Date();
+  const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const formattedDate = customSigDate || `Penajam Paser Utara, ${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
+
+  worksheet.eachRow((row) => {
+    row.eachCell((cell) => {
+      if (cell.type === ExcelJS.ValueType.String && typeof cell.value === 'string') {
+        if (cell.value.includes('Penajam Paser Utara,')) {
+          cell.value = formattedDate;
+        }
+      }
+    });
+  });
+
+  if (isCkpr) {
+    const lastDataRow = startRow + rows.length - 1;
+    const rataRataRow = startRow + rows.length + 1;
+    const avgCell = worksheet.getCell(`F${rataRataRow}`);
+    avgCell.value = { formula: `AVERAGE(F12:F${lastDataRow})`, result: 100 };
+  }
+
+  return { workbook, worksheet };
+}
+
 export async function POST(request) {
   try {
-    const { templateName, startRow = 10, rows = [], cellUpdates = {} } = await request.json();
+    const body = await request.json();
+
+    if (body.isCombined) {
+      const { sheets = [], exportFileName = 'CKP_Combined.xlsx' } = body;
+      const combinedWorkbook = new ExcelJS.Workbook();
+
+      for (const s of sheets) {
+        const placeholderCount = s.placeholderCount !== undefined
+          ? s.placeholderCount
+          : (s.templateName.includes('daily') ? 1 : 2);
+
+        const { worksheet } = await populateWorksheet(
+          s.templateName,
+          s.startRow,
+          placeholderCount,
+          s.rows,
+          s.cellUpdates,
+          s.isCkpr,
+          s.customSigDate
+        );
+        copySheet(worksheet, combinedWorkbook.addWorksheet(s.sheetName));
+      }
+
+      const buffer = await combinedWorkbook.xlsx.writeBuffer();
+      return new NextResponse(buffer, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'Content-Disposition': `attachment; filename="${exportFileName}"`
+        }
+      });
+    }
+
+    const { templateName, startRow = 10, placeholderCount = 1, rows = [], cellUpdates = {}, isCkpr = false, customSigDate = null } = body;
 
     if (!templateName) {
       return NextResponse.json({ error: 'templateName is required' }, { status: 400 });
     }
 
-    // Path to the template (try public first, fallback to src)
-    let templatePath = path.join(process.cwd(), 'public', 'export_templates', templateName);
-    if (!fs.existsSync(templatePath)) {
-      templatePath = path.join(process.cwd(), 'src', 'export_templates', templateName);
-    }
+    const effectivePlaceholderCount = placeholderCount !== undefined
+      ? placeholderCount
+      : (templateName.includes('daily') ? 1 : 2);
 
-    if (!fs.existsSync(templatePath)) {
-      return NextResponse.json({ error: `Template ${templateName} not found` }, { status: 404 });
-    }
+    const { workbook } = await populateWorksheet(
+      templateName,
+      startRow,
+      effectivePlaceholderCount,
+      rows,
+      cellUpdates,
+      isCkpr,
+      customSigDate
+    );
 
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.readFile(templatePath);
-
-    const worksheet = workbook.worksheets[0]; // Assuming data goes to the first sheet
-
-    // Update specific cells (e.g. employee info, period)
-    Object.keys(cellUpdates).forEach(cellRef => {
-      const cell = worksheet.getCell(cellRef);
-      if (cell) {
-        cell.value = cellUpdates[cellRef];
-      }
-    });
-
-    // Calculate net shift for merges (we insert N rows, delete 1 placeholder)
-    const netShift = (rows && rows.length > 0) ? rows.length - 1 : 0;
-    const mergesToShift = [];
-
-    if (netShift !== 0) {
-      Object.keys(worksheet._merges).forEach(key => {
-        const merge = worksheet._merges[key];
-        // Shift merges that are below the placeholder row (e.g., signature block, summary rows)
-        if (merge.model.top > startRow) {
-          mergesToShift.push(merge.model);
-        }
-      });
-      // Unmerge them first so ExcelJS doesn't corrupt them during insertRow
-      mergesToShift.forEach(m => {
-        const tl = worksheet.getCell(m.top, m.left).address;
-        worksheet.unMergeCells(tl);
-      });
-    }
-
-    // Insert rows
-    if (rows && rows.length > 0) {
-      // Get the style of the first row to be inserted
-      const templateRow = worksheet.getRow(startRow);
-      
-      rows.forEach((rowData, index) => {
-        // insertRow inserts a new row at the specified position and shifts remaining rows down
-        const insertedRow = worksheet.insertRow(startRow + index, rowData);
-        
-        // Copy styles from the template row and enforce borders
-        insertedRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
-          const templateCell = templateRow.getCell(colNumber);
-          if (templateCell) {
-            // Assign style directly (ExcelJS handles style object assignment)
-            cell.style = templateCell.style;
-          } else {
-            cell.style = {};
-          }
-          
-          // Enforce thin borders for all populated columns
-          // rowData array length gives us the number of data columns
-          if (colNumber <= rowData.length) {
-            // For Daily CKP, rowData has 10 elements (index 0 is empty for Col A)
-            // Skip borders for completely empty placeholder columns (like Col A in Daily)
-            if (!(colNumber === 1 && rowData[0] === '')) {
-              cell.border = {
-                top: { style: 'thin' },
-                left: { style: 'thin' },
-                bottom: { style: 'thin' },
-                right: { style: 'thin' }
-              };
-            }
-          }
-        });
-        insertedRow.commit();
-      });
-      
-      // Delete the original placeholder row which has now been pushed down
-      worksheet.spliceRows(startRow + rows.length, 1);
-    }
-
-    if (netShift !== 0) {
-      // Re-merge at shifted positions
-      mergesToShift.forEach(m => {
-        const tl = worksheet.getCell(m.top + netShift, m.left).address;
-        const br = worksheet.getCell(m.bottom + netShift, m.right).address;
-        worksheet.mergeCells(`${tl}:${br}`);
-      });
-    }
-
-    // Fix ExcelJS Shared Formula issue when inserting rows
-    worksheet.eachRow((row) => {
-      row.eachCell((cell) => {
-        if (cell.type === ExcelJS.ValueType.Formula && cell.formulaType === ExcelJS.FormulaType.Shared) {
-          try {
-            const formulaStr = cell.formula;
-            if (formulaStr) {
-              // Convert shared formula to normal formula to avoid breaking refs when shifting rows
-              cell.value = {
-                formula: formulaStr,
-                result: cell.result
-              };
-            } else {
-              // If exceljs failed to translate the shared formula (undefined), fallback to static result
-              cell.value = cell.result;
-            }
-          } catch (e) {
-            // If reading cell.formula crashes (known exceljs bug), fallback to static result
-            cell.value = cell.result;
-          }
-        }
-      });
-    });
-
-    // Dynamically update the signature date to match the download date
-    const today = new Date();
-    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-    const formattedDate = `Penajam Paser Utara, ${today.getDate()} ${months[today.getMonth()]} ${today.getFullYear()}`;
-
-    worksheet.eachRow((row) => {
-      row.eachCell((cell) => {
-        if (cell.type === ExcelJS.ValueType.String && typeof cell.value === 'string') {
-          if (cell.value.includes('Penajam Paser Utara,')) {
-            cell.value = formattedDate;
-          }
-        }
-      });
-    });
-
-    // Write to buffer
     const buffer = await workbook.xlsx.writeBuffer();
-
     return new NextResponse(buffer, {
       status: 200,
       headers: {

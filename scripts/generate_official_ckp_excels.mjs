@@ -5,10 +5,53 @@ import { aggregateCkpBySkpAndSatuan, getEntrySkpIds } from '../src/utils/ckpAggr
 import { ckpOktoberEntries } from '../src/data/ckpOktober2026.js';
 import { skpData } from '../src/data/skpData.js';
 
-async function generateCkpExcel(type, outputPath) {
+export function copySheet(srcWs, destWs) {
+  if (srcWs.pageSetup) destWs.pageSetup = JSON.parse(JSON.stringify(srcWs.pageSetup));
+  if (srcWs.views) destWs.views = JSON.parse(JSON.stringify(srcWs.views));
+  if (srcWs.properties) destWs.properties = JSON.parse(JSON.stringify(srcWs.properties));
+
+  if (srcWs.columns) {
+    destWs.columns = srcWs.columns.map(col => ({
+      header: col.header,
+      key: col.key,
+      width: col.width,
+      hidden: col.hidden,
+      style: col.style
+    }));
+  }
+
+  srcWs.eachRow({ includeEmpty: true }, (row, rowNumber) => {
+    const newRow = destWs.getRow(rowNumber);
+    if (row.height) newRow.height = row.height;
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      const newCell = newRow.getCell(colNumber);
+      if (cell.type === ExcelJS.ValueType.Formula) {
+        newCell.value = {
+          formula: cell.formula,
+          result: cell.result
+        };
+      } else {
+        newCell.value = cell.value;
+      }
+      if (cell.style) {
+        newCell.style = JSON.parse(JSON.stringify(cell.style));
+      }
+      if (cell.numFmt) newCell.numFmt = cell.numFmt;
+    });
+  });
+
+  for (const merge of Object.values(srcWs._merges)) {
+    try {
+      destWs.mergeCells(merge.model.top, merge.model.left, merge.model.bottom, merge.model.right);
+    } catch (e) {}
+  }
+}
+
+export async function buildCkpWorkbook(type) {
   const isCkpt = type === 'ckpt';
   const templateName = isCkpt ? 'template_ckp_t.xlsx' : 'template_ckp_r.xlsx';
   const startRow = 12;
+  const placeholderCount = 2;
   const templatePath = path.join(process.cwd(), 'public', 'export_templates', templateName);
 
   const { aggregated, allSortedKeys } = aggregateCkpBySkpAndSatuan(ckpOktoberEntries, skpData);
@@ -55,7 +98,7 @@ async function generateCkpExcel(type, outputPath) {
     if (cell) cell.value = cellUpdates[cellRef];
   });
 
-  const netShift = (rows && rows.length > 0) ? rows.length - 1 : 0;
+  const netShift = rows.length - placeholderCount;
   const mergesToShift = [];
 
   if (netShift !== 0) {
@@ -95,7 +138,7 @@ async function generateCkpExcel(type, outputPath) {
       insertedRow.commit();
     });
 
-    worksheet.spliceRows(startRow + rows.length, 1);
+    worksheet.spliceRows(startRow + rows.length, placeholderCount);
   }
 
   if (netShift !== 0) {
@@ -104,6 +147,24 @@ async function generateCkpExcel(type, outputPath) {
       const br = worksheet.getCell(m.bottom + netShift, m.right).address;
       worksheet.mergeCells(`${tl}:${br}`);
     });
+  }
+
+  const formattedDate = 'Penajam Paser Utara, 31 Oktober 2026';
+  worksheet.eachRow((row) => {
+    row.eachCell((cell) => {
+      if (cell.type === ExcelJS.ValueType.String && typeof cell.value === 'string') {
+        if (cell.value.includes('Penajam Paser Utara,')) {
+          cell.value = formattedDate;
+        }
+      }
+    });
+  });
+
+  if (!isCkpt) {
+    const lastDataRow = startRow + rows.length - 1;
+    const rataRataRow = startRow + rows.length + 1;
+    const avgCell = worksheet.getCell(`F${rataRataRow}`);
+    avgCell.value = { formula: `AVERAGE(F12:F${lastDataRow})`, result: 100 };
   }
 
   worksheet.eachRow((row) => {
@@ -123,11 +184,10 @@ async function generateCkpExcel(type, outputPath) {
     });
   });
 
-  await workbook.xlsx.writeFile(outputPath);
-  console.log(`[SUCCESS] Generated ${outputPath}`);
+  return workbook;
 }
 
-async function generateDailyExcel(outputPath) {
+export async function buildDailyWorkbook() {
   const templateName = 'template_ckp_daily.xlsx';
   const startRow = 9;
   const templatePath = path.join(process.cwd(), 'public', 'export_templates', templateName);
@@ -252,8 +312,33 @@ async function generateDailyExcel(outputPath) {
     });
   });
 
-  await workbook.xlsx.writeFile(outputPath);
+  return workbook;
+}
+
+export async function generateCkpExcel(type, outputPath) {
+  const wb = await buildCkpWorkbook(type);
+  await wb.xlsx.writeFile(outputPath);
   console.log(`[SUCCESS] Generated ${outputPath}`);
+}
+
+export async function generateDailyExcel(outputPath) {
+  const wb = await buildDailyWorkbook();
+  await wb.xlsx.writeFile(outputPath);
+  console.log(`[SUCCESS] Generated ${outputPath}`);
+}
+
+export async function generateCombinedCkpExcel(outputPath) {
+  const wbDaily = await buildDailyWorkbook();
+  const wbCkpt = await buildCkpWorkbook('ckpt');
+  const wbCkpr = await buildCkpWorkbook('ckpr');
+
+  const wbCombined = new ExcelJS.Workbook();
+  copySheet(wbDaily.worksheets[0], wbCombined.addWorksheet('CKP-Daily'));
+  copySheet(wbCkpt.worksheets[0], wbCombined.addWorksheet('CKP-T'));
+  copySheet(wbCkpr.worksheets[0], wbCombined.addWorksheet('CKP-R'));
+
+  await wbCombined.xlsx.writeFile(outputPath);
+  console.log(`[SUCCESS] Generated Combined (3-in-1): ${outputPath}`);
 }
 
 async function main() {
@@ -283,11 +368,18 @@ async function main() {
     path.join(kedinasanDir, 'CKP-Daily_Oktober_2026_Yahya_Abdurrohman.xlsx'),
   ];
 
+  const combinedFiles = [
+    path.join(downloadDir, 'CKP_Oktober_2026_Yahya_Abdurrohman.xlsx'),
+    path.join(downloadDir, 'CKP-Paket_Oktober_2026_Yahya_Abdurrohman.xlsx'),
+    path.join(kedinasanDir, 'CKP_Oktober_2026_Yahya_Abdurrohman.xlsx'),
+    path.join(kedinasanDir, 'CKP-Paket_Oktober_2026_Yahya_Abdurrohman.xlsx'),
+  ];
+
   for (const f of ckptFiles) {
     try {
       await generateCkpExcel('ckpt', f);
     } catch (err) {
-      console.error('Failed to generate', f, err);
+      console.error('Failed to generate', f, err.message);
     }
   }
 
@@ -295,7 +387,7 @@ async function main() {
     try {
       await generateCkpExcel('ckpr', f);
     } catch (err) {
-      console.error('Failed to generate', f, err);
+      console.error('Failed to generate', f, err.message);
     }
   }
 
@@ -303,9 +395,19 @@ async function main() {
     try {
       await generateDailyExcel(f);
     } catch (err) {
-      console.error('Failed to generate', f, err);
+      console.error('Failed to generate', f, err.message);
+    }
+  }
+
+  for (const f of combinedFiles) {
+    try {
+      await generateCombinedCkpExcel(f);
+    } catch (err) {
+      console.error('Failed to generate combined', f, err.message);
     }
   }
 }
 
-main();
+if (process.argv[1] && process.argv[1].endsWith('generate_official_ckp_excels.mjs')) {
+  main();
+}

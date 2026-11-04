@@ -391,6 +391,51 @@ try {
 }
 
 // ========================================================
+// SUITE 11: COMBINED 3-IN-1 EXCEL WORKBOOK (DAILY, CKP-T, CKP-R)
+// ========================================================
+console.log('\n--- SUITE 11: Combined 3-in-1 Excel Workbook ---');
+import ExcelJS from 'exceljs';
+
+const combinedExcelPath = 'C:\\Users\\ajian\\Downloads\\CKP_Oktober_2026_Yahya_Abdurrohman.xlsx';
+assert(fs.existsSync(combinedExcelPath), 'Combined 3-in-1 Excel file exists in Downloads');
+
+if (fs.existsSync(combinedExcelPath)) {
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.readFile(combinedExcelPath);
+  const sheetNames = wb.worksheets.map(w => w.name);
+  assert(sheetNames.includes('CKP-Daily'), 'Contains CKP-Daily worksheet');
+  assert(sheetNames.includes('CKP-T'), 'Contains CKP-T worksheet');
+  assert(sheetNames.includes('CKP-R'), 'Contains CKP-R worksheet');
+
+  const wsDaily = wb.getWorksheet('CKP-Daily');
+  assert(wsDaily.rowCount >= 54, 'CKP-Daily has all 45 activities + headers (rowCount: ' + wsDaily.rowCount + ')');
+
+  const wsT = wb.getWorksheet('CKP-T');
+  assert(wsT.rowCount === 33, 'CKP-T has exactly 33 rows with 0 stray placeholders');
+
+  const wsR = wb.getWorksheet('CKP-R');
+  assert(wsR.rowCount === 33, 'CKP-R has exactly 33 rows with 0 stray placeholders');
+
+  const f25 = wsR.getCell('F25').value;
+  const isAvgFormula = f25 && (f25.formula === 'AVERAGE(F12:F23)' || (typeof f25 === 'string' && f25.includes('AVERAGE')));
+  assert(Boolean(isAvgFormula), 'CKP-R Rata-rata formula dynamically targets AVERAGE(F12:F23)');
+
+  let allDatesOk = true;
+  wb.worksheets.forEach(ws => {
+    let foundDate = false;
+    ws.eachRow(row => {
+      row.eachCell(cell => {
+        if (typeof cell.value === 'string' && cell.value.includes('Penajam Paser Utara, 31 Oktober 2026')) {
+          foundDate = true;
+        }
+      });
+    });
+    if (!foundDate) allDatesOk = false;
+  });
+  assert(allDatesOk, 'All 3 sheets feature verified signature date "Penajam Paser Utara, 31 Oktober 2026"');
+}
+
+// ========================================================
 // FINAL SUMMARY
 // ========================================================
 console.log('\n====================================================');
